@@ -1,0 +1,15 @@
+# Cloudflare Worker — Blizzard Battle.net proxy for character lookups
+# Deploy: npx wrangler deploy
+# Secrets: npx wrangler secret put BNET_CLIENT_ID
+#          npx wrangler secret put BNET_CLIENT_SECRET
+
+name = "lootlog-blizzard-proxy"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+# Default region for Battle.net API hosts (us | eu | kr | tw)
+BNET_REGION = "us"
+# Allowed browser origins (comma-separated). Empty = allow all (dev only).
+# Example: https://midnightrodeo2026.github.io,http://localhost:5500
+CORS_ORIGINS = ""
