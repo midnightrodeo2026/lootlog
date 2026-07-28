@@ -1,40 +1,49 @@
 # Midnight Rodeo — Loot Ledger
 
-A shared loot-council ledger for **Midnight Rodeo** (Burning Crusade Classic aesthetic + Classic armory lookups).  
-Paste [Gargul](https://github.com/papa-smurf/Gargul) exports, brand the loot, and look up raiders on Blizzard’s WoW Classic Profile API.
+Modern guild loot council tool for **TBC Classic** aesthetics: Gargul imports, raid view logs, item distribution, and Blizzard Classic gear sync.
 
-**Repo:** https://github.com/midnightrodeo2026/lootlog
+**Live work copy:** https://github.com/vorlof69/lootlog  
+**Target org repo:** https://github.com/midnightrodeo2026/lootlog
 
 ## Features
 
-- **Overview** — guild-wide stats and recent activity  
-- **Ledger** — paste Gargul exports (CSV / JSON), edit/delete when unlocked  
-- **Roster** — wranglers ranked by loot + **Blizzard character lookup** (class / spec / iLvl)  
-- **Items** — drop frequency with Wowhead TBC icons and quality colors  
-- **Raids** — nights grouped by date, CSV export, disenchant notes  
-- **Lootmaster login** — UI gate only (see security note)
+| Tab | What you get |
+|-----|----------------|
+| **Overview** | Raids / items / raiders KPIs, shortcut cards, share + backup JSON |
+| **Ledger** | Paste Gargul (CSV / JSON), brand loot, DE notes, CSV export |
+| **Roster** | Rank, class-colored names, iLvl, last active, **Gear sync** timestamps |
+| **Items** | Unique / total / most-dropped, quality colors, drop bars |
+| **Raids** | History list → **View log** (awards + disenchants + CSV + copy link) |
 
-## Character lookups (Blizzard API)
+## Quick start
 
-The browser cannot hold a Battle.net client secret. Character lookups go through a tiny Cloudflare Worker:
+1. Open `index.html` in a browser (or host on GitHub Pages).  
+2. **Lootmaster Login** → set a password (this browser only).  
+3. Paste a Gargul export on **Ledger** → **Brand it** (auto-resolves item names via Wowhead TBC).  
+4. Optional gear sync: deploy the Blizzard proxy and fill `config.js`.
 
-```
-api/blizzard-proxy  →  oauth.battle.net  →  {region}.api.blizzard.com
-```
+## Gargul
 
-### What you get
+Supported pastes:
 
-| Field | Source |
-|-------|--------|
-| Class | Character profile summary |
-| Spec | Specializations endpoint |
-| iLvl | Profile average / equipped, else gear average |
-| Race, guild, level | Profile summary |
+- **Simple lines:** `2026-07-28,PlayerName,28729`
+- **Header CSV:** columns like Player, Item, Item ID, Date, Reason…
+- **Detailed JSON:** array of award objects (`awardedTo`, `item.id`, etc.)
+- **TSV** (tab-separated)
 
-### One-time setup
+After import, **Resolve item names** fills names, icons, quality, and item iLvl from Wowhead TBC (`dataEnv=5`).
 
-1. Create API credentials: https://develop.battle.net/access/clients  
-2. Deploy the proxy (see [`api/blizzard-proxy/README.md`](api/blizzard-proxy/README.md)):
+### Best Gargul workflow
+
+1. In-game: award loot with Gargul as usual.  
+2. `/gl export` → Detailed JSON (preferred) or Simple string.  
+3. Paste into Ledger → Brand it.  
+4. Mark disenchants with ♻ on an entry.  
+5. Open **Raids → View log** for officer Discord paste / CSV.
+
+## Character gear sync (Blizzard API)
+
+Browsers cannot hold a Battle.net **client secret**. Use the proxy:
 
 ```bash
 cd api/blizzard-proxy
@@ -45,48 +54,46 @@ npx wrangler secret put BNET_CLIENT_SECRET
 npx wrangler deploy
 ```
 
-3. Edit root `config.js`:
+Then `config.js`:
 
 ```js
 window.LOOTLOG_CONFIG = {
-  blizzardProxyUrl: 'https://lootlog-blizzard-proxy.YOUR_SUBDOMAIN.workers.dev',
+  blizzardProxyUrl: 'https://lootlog-blizzard-proxy.YOUR.workers.dev',
   region: 'us',
-  game: 'classic',       // or 'classic1x' for Classic Era
-  defaultRealm: 'Benediction',
+  game: 'classic',
+  defaultRealm: 'YourRealm',
 };
 ```
 
-4. Open the **Roster** tab → set realm → **Test API** → **Lookup** on a wrangler (or **Lookup all**).
+Roster → enter realm → **Test API** → **Gear sync** / **Gear sync all**.
 
-### Classic vs TBC
+> Armory uses **current Classic** namespaces (`profile-classic-*`). Loot icons still use **Wowhead TBC**.
 
-- **Items / tooltips** use Wowhead **TBC** (`domain=tbc`) so loot icons match BC gear.  
-- **Character armory** uses Blizzard **Classic Profile** namespaces (`profile-classic-*` or `profile-classic1x-*`). There is no separate live “TBC Classic only” armory anymore — pick the realm/game your raiders actually play on.
+## Data & sharing
 
-## Running the site
-
-No build step. Open `index.html` locally, or host on **GitHub Pages**:
-
-1. Push to `main`  
-2. Settings → Pages → Deploy from branch → `main` / root  
-3. Site: `https://midnightrodeo2026.github.io/lootlog/`
-
-Data is stored in **localStorage** (or Claude’s `window.storage` when present). It is per-browser, not a shared guild database yet — export CSV when you need a backup.
-
-## Security note
-
-Lootmaster login only hides edit controls in the UI. Anyone with the password (or page source) can still change local data. Do not treat it as real auth.
+- Default storage: **localStorage** (per browser).  
+- **Export backup JSON** / **Import backup** on Overview for guild handoff.  
+- For true multi-officer live sync, add Supabase/Firebase next (recommended).
 
 ## Project layout
 
 ```
-index.html                 # App UI
-config.js                  # Proxy URL + realm defaults
-config.example.js          # Template
-js/wow-api.js              # Character + optional item helpers
-api/blizzard-proxy/        # Cloudflare Worker (OAuth + Profile API)
+index.html              # App
+config.js               # Proxy URL + realm
+js/wow-api.js           # Blizzard + Wowhead helpers
+api/blizzard-proxy/     # Cloudflare Worker
 ```
+
+## Recommended next upgrades
+
+See the product notes in the last commit message / chat — top picks:
+
+1. **Shared Supabase backend** (one guild link for everyone)  
+2. **Player profile page** (personal loot history + gear sheet)  
+3. **Soft-reserve import** from Gargul softres  
+4. **Discord webhook** when a raid is branded  
+5. **Guild roster rank pull** via Blizzard guild API  
 
 ## Credits
 
-Built for Midnight Rodeo. Item tooltips via [Wowhead TBC](https://www.wowhead.com/tbc). Character data via [Battle.net Developer API](https://develop.battle.net/). Loot imports from [Gargul](https://github.com/papa-smurf/Gargul).
+Midnight Rodeo guild. Items via [Wowhead TBC](https://www.wowhead.com/tbc). Characters via [Battle.net API](https://develop.battle.net/). Imports from [Gargul](https://github.com/papa-smurf/Gargul).

@@ -1,11 +1,14 @@
-// Local / deploy config for character lookups.
-// Get free API keys: https://develop.battle.net/access/clients
-// Deploy api/blizzard-proxy, then paste its URL below.
+// Midnight Rodeo lootlog config
+// Battle.net keys: https://develop.battle.net/access/clients
+// Deploy: api/blizzard-proxy (see its README)
 
 window.LOOTLOG_CONFIG = {
-  blizzardProxyUrl: '', // e.g. 'https://lootlog-blizzard-proxy.yourname.workers.dev'
+  // Cloudflare Worker URL after `npx wrangler deploy`
+  blizzardProxyUrl: '',
+
   region: 'us',
-  game: 'classic', // 'classic' (progression) | 'classic1x' (era)
+  game: 'classic', // 'classic' | 'classic1x'
   defaultRealm: '',
   locale: 'en_US',
+  guildName: 'Midnight Rodeo',
 };
