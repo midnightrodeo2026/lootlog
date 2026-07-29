@@ -552,9 +552,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         <div class="pen">
           <div class="pen-head">
             <div class="pen-title">Paste Gargul export</div>
-            <div class="pen-hint">Simple CSV · header CSV · Detailed JSON — auto-detected</div>
+            <div class="pen-hint">Guild format: <code>date,player,itemId</code> · also CSV headers · Detailed JSON</div>
           </div>
-          <textarea class="input" id="mrPaste" placeholder="2026-07-28,Aerindel,28729&#10;2026-07-28,Thorvak,28714&#10;&#10;…or /gl export Detailed JSON"></textarea>
+          <textarea class="input" id="mrPaste" placeholder="2026-03-20,Aerindel,219333&#10;2026-03-20,Thorvak,219354&#10;2026-03-20,Lunara,219312&#10;&#10;…or /gl export Detailed JSON"></textarea>
+          <button class="btn btn-ghost" id="mrSampleBtn" type="button" style="margin-top:8px">Load sample (3 lines)</button>
           <div class="row">
             <button class="btn btn-amber" id="mrBrandBtn" type="button">🔥 Brand it</button>
             <button class="btn btn-ghost" id="mrClearPaste" type="button">Clear</button>
@@ -1005,21 +1006,38 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     return 'rank-label';
   }
 
-  function whIcon(itemId) {
+  function itemDomain(e) {
+    if (e && e.wowDomain != null) return e.wowDomain;
+    if (e && e.domain != null) return e.domain;
+    return ''; // retail default — sample Gargul IDs are current content
+  }
+  function whHref(itemId, domain) {
+    if (window.WowApi && WowApi.wowheadItemUrl) return WowApi.wowheadItemUrl(itemId, domain);
+    const id = encodeURIComponent(String(itemId || '').replace(/\D/g, ''));
+    return domain ? `https://www.wowhead.com/${domain}/item=${id}` : `https://www.wowhead.com/item=${id}`;
+  }
+  function whDataAttr(domain) {
+    if (window.WowApi && WowApi.wowheadDataAttr) return WowApi.wowheadDataAttr(domain);
+    return domain ? ` data-wowhead="domain=${domain}"` : '';
+  }
+  function whIcon(itemId, domain) {
     if (!itemId) return '';
-    return `<a class="wh" href="https://www.wowhead.com/tbc/item=${encodeURIComponent(itemId)}" data-wowhead="domain=tbc" target="_blank" rel="noopener"></a>`;
+    const d = domain || '';
+    return `<a class="wh" href="${whHref(itemId, d)}"${whDataAttr(d)} target="_blank" rel="noopener"></a>`;
   }
   function itemLink(e) {
     const q = qualityClass(e.qualityNum != null ? e.qualityNum : e.quality);
     const name = escapeHtml(e.item || ('Item #' + (e.itemId || '?')));
     if (!e.itemId) return `<span class="${q}">${name}</span>`;
-    return `<a class="wh-name ${q}" href="https://www.wowhead.com/tbc/item=${encodeURIComponent(e.itemId)}" data-wowhead="domain=tbc" target="_blank" rel="noopener">${name}</a>`;
+    const d = itemDomain(e);
+    return `<a class="wh-name ${q}" href="${whHref(e.itemId, d)}"${whDataAttr(d)} target="_blank" rel="noopener">${name}</a>`;
   }
   function itemCell(e) {
+    const d = itemDomain(e);
     const ico = e.itemId
       ? (e.iconUrl
           ? `<div class="item-ico"><img src="${escapeHtml(e.iconUrl)}" alt="" loading="lazy" /></div>`
-          : `<div class="item-ico">${whIcon(e.itemId)}</div>`)
+          : `<div class="item-ico">${whIcon(e.itemId, d)}</div>`)
       : `<div class="item-ico"></div>`;
     return `<div class="item-cell">${ico}${itemLink(e)}</div>`;
   }
@@ -1153,6 +1171,42 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   }
 
   /* ---- Gargul parsing ---- */
+  function normalizeRaidDate(dateStr) {
+    if (!dateStr) return new Date().toISOString();
+    const s = String(dateStr).trim();
+    // YYYY-MM-DD → ISO noon UTC (stable dayKey, no TZ flip)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s + 'T12:00:00.000Z';
+    if (/^\d{4}-\d{1,2}-\d{1,2}/.test(s)) {
+      const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (m) {
+        const p = (n) => String(n).padStart(2, '0');
+        return `${m[1]}-${p(m[2])}-${p(m[3])}T12:00:00.000Z`;
+      }
+    }
+    const dt = new Date(s);
+    if (!isNaN(dt.getTime())) return dt.toISOString();
+    return s;
+  }
+
+  function makeEntry({ date, player, itemId, itemName, rollType, itemIlvl, quality, disenchantsInto }) {
+    const id = String(itemId || '').replace(/\D/g, '');
+    const name = (itemName && String(itemName).trim()) || (id ? 'Item #' + id : '');
+    if (!player || !name) return null;
+    return {
+      id: uid(),
+      date: normalizeRaidDate(date),
+      submittedAt: new Date().toISOString(),
+      player: String(player).trim(),
+      item: name,
+      itemId: id,
+      itemIlvl: itemIlvl ? String(itemIlvl).replace(/[^\d.]/g, '') : '',
+      rollType: rollType || '',
+      quality: quality || '',
+      disenchantsInto: disenchantsInto || '',
+      wowDomain: '',
+    };
+  }
+
   function parsePaste(raw) {
     raw = (raw || '').trim();
     if (!raw) return [];
@@ -1164,7 +1218,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
       if (data && Array.isArray(data.Items)) return data.Items.map(rowToEntry).filter(Boolean);
       if (data && Array.isArray(data.items)) return data.items.map(rowToEntry).filter(Boolean);
       if (data && Array.isArray(data.SoftReserves)) {
-        // ignore softres-only
+        // softres-only — ignore here
       }
     } catch { /* not JSON */ }
 
@@ -1172,30 +1226,29 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     if (!lines.length) return [];
     const out = [];
     const splitCsv = (line) => {
-      // basic CSV with optional quotes
       const cells = [];
       let cur = '', q = false;
       for (let i = 0; i < line.length; i++) {
         const ch = line[i];
         if (ch === '"') { q = !q; continue; }
-        if (ch === ',' && !q) { cells.push(cur.trim()); cur = ''; continue; }
+        if ((ch === ',' || ch === ';' || ch === '\t') && !q) { cells.push(cur.trim()); cur = ''; continue; }
         cur += ch;
       }
       cells.push(cur.trim());
       return cells;
     };
     const looksLikeDate = (s) => !!s && (/^\d{4}-\d{1,2}-\d{1,2}/.test(s) || /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s));
-    const looksLikeNumId = (s) => /^\d{2,}$/.test(s || '');
+    const looksLikeNumId = (s) => /^\d{3,}$/.test(s || ''); // item IDs are 3+ digits
 
     function classifyHeader(h) {
       const s = (h || '').toLowerCase();
       if (s.includes('item') && s.includes('id')) return 'itemId';
       if (s.includes('item') && (s.includes('name') || s === 'item')) return 'itemName';
-      if (s.includes('item')) return 'itemName';
+      if (s === 'item' || (s.includes('item') && !s.includes('level'))) return 'itemName';
       if (s.includes('date')) return 'date';
       if (s.includes('reason') || s.includes('response') || s.includes('roll') || s.includes('type')) return 'rollType';
-      if (s.includes('player') || s.includes('winner') || s.includes('recipient') || s.includes('name') || s.includes('character')) return 'player';
-      if (s.includes('ilvl') || s.includes('item level') || s.includes('level')) return 'itemIlvl';
+      if (s.includes('player') || s.includes('winner') || s.includes('recipient') || s.includes('character') || s === 'name' || s === 'raider') return 'player';
+      if (s.includes('ilvl') || s.includes('item level')) return 'itemIlvl';
       if (s.includes('quality')) return 'quality';
       if (s.includes('disenchant')) return 'disenchantsInto';
       return null;
@@ -1203,14 +1256,29 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
     const first = splitCsv(lines[0]);
     const headerMap = first.map(classifyHeader);
-    const hasHeader = headerMap.filter(Boolean).length >= 2 && !first.some(c => looksLikeDate(c));
+    // Header only if labeled columns AND first cell is not a raid date (Gargul simple starts with date)
+    const hasHeader = headerMap.filter(Boolean).length >= 2 && !looksLikeDate(first[0]);
 
     for (let i = hasHeader ? 1 : 0; i < lines.length; i++) {
-      // TSV fallback
-      const cells = lines[i].includes('\t') && !lines[i].includes(',')
-        ? lines[i].split('\t').map(x => x.trim())
-        : splitCsv(lines[i]);
+      const line = lines[i];
 
+      // Preferred: date,player,itemId  (your guild Gargul simple export)
+      if (!hasHeader && window.WowApi && typeof WowApi.parseGargulSimpleLine === 'function') {
+        const simple = WowApi.parseGargulSimpleLine(line);
+        if (simple && simple.player && (simple.itemId || simple.itemName)) {
+          const e = makeEntry({
+            date: simple.date,
+            player: simple.player,
+            itemId: simple.itemId,
+            itemName: simple.itemName,
+            rollType: simple.rollType,
+          });
+          if (e) out.push(e);
+          continue;
+        }
+      }
+
+      const cells = splitCsv(line);
       let date = '', player = '', itemId = '', itemName = '', rollType = '', itemIlvl = '', quality = '', disenchantsInto = '';
 
       if (hasHeader) {
@@ -1226,34 +1294,24 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
           else if (field === 'quality') quality = val;
           else if (field === 'disenchantsInto') disenchantsInto = val;
         });
+      } else if (cells.length >= 3 && looksLikeDate(cells[0]) && looksLikeNumId(cells[2])) {
+        // Hard path: date, player, itemId  ← exact guild format
+        date = cells[0];
+        player = cells[1];
+        itemId = cells[2].replace(/\D/g, '');
+        rollType = cells[3] || '';
       } else {
-        // Heuristic: date, player, id|name, optional reason
-        // Common Gargul simple: date,player,itemId  OR date,player,itemName
         for (const c of cells) {
           if (!date && looksLikeDate(c)) { date = c; continue; }
-          if (!itemId && looksLikeNumId(c) && Number(c) > 20) { itemId = c; continue; }
+          if (!itemId && looksLikeNumId(c)) { itemId = c; continue; }
           if (!player) { player = c; continue; }
           if (!itemName && !looksLikeNumId(c)) { itemName = c; continue; }
           if (!rollType) { rollType = c; continue; }
         }
       }
 
-      if (!player) continue;
-      if (!itemName) itemName = itemId ? ('Item #' + itemId) : '';
-      if (!itemName) continue;
-
-      out.push({
-        id: uid(),
-        date: date || new Date().toISOString(),
-        submittedAt: new Date().toISOString(),
-        player,
-        item: itemName,
-        itemId,
-        itemIlvl: itemIlvl || '',
-        rollType,
-        quality,
-        disenchantsInto,
-      });
+      const e = makeEntry({ date, player, itemId, itemName, rollType, itemIlvl, quality, disenchantsInto });
+      if (e) out.push(e);
     }
     return out;
   }
@@ -1267,20 +1325,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
       item = row.item.name || item;
       itemId = row.item.id != null ? String(row.item.id) : itemId;
     }
-    if (!player || (!item && !itemId)) return null;
-    item = typeof item === 'string' ? item : (itemId ? 'Item #' + itemId : '');
-    return {
-      id: uid(),
-      date: row.date || row.timestamp || row.time || new Date().toISOString(),
-      submittedAt: new Date().toISOString(),
-      player: String(player),
-      item,
-      itemId: itemId ? String(itemId).replace(/\D/g, '') : '',
-      itemIlvl: row.itemIlvl || row.ilvl || row.level || '',
+    return makeEntry({
+      date: row.date || row.timestamp || row.time || '',
+      player,
+      itemId,
+      itemName: typeof item === 'string' ? item : '',
       rollType: row.rollType || row.type || row.response || row.reason || '',
+      itemIlvl: row.itemIlvl || row.ilvl || row.level || '',
       quality: row.quality || '',
       disenchantsInto: row.disenchantsInto || row.disenchant || '',
-    };
+    });
   }
 
   function dedupeAdd(newOnes) {
@@ -1304,28 +1358,44 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
   async function enrichItems(list) {
     if (!window.WowApi) return 0;
-    const ids = (list || entries).map(e => e.itemId).filter(Boolean);
+    const target = list || entries;
+    const ids = target.map(e => e.itemId).filter(Boolean);
     if (!ids.length) return 0;
-    const map = await window.WowApi.lookupItemsTbc(ids, {
+    const lookup = WowApi.lookupItems || WowApi.lookupItemsTbc;
+    const map = await lookup.call(WowApi, ids, {
       onProgress: (d, t) => setMsg(`Resolving items ${d}/${t}…`),
     });
     let n = 0;
-    for (const e of entries) {
-      if (!e.itemId) continue;
+    // Apply to both the batch and matching ledger rows
+    const apply = (e) => {
+      if (!e.itemId) return;
       const metaItem = map[e.itemId];
-      if (!metaItem) continue;
+      if (!metaItem) return;
       let changed = false;
       if (metaItem.name && (!e.item || /^Item #\d+$/i.test(e.item))) {
         e.item = metaItem.name;
         changed = true;
       }
-      if (metaItem.ilvl && !e.itemIlvl) { e.itemIlvl = String(metaItem.ilvl); changed = true; }
-      if (metaItem.quality != null) { e.qualityNum = metaItem.quality; e.quality = metaItem.qualityName || e.quality; changed = true; }
+      if (metaItem.ilvl != null && metaItem.ilvl !== '' && !e.itemIlvl) {
+        e.itemIlvl = String(metaItem.ilvl);
+        changed = true;
+      }
+      if (metaItem.quality != null) {
+        e.qualityNum = metaItem.quality;
+        e.quality = metaItem.qualityName || e.quality;
+        changed = true;
+      }
       if (metaItem.iconUrl) { e.iconUrl = metaItem.iconUrl; changed = true; }
+      if (metaItem.domain != null && e.wowDomain !== metaItem.domain) {
+        e.wowDomain = metaItem.domain;
+        changed = true;
+      }
       if (changed) n++;
-    }
+    };
+    target.forEach(apply);
+    entries.forEach(apply);
     if (n) await saveEntries();
-    setMsg(n ? `Enriched ${n} entries from Wowhead TBC.` : 'No new item data.');
+    setMsg(n ? `Resolved ${n} item field(s) from Wowhead.` : 'No new item data found.');
     return n;
   }
 
@@ -1469,7 +1539,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     } else {
       el.innerHTML = recent.map(e => `
         <div class="lcard">
-          <div class="stamp${e.itemId ? ' has-ico' : ''}">${e.itemId ? whIcon(e.itemId) : escapeHtml((e.player||'').slice(0,2).toUpperCase())}</div>
+          <div class="stamp${e.itemId ? ' has-ico' : ''}">${e.itemId ? whIcon(e.itemId, itemDomain(e)) : escapeHtml((e.player||'').slice(0,2).toUpperCase())}</div>
           <div>
             <div>${itemLink(e)}</div>
             <div class="sub">to <b>${escapeHtml(e.player)}</b></div>
@@ -1512,7 +1582,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
       const initials = (e.player || '??').slice(0, 2).toUpperCase();
       html += `
         <div class="lcard" data-id="${e.id}">
-          <div class="stamp${e.itemId ? ' has-ico' : ''}">${e.itemId ? whIcon(e.itemId) : escapeHtml(initials)}</div>
+          <div class="stamp${e.itemId ? ' has-ico' : ''}">${e.itemId ? whIcon(e.itemId, itemDomain(e)) : escapeHtml(initials)}</div>
           <div>
             <div>
               ${itemLink(e)}
@@ -1861,6 +1931,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     updateGuildHeader();
   });
   $('mrClearPaste').addEventListener('click', () => { $('mrPaste').value = ''; });
+  if ($('mrSampleBtn')) {
+    $('mrSampleBtn').addEventListener('click', () => {
+      $('mrPaste').value = [
+        '2026-03-20,Aerindel,219333',
+        '2026-03-20,Thorvak,219354',
+        '2026-03-20,Lunara,219312',
+      ].join('\n');
+      setMsg('Sample loaded — click Brand it (lootmaster).');
+    });
+  }
   $('mrEnrichBtn').addEventListener('click', async () => {
     if (!canEdit()) return;
     await enrichItems(entries);
