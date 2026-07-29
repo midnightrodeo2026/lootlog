@@ -484,7 +484,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         <span class="dot">—</span>
         <span id="guildRegisteredLabel">LEDGER READY</span>
       </div>
-      <div class="banner-credit">TBC Classic guild manager · Created by <b>Hornyslewt</b></div>
+      <div class="banner-credit">Burning Crusade Classic <b>only</b> · Created by <b>Hornyslewt</b></div>
     </header>
 
     <nav class="tabs" role="tablist" id="mainTabs">
@@ -2693,8 +2693,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     if ($('setRhUrl') && rhUrl) $('setRhUrl').value = rhUrl;
 
     // Banner: TBC guild manager
+    // Always TBC Classic — no other expansions
+    if ($('rosterGame')) $('rosterGame').value = 'classic';
+    if ($('setGame')) $('setGame').value = 'classic';
     if ($('guildRealmLabel') && !gs.realm && !cfg.defaultRealm) {
-      $('guildRealmLabel').textContent = 'TBC CLASSIC';
+      $('guildRealmLabel').textContent = 'TBC CLASSIC ONLY';
     }
 
     await loadAll();
@@ -2712,8 +2715,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     const s = session();
     const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
     $('footerMsg').textContent = s
-      ? `${gname} TBC · ${s.displayName} · ${entries.length} loot · ${rhEvents.length} RH event(s)`
-      : `${gname} TBC guild manager · ${entries.length} loot · guest`;
+      ? `${gname} · TBC Classic only · ${s.displayName} · ${entries.length} loot · ${rhEvents.length} RH event(s)`
+      : `${gname} · TBC Classic only · ${entries.length} loot · guest`;
   })();
 
   window.addEventListener('hashchange', applyHash);
