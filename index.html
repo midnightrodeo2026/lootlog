@@ -486,6 +486,17 @@ a.wh-name > span[style*="background"],
 .comp-group .cg-member:last-child{border-bottom:none}
 .comp-group .cg-spec{color:var(--muted);font-size:11.5px;white-space:nowrap}
 
+.gm-pitch{
+  margin:14px 0 0;padding-left:20px;color:var(--muted);font-size:13.5px;line-height:1.55;
+}
+.gm-pitch li{margin:4px 0}
+.gm-pitch li b{color:var(--amber2)}
+.gm-tour{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;
+  padding-top:12px;border-top:1px dashed var(--line);
+}
+.gm-tour #gmTourLabel{flex:1;font-weight:600;color:var(--amber2);font-size:14px}
+
 /* Soft scrollbar */
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -544,6 +555,28 @@ a.wh-name > span[style*="background"],
 
     <!-- OVERVIEW -->
     <section id="panel-overview" class="panel">
+      <div class="pen" id="gmShowCard" style="margin-bottom:18px;border-color:rgba(227,161,60,.4)">
+        <div class="pen-head">
+          <div class="pen-title">Show the Guild Master</div>
+          <div class="pen-hint">Full Midnight Rodeo TBC demo · one click</div>
+        </div>
+        <p class="share-hint" style="text-align:left;max-width:none;margin:0 0 12px">
+          Loads <b>today’s 25-man</b> + last week’s loot, full roster with classes/specs,
+          Raid-Helper-style signups, and ready-to-run <b>Comp / blessings</b>. Perfect for a live walkthrough.
+        </p>
+        <div class="row" style="margin-top:0">
+          <button class="btn btn-amber" id="gmShowBtn" type="button">★ Load full GM demo</button>
+          <button class="btn btn-orange" id="gmTourBtn" type="button">▶ Walkthrough tabs</button>
+          <button class="btn btn-ghost" id="loadDemoBtn" type="button">⚔ Reload demo data</button>
+        </div>
+        <ol id="gmPitchList" class="gm-pitch"></ol>
+        <div id="gmTourBar" class="gm-tour hidden">
+          <span id="gmTourLabel">Step 1</span>
+          <button class="btn btn-ghost" id="gmTourPrev" type="button">← Back</button>
+          <button class="btn btn-amber" id="gmTourNext" type="button">Next →</button>
+          <button class="btn btn-ghost" id="gmTourEnd" type="button">End tour</button>
+        </div>
+      </div>
       <div class="stats">
         <div class="stat"><div class="stat-n" id="ovRaids">0</div><div class="stat-l">Raids Logged</div></div>
         <div class="stat"><div class="stat-n" id="ovItems">0</div><div class="stat-l">Total Items</div></div>
@@ -555,25 +588,24 @@ a.wh-name > span[style*="background"],
           <div class="card-t">Roster</div>
           <div class="card-d">Raid-Helper signups, class/spec, ranks, loot counts.</div>
         </button>
-        <button class="card" type="button" data-goto="items">
-          <div class="card-ico">⚖</div>
-          <div class="card-t">Items</div>
-          <div class="card-d">TBC item drops, icons, and recipients for the council.</div>
+        <button class="card" type="button" data-goto="comp">
+          <div class="card-ico">⚡</div>
+          <div class="card-t">Comp</div>
+          <div class="card-d">Buff groups + Paladin blessings for max DPS.</div>
         </button>
         <button class="card" type="button" data-goto="raids">
           <div class="card-ico">📄</div>
           <div class="card-t">Raids</div>
-          <div class="card-d">Raid-Helper import + loot logs for every raid night.</div>
+          <div class="card-d">RH import + loot logs. View log &amp; CSV.</div>
         </button>
       </div>
       <div class="share-row">
-        <button class="btn btn-amber" id="loadDemoBtn" type="button">⚔ Load demo raid (today)</button>
         <button class="btn btn-ghost" id="copyLinkBtn" type="button">🔗 Copy guild link</button>
         <button class="btn btn-ghost" id="exportAllBtn" type="button">⬇ Export backup JSON</button>
         <button class="btn btn-ghost" id="importAllBtn" type="button">⬆ Import backup</button>
         <input type="file" id="importFile" accept="application/json,.json" hidden />
       </div>
-      <p class="share-hint">Demo fills a <b>today</b> Midnight Rodeo 25-man with real roster classes + TBC loot. Share this page with officers; data is per browser until you export.</p>
+      <p class="share-hint">TBC Classic only · Created by <b>Hornyslewt</b> for Midnight Rodeo.</p>
       <div class="section-title" style="margin-top:28px">// Recent brands</div>
       <div id="ovRecent" class="ledger"></div>
     </section>
@@ -1608,10 +1640,12 @@ a.wh-name > span[style*="background"],
   }
 
   /* ---- Tabs ---- */
+  let lastComp = null;
+
   function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    ['overview','ledger','roster','items','raids','settings'].forEach(t => {
+    ['overview','ledger','roster','items','raids','comp','settings'].forEach(t => {
       const el = $('panel-' + t);
       if (el) el.hidden = t !== tab;
     });
@@ -1627,8 +1661,111 @@ a.wh-name > span[style*="background"],
     else if (currentTab === 'roster') renderRoster();
     else if (currentTab === 'items') renderItems();
     else if (currentTab === 'raids') renderRaids();
+    else if (currentTab === 'comp') renderComp();
     else if (currentTab === 'settings') renderSettings();
     updateGuildHeader();
+  }
+
+  function renderComp() {
+    if (!window.RaidComp) {
+      if ($('compEmpty')) {
+        $('compEmpty').hidden = false;
+        $('compEmpty').textContent = 'Raid comp module missing.';
+      }
+      return;
+    }
+    const players = RaidComp.fromAppState(playerInfo, rhEvents);
+    if (!players.length) {
+      if ($('compEmpty')) $('compEmpty').hidden = false;
+      if ($('compGroups')) $('compGroups').innerHTML = '';
+      if ($('compBlessings')) $('compBlessings').innerHTML = '';
+      if ($('compUtility')) $('compUtility').innerHTML = '';
+      return;
+    }
+    if ($('compEmpty')) $('compEmpty').hidden = true;
+
+    const result = RaidComp.analyze(players);
+    lastComp = result;
+    const c = result.counts;
+    if ($('compTotal')) $('compTotal').textContent = c.total;
+    if ($('compTanks')) $('compTanks').textContent = c.tanks;
+    if ($('compHeal')) $('compHeal').textContent = c.healers;
+    if ($('compMelee')) $('compMelee').textContent = c.melee;
+    if ($('compRanged')) $('compRanged').textContent = c.ranged;
+
+    const tips = $('compTips');
+    if (tips) {
+      if (result.tips && result.tips.length) {
+        tips.style.display = 'block';
+        tips.innerHTML = '<b>Raid lead tips:</b> ' + result.tips.map(escapeHtml).join(' · ');
+      } else tips.style.display = 'none';
+    }
+
+    if ($('compGroups')) {
+      $('compGroups').innerHTML = result.groups.map(g => `
+        <div class="comp-group">
+          <h4>${escapeHtml(g.label)}</h4>
+          <div class="cg-note">${escapeHtml(g.note)}</div>
+          ${g.buffs && g.buffs.length ? `<div class="cg-buffs">✦ ${g.buffs.map(escapeHtml).join(' · ')}</div>` : ''}
+          ${g.members.map(m => `
+            <div class="cg-member">
+              <span class="player-name ${classCss(m.class)}">${escapeHtml(m.name)}</span>
+              <span class="cg-spec">${escapeHtml(m.spec || m.class || '')}</span>
+            </div>`).join('') || '<div class="muted">Empty</div>'}
+        </div>`).join('');
+    }
+
+    if ($('compBlessings')) {
+      if (!result.blessings.assignments.length) {
+        $('compBlessings').innerHTML = `<div class="empty">No paladins to assign blessings.</div>`;
+      } else {
+        $('compBlessings').innerHTML = result.blessings.assignments.map(a => `
+          <div class="raid-row">
+            <div class="raid-meta">
+              <div><strong class="c-paladin">${escapeHtml(a.paladin)}</strong>
+                <span class="muted">(${escapeHtml(a.spec || 'Paladin')})</span>
+                → <span style="color:var(--amber2)">${escapeHtml(a.blessing)}</span>
+              </div>
+              <div class="muted">${escapeHtml(a.targetSummary)} · ${a.targets.length} players</div>
+              <div class="muted">${escapeHtml(a.why)}</div>
+            </div>
+          </div>`).join('') +
+          (result.blessings.notes || []).map(n =>
+            `<div class="notice" style="margin-top:8px">${escapeHtml(n)}</div>`
+          ).join('');
+      }
+    }
+
+    if ($('compUtility')) {
+      $('compUtility').innerHTML = (result.utility || []).map(u => `
+        <div class="raid-row">
+          <div class="raid-meta">
+            <div><strong>${escapeHtml(u.title)}</strong></div>
+            <div>${escapeHtml(u.detail)}</div>
+            <div class="muted">${escapeHtml(u.why)}</div>
+          </div>
+        </div>`).join('') || `<div class="empty">No extra utility detected.</div>`;
+    }
+  }
+
+  function compDiscordText() {
+    if (!lastComp) return '';
+    const lines = ['**Midnight Rodeo · TBC Comp (auto)**', ''];
+    lastComp.groups.forEach(g => {
+      lines.push(`**${g.label}** — _${g.note}_`);
+      if (g.buffs && g.buffs.length) lines.push(`Buffs: ${g.buffs.join(', ')}`);
+      g.members.forEach(m => lines.push(`• ${m.name} — ${m.spec || m.class || '?'}`));
+      lines.push('');
+    });
+    lines.push('**Paladin blessings**');
+    (lastComp.blessings.assignments || []).forEach(a => {
+      lines.push(`• **${a.paladin}** → ${a.blessing} (${a.targetSummary})`);
+    });
+    lines.push('');
+    (lastComp.utility || []).forEach(u => {
+      lines.push(`**${u.title}:** ${u.detail}`);
+    });
+    return lines.join('\n');
   }
 
   function raidGroups() {
@@ -2500,8 +2637,20 @@ a.wh-name > span[style*="background"],
     }
   });
 
+  let gmTour = [];
+  let gmTourStep = 0;
+
+  function fillGmPitch() {
+    const list = $('gmPitchList');
+    if (!list || !window.DemoData || !DemoData.GM_PITCH) return;
+    list.innerHTML = DemoData.GM_PITCH.map((line, i) =>
+      `<li><b>${i + 1}.</b> ${escapeHtml(line)}</li>`
+    ).join('');
+  }
+
   async function applyDemoData(opts) {
     const silent = opts && opts.silent;
+    const forGm = opts && opts.forGm;
     if (!window.DemoData) {
       if (!silent) alert('Demo data module missing.');
       return;
@@ -2511,26 +2660,115 @@ a.wh-name > span[style*="background"],
     playerInfo = demo.playerInfo;
     rhEvents = demo.rhEvents;
     meta = Object.assign({}, meta || {}, demo.meta);
+    gmTour = demo.tour || [];
     await saveEntries();
     await savePlayerInfo();
     await saveRhEvents();
     await saveMeta();
     if (!silent) {
-      $('footerMsg').textContent = `Demo raid loaded · ${entries.length} TBC items · ${Object.keys(playerInfo).length} raiders`;
+      $('footerMsg').textContent =
+        `GM demo ready · ${entries.length} TBC items · ${Object.keys(playerInfo).length} raiders · ${rhEvents.length} RH nights`;
     }
     renderCurrentTab();
-    // Async enrich names/icons/ilvl from Wowhead TBC
     try {
       await enrichItems(entries);
       renderCurrentTab();
     } catch (_) {}
+    // Precompute comp for the walkthrough
+    if (window.RaidComp) {
+      try {
+        lastComp = RaidComp.analyze(RaidComp.fromAppState(playerInfo, rhEvents));
+      } catch (_) {}
+    }
+    if (forGm) {
+      switchTab('overview');
+      fillGmPitch();
+    }
+  }
+
+  function showGmTourStep() {
+    const bar = $('gmTourBar');
+    if (!gmTour.length) {
+      if (bar) bar.classList.add('hidden');
+      return;
+    }
+    if (bar) bar.classList.remove('hidden');
+    const step = gmTour[gmTourStep] || gmTour[0];
+    if ($('gmTourLabel')) {
+      $('gmTourLabel').textContent =
+        `Step ${gmTourStep + 1}/${gmTour.length}: ${step.title} — ${step.blurb}`;
+    }
+    switchTab(step.tab);
   }
 
   if ($('loadDemoBtn')) {
     $('loadDemoBtn').addEventListener('click', async () => {
-      if (entries.length && !confirm('Replace current ledger with the Midnight Rodeo demo raid for today?')) return;
-      await applyDemoData({ silent: false });
-      switchTab('raids');
+      if (entries.length && !confirm('Replace current data with the full Midnight Rodeo GM demo?')) return;
+      await applyDemoData({ silent: false, forGm: true });
+    });
+  }
+  if ($('gmShowBtn')) {
+    $('gmShowBtn').addEventListener('click', async () => {
+      if (entries.length && !confirm('Load the full Guild Master demo? This replaces current ledger data in this browser.')) return;
+      await applyDemoData({ silent: false, forGm: true });
+      gmTourStep = 0;
+      if (gmTour.length) showGmTourStep();
+      else switchTab('overview');
+      $('footerMsg').textContent = 'GM demo loaded — use Walkthrough tabs to present.';
+    });
+  }
+  if ($('gmTourBtn')) {
+    $('gmTourBtn').addEventListener('click', async () => {
+      if (!entries.length || !meta.isDemo) {
+        await applyDemoData({ silent: false, forGm: true });
+      }
+      if (!gmTour.length && window.DemoData) {
+        gmTour = DemoData.buildDemo().tour || [];
+      }
+      gmTourStep = 0;
+      showGmTourStep();
+    });
+  }
+  if ($('gmTourNext')) {
+    $('gmTourNext').addEventListener('click', () => {
+      if (!gmTour.length) return;
+      gmTourStep = Math.min(gmTour.length - 1, gmTourStep + 1);
+      showGmTourStep();
+    });
+  }
+  if ($('gmTourPrev')) {
+    $('gmTourPrev').addEventListener('click', () => {
+      if (!gmTour.length) return;
+      gmTourStep = Math.max(0, gmTourStep - 1);
+      showGmTourStep();
+    });
+  }
+  if ($('gmTourEnd')) {
+    $('gmTourEnd').addEventListener('click', () => {
+      if ($('gmTourBar')) $('gmTourBar').classList.add('hidden');
+      switchTab('overview');
+    });
+  }
+
+  if ($('compRunBtn')) {
+    $('compRunBtn').addEventListener('click', () => {
+      renderComp();
+      $('footerMsg').textContent = lastComp
+        ? `Comp optimized · ${lastComp.counts.total} raiders · ${lastComp.blessings.assignments.length} blessings`
+        : 'No roster to optimize.';
+    });
+  }
+  if ($('compCopyBtn')) {
+    $('compCopyBtn').addEventListener('click', async () => {
+      if (!lastComp) renderComp();
+      const text = compDiscordText();
+      if (!text) { alert('Run optimize first (need roster).'); return; }
+      try {
+        await navigator.clipboard.writeText(text);
+        $('footerMsg').textContent = 'Comp copied for Discord.';
+      } catch {
+        prompt('Copy comp:', text);
+      }
     });
   }
 
@@ -2774,7 +3012,7 @@ a.wh-name > span[style*="background"],
       const key = h.slice(5);
       switchTab('raids');
       openViewLog(key);
-    } else if (['overview','ledger','roster','items','raids','settings'].includes(h)) {
+    } else if (['overview','ledger','roster','items','raids','comp','settings'].includes(h)) {
       switchTab(h);
     }
   }
@@ -2809,24 +3047,29 @@ a.wh-name > span[style*="background"],
     }
 
     await loadAll();
+    fillGmPitch();
 
-    // Auto-load demo if ledger is empty (first open)
+    // Auto-load full GM demo if ledger is empty (great for first show)
     if ((!entries || !entries.length) && window.DemoData) {
-      await applyDemoData({ silent: true });
+      await applyDemoData({ silent: true, forGm: true });
     }
 
     applyAccessGate();
     updateGuildHeader();
 
-    // First visit: prompt setup if no accounts
+    // First visit: prompt setup if no accounts (optional for viewing demo)
     if (Accounts.isSetupNeeded()) {
-      openAuthModal('setup');
+      // Don't block GM viewing — soft prompt after a moment
+      setTimeout(() => {
+        if (Accounts.isSetupNeeded() && !session()) {
+          // leave as guest view; they can set admin when ready
+        }
+      }, 500);
     }
 
     if (location.hash) applyHash();
     else renderCurrentTab();
 
-    // Resolve Wowhead TBC icons/names for demo items
     if (entries.length && window.WowApi) {
       enrichItems(entries).then(() => renderCurrentTab()).catch(() => {});
     }
@@ -2835,7 +3078,7 @@ a.wh-name > span[style*="background"],
     const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
     $('footerMsg').textContent = s
       ? `${gname} · TBC Classic only · ${s.displayName} · ${entries.length} loot · ${rhEvents.length} RH event(s)`
-      : `${gname} · TBC Classic only · ${entries.length} loot · guest`;
+      : `${gname} · TBC Classic only · ${entries.length} loot · guest · Load full GM demo above`;
   })();
 
   window.addEventListener('hashchange', applyHash);
