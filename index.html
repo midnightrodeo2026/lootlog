@@ -157,9 +157,10 @@ a{color:inherit}
 .rh-up-meta strong{display:block;font-size:14px}
 .rh-up-meta span{font-size:12px;color:var(--muted)}
 
-/* Tabs */
+/* Tabs — raid night order */
 .tabs{
-  display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 0 28px;flex-wrap:wrap;
+  display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 28px;flex-wrap:wrap;
+  align-items:flex-end;
 }
 .tab{
   background:none;border:none;color:var(--muted);cursor:pointer;
@@ -646,13 +647,14 @@ a.wh-name > span[style*="background"],
     </header>
 
     <nav class="tabs" role="tablist" id="mainTabs">
+      <!-- Order = raid night workflow -->
       <button class="tab active" data-tab="overview" type="button">Overview</button>
-      <button class="tab" data-tab="ledger" type="button">Ledger</button>
-      <button class="tab" data-tab="roster" type="button">Roster</button>
+      <button class="tab" data-tab="raids" type="button">1 · Signups</button>
+      <button class="tab" data-tab="roster" type="button">2 · Raid 25</button>
+      <button class="tab" data-tab="comp" type="button">3 · Comp</button>
+      <button class="tab" data-tab="bosses" type="button">4 · Bosses</button>
+      <button class="tab" data-tab="ledger" type="button">5 · Loot</button>
       <button class="tab" data-tab="items" type="button">Items</button>
-      <button class="tab" data-tab="raids" type="button">Raids</button>
-      <button class="tab" data-tab="comp" type="button">Comp</button>
-      <button class="tab" data-tab="bosses" type="button">Bosses</button>
     </nav>
 
     <div class="authbar" id="authBar">
@@ -673,11 +675,11 @@ a.wh-name > span[style*="background"],
     <!-- OVERVIEW -->
     <section id="panel-overview" class="panel">
       <div class="workflow" id="raidWorkflow">
-        <div class="wf-step" data-goto="raids"><span class="wf-n">1</span><div><b>RH signups</b><small>Import from Raid-Helper</small></div></div>
-        <div class="wf-step" data-goto="roster"><span class="wf-n">2</span><div><b>Pick 25</b><small id="wfSquadHint">Raid leader assigns seats</small></div></div>
-        <div class="wf-step" data-goto="comp"><span class="wf-n">3</span><div><b>Comp</b><small>Smart groups + drag</small></div></div>
-        <div class="wf-step" data-goto="bosses"><span class="wf-n">4</span><div><b>Boss maps</b><small>Live positions</small></div></div>
-        <div class="wf-step" data-goto="ledger"><span class="wf-n">5</span><div><b>Gargul</b><small>Loot after raid</small></div></div>
+        <div class="wf-step" data-goto="raids"><span class="wf-n">1</span><div><b>Signups</b><small>Raid-Helper import</small></div></div>
+        <div class="wf-step" data-goto="roster"><span class="wf-n">2</span><div><b>Raid 25</b><small id="wfSquadHint">Pick who is in</small></div></div>
+        <div class="wf-step" data-goto="comp"><span class="wf-n">3</span><div><b>Comp</b><small>Groups + buffs</small></div></div>
+        <div class="wf-step" data-goto="bosses"><span class="wf-n">4</span><div><b>Bosses</b><small>Maps + assigns</small></div></div>
+        <div class="wf-step" data-goto="ledger"><span class="wf-n">5</span><div><b>Loot</b><small>Gargul after raid</small></div></div>
       </div>
       <div class="stats">
         <div class="stat"><div class="stat-n" id="ovRaids">0</div><div class="stat-l">Raids Logged</div></div>
@@ -686,25 +688,35 @@ a.wh-name > span[style*="background"],
         <div class="stat"><div class="stat-n" id="ovSquad">0</div><div class="stat-l">Raid 25</div></div>
       </div>
       <div class="cards">
+        <button class="card" type="button" data-goto="raids">
+          <div class="card-ico">1</div>
+          <div class="card-t">Signups</div>
+          <div class="card-d">Import Raid-Helper event · view signed roster.</div>
+        </button>
         <button class="card" type="button" data-goto="roster">
-          <div class="card-ico">👤</div>
-          <div class="card-t">Pick raid 25</div>
-          <div class="card-d">Tick who is in the 25 from RH signups. Dual names kept as-is.</div>
+          <div class="card-ico">2</div>
+          <div class="card-t">Raid 25</div>
+          <div class="card-d">Tick who is in the 25 (admin).</div>
         </button>
         <button class="card" type="button" data-goto="comp">
-          <div class="card-ico">⚡</div>
+          <div class="card-ico">3</div>
           <div class="card-t">Comp</div>
-          <div class="card-d">Smart WF / buff groups from the 25 — drag to fix.</div>
+          <div class="card-d">WF / buff groups from the 25.</div>
         </button>
         <button class="card" type="button" data-goto="bosses">
-          <div class="card-ico">🗡</div>
+          <div class="card-ico">4</div>
           <div class="card-t">Bosses</div>
-          <div class="card-d">Jordee-style maps — drag tokens live (admin).</div>
+          <div class="card-d">BT + Hyjal maps &amp; strategy.</div>
         </button>
         <button class="card" type="button" data-goto="ledger">
-          <div class="card-ico">💎</div>
-          <div class="card-t">After raid</div>
-          <div class="card-d">Paste Gargul export when the night is done.</div>
+          <div class="card-ico">5</div>
+          <div class="card-t">Loot</div>
+          <div class="card-d">Paste Gargul when the night is done.</div>
+        </button>
+        <button class="card" type="button" data-goto="items">
+          <div class="card-ico">📊</div>
+          <div class="card-t">Items</div>
+          <div class="card-d">All-time drop stats &amp; recipients.</div>
         </button>
       </div>
       <div class="notice" id="ovViewOnly" hidden>👁 <b>View only.</b> Log in as <b>Admin</b> to manage roster, RH, comp, bosses, and loot.</div>
@@ -720,14 +732,15 @@ a.wh-name > span[style*="background"],
       <div id="ovRecent" class="ledger"></div>
     </section>
 
-    <!-- LEDGER -->
+    <!-- LEDGER / LOOT -->
     <section id="panel-ledger" class="panel" hidden>
+      <div class="section-title">// 5 · Loot · Gargul</div>
       <div class="notice" id="viewOnlyNotice" hidden>👁 <b>View only.</b> Admin login to edit.</div>
       <div id="editControls">
         <div class="pen">
           <div class="pen-head">
             <div class="pen-title">Paste Gargul export</div>
-            <div class="pen-hint"><code>date,player,itemId</code> or Detailed JSON</div>
+            <div class="pen-hint">After the raid · <code>date,player,itemId</code> or Detailed JSON</div>
           </div>
           <textarea class="input" id="mrPaste" placeholder="2026-03-20,Player,28729"></textarea>
           <div class="row">
@@ -774,7 +787,7 @@ a.wh-name > span[style*="background"],
 
     <!-- ROSTER -->
     <section id="panel-roster" class="panel" hidden>
-      <div class="section-title">// Raid 25 · from Raid-Helper</div>
+      <div class="section-title">// 2 · Raid 25</div>
       <div class="controls">
         <input class="input" id="rosterRealm" type="hidden" value="" />
         <select class="input" id="rosterGame" hidden>
@@ -813,7 +826,7 @@ a.wh-name > span[style*="background"],
 
     <!-- ITEMS -->
     <section id="panel-items" class="panel" hidden>
-      <div class="section-title">// Items</div>
+      <div class="section-title">// Items · all-time</div>
       <div class="stats">
         <div class="stat"><div class="stat-n" id="itUnique">0</div><div class="stat-l">Unique</div></div>
         <div class="stat"><div class="stat-n" id="itTotal">0</div><div class="stat-l">Drops</div></div>
@@ -837,11 +850,11 @@ a.wh-name > span[style*="background"],
 
     <!-- RAIDS -->
     <section id="panel-raids" class="panel" hidden>
-      <div class="section-title">// Raids</div>
+      <div class="section-title">// 1 · Signups · Raid-Helper</div>
       <div class="pen" style="margin-bottom:16px">
         <div class="pen-head">
-          <div class="pen-title">Midnight Rodeo · Raid-Helper</div>
-          <div class="pen-hint">Auto-loads server events when calendar key is set</div>
+          <div class="pen-title">Import signups</div>
+          <div class="pen-hint">Paste RH event link · admin applies to Raid 25</div>
         </div>
         <div class="row" style="margin-top:0">
           <input class="input" id="rhEventUrl" placeholder="https://raid-helper.xyz/event/…" style="flex:1;min-width:200px;max-width:none" />
@@ -878,7 +891,7 @@ a.wh-name > span[style*="background"],
 
     <!-- COMP -->
     <section id="panel-comp" class="panel" hidden>
-      <div class="section-title">// Comp</div>
+      <div class="section-title">// 3 · Comp · groups &amp; buffs</div>
       <div class="row" style="justify-content:center;margin-bottom:14px;flex-wrap:wrap">
         <button class="btn btn-amber" id="compRunBtn" type="button" data-admin-only>Optimize</button>
         <button class="btn btn-ghost" id="compResetBtn" type="button" data-admin-only>Reset seats</button>
@@ -908,7 +921,7 @@ a.wh-name > span[style*="background"],
 
     <!-- BOSSES -->
     <section id="panel-bosses" class="panel" hidden>
-      <div class="section-title">// Bosses</div>
+      <div class="section-title">// 4 · Bosses · maps</div>
       <div class="row" style="justify-content:center;margin-bottom:12px">
         <button class="btn btn-amber" data-raid-pick="hyjal" type="button" id="bossRaidHyjal">Hyjal</button>
         <button class="btn btn-orange" data-raid-pick="bt" type="button" id="bossRaidBt">Black Temple</button>
@@ -1949,7 +1962,7 @@ a.wh-name > span[style*="background"],
     if (tab === 'settings') tab = 'raids';
     currentTab = tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    ['overview','ledger','roster','items','raids','comp','bosses'].forEach(t => {
+    ['overview','raids','roster','comp','bosses','ledger','items'].forEach(t => {
       const el = $('panel-' + t);
       if (el) el.hidden = t !== tab;
     });
@@ -3925,7 +3938,7 @@ a.wh-name > span[style*="background"],
       const key = h.slice(5);
       switchTab('raids');
       openViewLog(key);
-    } else if (['overview','ledger','roster','items','raids','comp','bosses'].includes(h)) {
+    } else if (['overview','raids','roster','comp','bosses','ledger','items'].includes(h)) {
       switchTab(h);
     } else if (h === 'settings') {
       switchTab('raids');
