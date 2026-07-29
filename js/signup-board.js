@@ -402,26 +402,55 @@
     try {
       event = await fetchLive(id);
     } catch (e) {
+      const now = new Date();
+      const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
       event = {
-        title: 'Tuesday 25 man',
-        date: '28-7-2026',
-        time: '09:00 PM',
+        title: weekday + ' 25 man',
+        date:
+          now.getDate() +
+          '-' +
+          (now.getMonth() + 1) +
+          '-' +
+          now.getFullYear(),
+        time: '07:00 PM',
+        unixtime: Math.floor(now.getTime() / 1000),
         leadername: 'Dirtydutch/Barkley',
         servername: '<Midnight Rodeo>',
-        channelName: 'tuesday-25man-raid',
+        channelName: 'raid-signups',
         signups: [],
         raidid: id,
         color: '255,0,0',
         error: e.message,
       };
     }
+    // Smart title: use real weekday from event date (not hardcoded Tuesday)
+    if (global.RaidHelper && RaidHelper.smartEventTitle) {
+      event.title = RaidHelper.smartEventTitle(
+        event.title || event.displayTitle,
+        event.unixtime || event.startTime,
+        event.date,
+        event.time
+      );
+    } else {
+      const ut = event.unixtime || event.startTime;
+      if (ut) {
+        try {
+          const d = new Date(Number(ut) * 1000);
+          const wd = d.toLocaleDateString(undefined, { weekday: 'long' });
+          event.title = String(event.title || 'Raid').replace(
+            /^(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)\b/i,
+            wd
+          );
+        } catch (_) {}
+      }
+    }
     const signups = mergeSignups(event.signups || event.signUps || [], local);
     const model = buildBoardModel(Object.assign({ id }, event), signups);
     model.eventId = id;
     model.live = !event.error;
     model.error = event.error || null;
-    model.datePretty = formatDatePretty(event.date, event.unixtime);
-    model.countdown = formatCountdown(event.unixtime);
+    model.datePretty = formatDatePretty(event.date, event.unixtime || event.startTime);
+    model.countdown = formatCountdown(event.unixtime || event.startTime);
     model.letterTiles = letterBoard(model.title);
     model.local = local;
     model.rhUrl = 'https://raid-helper.xyz/event/' + id;

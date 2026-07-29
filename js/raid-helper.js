@@ -84,6 +84,32 @@
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
+  /**
+   * If RH title is "Tuesday 25 man" but the event date is Friday, show "Friday 25 man".
+   * Also builds a smart default title from the real weekday when title is empty.
+   */
+  function smartEventTitle(title, unixtime, dateStr, timeStr) {
+    const d = parseUnixDate(unixtime, dateStr, timeStr);
+    const weekday =
+      d && !isNaN(d.getTime())
+        ? d.toLocaleDateString(undefined, { weekday: 'long' })
+        : '';
+    let t = String(title || dataDisplayTitle(title) || '').trim();
+    if (!t && weekday) return weekday + ' 25 man';
+    if (!weekday) return t || 'Raid';
+    // Replace leading weekday names: Tuesday / Tue / Thursday etc.
+    const re =
+      /^(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)\b/i;
+    if (re.test(t)) {
+      t = t.replace(re, weekday);
+    }
+    return t;
+  }
+
+  function dataDisplayTitle(t) {
+    return t;
+  }
+
   function nameParts(raw) {
     const s = String(raw || '').trim();
     if (!s) return [];
@@ -187,11 +213,19 @@
     const channel = data.channelName || data.channelname || '';
     const advanced = data.advancedSettings || data.advanced || {};
     const when = parseUnixDate(unixtime, data.date, data.time);
+    const rawTitle = data.title || data.displayTitle || '';
+    const title = smartEventTitle(
+      rawTitle,
+      unixtime,
+      data.date,
+      data.time
+    );
 
     return {
       id: String(data.id || data.raidid || id || ''),
       url: eventPageUrl(String(data.id || data.raidid || id || '')),
-      title: data.title || data.displayTitle || 'Raid',
+      title,
+      rawTitle,
       date: data.date || '',
       time: data.time || '',
       unixtime: unixtime ? Number(unixtime) : null,
@@ -346,9 +380,10 @@
     const events = arr.map((e) => {
       const id = String(e.id || e.raidid || e.raidId || e.messageId || '');
       const unixtime = e.startTime || e.unixtime || e.unixStart || null;
+      const rawTitle = e.title || e.displayTitle || e.description || '';
       return {
         id,
-        title: e.title || e.displayTitle || e.description || 'Raid',
+        title: smartEventTitle(rawTitle, unixtime, e.date, e.time),
         date: e.date || '',
         time: e.time || '',
         unixtime: unixtime ? Number(unixtime) : null,
@@ -424,9 +459,10 @@
     const events = (Array.isArray(arr) ? arr : []).map((e) => {
       const id = String(e.id || e.raidid || '');
       const unixtime = e.unixtime || e.startTime || null;
+      const rawTitle = e.title || e.displayTitle || '';
       return {
         id,
-        title: e.title || e.displayTitle || 'Raid',
+        title: smartEventTitle(rawTitle, unixtime, e.date, e.time),
         date: e.date || '',
         time: e.time || '',
         unixtime: unixtime ? Number(unixtime) : null,
@@ -582,5 +618,7 @@
     resolveActiveEvent,
     normalizeEventPayload,
     cleanApiKey,
+    smartEventTitle,
+    parseUnixDate,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

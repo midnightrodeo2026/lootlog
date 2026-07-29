@@ -863,7 +863,7 @@ a.wh-name > span[style*="background"],
         </div>
         <div class="wf-step" data-goto="ledger" data-step="ledger">
           <div class="wf-step-head">
-            <img class="wf-ico" src="https://wow.zamimg.com/images/wow/icons/large/inv_misc_bag_10.jpg" alt="" width="36" height="36" loading="lazy" />
+            <img class="wf-ico" src="https://wow.zamimg.com/images/wow/icons/large/inv_misc_bag_10.jpg" alt="" width="36" height="36" loading="lazy" onerror="this.src='https://wow.zamimg.com/images/wow/icons/large/inv_misc_coin_01.jpg'" />
             <span class="wf-n">5</span>
             <div><b>Loot</b><small id="wf5">—</small></div>
           </div>
@@ -2826,13 +2826,11 @@ a.wh-name > span[style*="background"],
       onRosterChanged('smart prep');
       const st2 = getRaidStatus();
       set(
-        'Ready · ' +
+        'Prep done · ' +
           st2.squadN +
           '/' +
           RAID_SIZE +
-          ' in raid · ' +
-          (st2.title || 'raid') +
-          ' · open Comp / Bosses'
+          ' in raid · open Comp or Bosses'
       );
       if (currentTab === 'overview') renderOverview();
       return st2;
@@ -4495,17 +4493,15 @@ a.wh-name > span[style*="background"],
       runSmartPrep({ silent: true })
         .then(() => {
           if (currentTab === 'overview') renderOverview();
-          const st = getRaidStatus();
           $('footerMsg').textContent =
             (guildSettings().guildName || 'Midnight Rodeo') +
-            ' · ready · ' +
-            st.squadN +
-            '/' +
-            RAID_SIZE +
-            ' · ' +
-            (st.title || 'raid');
+            ' · World of Warcraft Guild Manager';
         })
-        .catch(() => {});
+        .catch(() => {
+          $('footerMsg').textContent =
+            (guildSettings().guildName || 'Midnight Rodeo') +
+            ' · World of Warcraft Guild Manager';
+        });
     } else {
       const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
       $('footerMsg').textContent =
