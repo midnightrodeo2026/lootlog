@@ -513,6 +513,22 @@ a.wh-name > span[style*="background"],
 .boss-strat{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.5}
 .boss-strat li{margin:4px 0}
 .btn-raid-on{box-shadow:0 0 0 2px rgba(227,161,60,.35)}
+.boss-map-wrap{margin:0 0 8px}
+.boss-map{
+  width:100%;max-width:680px;margin:0 auto;border-radius:14px;overflow:hidden;
+  border:1px solid var(--line);background:#0f1528;
+  box-shadow:0 12px 40px rgba(0,0,0,.35);
+}
+.boss-map .raid-map-svg{display:block;width:100%;height:auto}
+.boss-map-legend{
+  display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;margin-top:10px;
+  font-size:12px;color:var(--muted);
+}
+.boss-map-legend span{display:inline-flex;align-items:center;gap:6px}
+.boss-map-legend i{
+  display:inline-block;width:12px;height:12px;border-radius:50%;
+  border:1px solid rgba(0,0,0,.3);
+}
 
 /* Soft scrollbar */
 ::-webkit-scrollbar{width:10px;height:10px}
@@ -828,7 +844,13 @@ a.wh-name > span[style*="background"],
           <div class="pen-title" id="bossDetailTitle">Boss</div>
           <div class="pen-hint" id="bossDetailRaid"></div>
         </div>
-        <div class="section-title" style="text-align:left;margin:8px 0">// Strategy</div>
+        <div class="section-title" style="text-align:left;margin:8px 0">// Position map</div>
+        <div id="bossMapWrap" class="boss-map-wrap">
+          <div id="bossMap" class="boss-map"></div>
+          <div id="bossMapLegend" class="boss-map-legend"></div>
+          <div id="bossMapOverflow" class="muted" style="font-size:12px;margin-top:8px"></div>
+        </div>
+        <div class="section-title" style="text-align:left;margin:16px 0 8px">// Strategy</div>
         <ul id="bossStrat" class="boss-strat"></ul>
         <div class="section-title" style="text-align:left;margin:12px 0 8px">// Auto assignments</div>
         <div id="bossAssign" class="raid-list"></div>
@@ -1799,7 +1821,29 @@ a.wh-name > span[style*="background"],
     const b = result.boss;
     if ($('bossDetail')) $('bossDetail').hidden = false;
     if ($('bossDetailTitle')) $('bossDetailTitle').textContent = b.name;
-    if ($('bossDetailRaid')) $('bossDetailRaid').textContent = b.raidLabel + ' · auto · ' + (result.rosterSize || 0) + ' raiders';
+    if ($('bossDetailRaid')) {
+      const layout = (result.map && result.map.label) || 'Map';
+      $('bossDetailRaid').textContent =
+        b.raidLabel + ' · ' + layout + ' map · auto · ' + (result.rosterSize || 0) + ' raiders';
+    }
+    // Position map
+    if ($('bossMap')) {
+      $('bossMap').innerHTML = result.mapSvg || '<div class="empty">No map</div>';
+    }
+    if ($('bossMapLegend') && result.map && result.map.legend) {
+      $('bossMapLegend').innerHTML = result.map.legend
+        .map(
+          (L) =>
+            `<span><i style="background:${escapeHtml(L.color)}"></i>${escapeHtml(L.label)}</span>`
+        )
+        .join('');
+    }
+    if ($('bossMapOverflow')) {
+      const ov = (result.map && result.map.overflow) || [];
+      $('bossMapOverflow').textContent = ov.length
+        ? 'Also assigned (list): ' + ov.join(', ')
+        : '';
+    }
     if ($('bossStrat')) {
       $('bossStrat').innerHTML = (b.strategy || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
     }

@@ -421,6 +421,392 @@
     return BOSSES.find((b) => b.id === bossId) || null;
   }
 
+  /**
+   * Schematic top-down layouts (not real game assets — clear RL maps).
+   * Coordinates are % of map (0–100).
+   */
+  const MAP_LAYOUTS = {
+    /** Boss north, tank south of boss, melee under boss, ranged south, heals mid */
+    standard: {
+      label: 'Standard',
+      boss: { x: 50, y: 22, r: 7 },
+      zones: [
+        { x: 35, y: 28, w: 30, h: 14, label: 'Melee', color: 'rgba(227,161,60,.12)' },
+        { x: 20, y: 55, w: 60, h: 28, label: 'Ranged / Heal', color: 'rgba(111,194,122,.08)' },
+      ],
+      slots: {
+        mt: [{ x: 50, y: 34, tag: 'MT', color: '#e35d5d' }],
+        ot: [
+          { x: 38, y: 32, tag: 'OT', color: '#e3a13c' },
+          { x: 62, y: 32, tag: 'OT', color: '#e3a13c' },
+        ],
+        melee: [
+          { x: 42, y: 40, tag: 'M' },
+          { x: 50, y: 42, tag: 'M' },
+          { x: 58, y: 40, tag: 'M' },
+          { x: 36, y: 44, tag: 'M' },
+          { x: 64, y: 44, tag: 'M' },
+          { x: 46, y: 46, tag: 'M' },
+          { x: 54, y: 46, tag: 'M' },
+          { x: 50, y: 48, tag: 'M' },
+        ],
+        heal: [
+          { x: 30, y: 58, tag: 'H', color: '#6fc27a' },
+          { x: 42, y: 60, tag: 'H', color: '#6fc27a' },
+          { x: 50, y: 56, tag: 'H', color: '#6fc27a' },
+          { x: 58, y: 60, tag: 'H', color: '#6fc27a' },
+          { x: 70, y: 58, tag: 'H', color: '#6fc27a' },
+          { x: 36, y: 66, tag: 'H', color: '#6fc27a' },
+          { x: 64, y: 66, tag: 'H', color: '#6fc27a' },
+        ],
+        ranged: [
+          { x: 22, y: 72, tag: 'R', color: '#69CCF0' },
+          { x: 34, y: 78, tag: 'R', color: '#69CCF0' },
+          { x: 46, y: 80, tag: 'R', color: '#69CCF0' },
+          { x: 58, y: 78, tag: 'R', color: '#69CCF0' },
+          { x: 70, y: 72, tag: 'R', color: '#69CCF0' },
+          { x: 26, y: 84, tag: 'R', color: '#69CCF0' },
+          { x: 40, y: 86, tag: 'R', color: '#69CCF0' },
+          { x: 54, y: 86, tag: 'R', color: '#69CCF0' },
+          { x: 68, y: 84, tag: 'R', color: '#69CCF0' },
+          { x: 80, y: 76, tag: 'R', color: '#69CCF0' },
+        ],
+        special: [
+          { x: 18, y: 40, tag: 'S', color: '#c4a574' },
+          { x: 82, y: 40, tag: 'S', color: '#c4a574' },
+          { x: 15, y: 55, tag: 'S', color: '#c4a574' },
+          { x: 85, y: 55, tag: 'S', color: '#c4a574' },
+        ],
+      },
+    },
+    spread: {
+      label: 'Spread',
+      boss: { x: 50, y: 45, r: 6 },
+      zones: [
+        { x: 10, y: 10, w: 80, h: 80, label: 'Spread room', color: 'rgba(227,161,60,.06)' },
+      ],
+      slots: {
+        mt: [{ x: 50, y: 55, tag: 'MT', color: '#e35d5d' }],
+        ot: [
+          { x: 40, y: 52, tag: 'OT', color: '#e3a13c' },
+          { x: 60, y: 52, tag: 'OT', color: '#e3a13c' },
+        ],
+        melee: [
+          { x: 45, y: 60, tag: 'M' },
+          { x: 55, y: 60, tag: 'M' },
+          { x: 40, y: 64, tag: 'M' },
+          { x: 60, y: 64, tag: 'M' },
+          { x: 50, y: 66, tag: 'M' },
+        ],
+        heal: [
+          { x: 25, y: 40, tag: 'H', color: '#6fc27a' },
+          { x: 75, y: 40, tag: 'H', color: '#6fc27a' },
+          { x: 30, y: 70, tag: 'H', color: '#6fc27a' },
+          { x: 70, y: 70, tag: 'H', color: '#6fc27a' },
+          { x: 50, y: 78, tag: 'H', color: '#6fc27a' },
+        ],
+        ranged: [
+          { x: 15, y: 25, tag: 'R', color: '#69CCF0' },
+          { x: 30, y: 18, tag: 'R', color: '#69CCF0' },
+          { x: 50, y: 15, tag: 'R', color: '#69CCF0' },
+          { x: 70, y: 18, tag: 'R', color: '#69CCF0' },
+          { x: 85, y: 25, tag: 'R', color: '#69CCF0' },
+          { x: 12, y: 50, tag: 'R', color: '#69CCF0' },
+          { x: 88, y: 50, tag: 'R', color: '#69CCF0' },
+          { x: 18, y: 75, tag: 'R', color: '#69CCF0' },
+          { x: 82, y: 75, tag: 'R', color: '#69CCF0' },
+          { x: 50, y: 88, tag: 'R', color: '#69CCF0' },
+        ],
+        special: [
+          { x: 20, y: 55, tag: 'S', color: '#c4a574' },
+          { x: 80, y: 55, tag: 'S', color: '#c4a574' },
+        ],
+      },
+    },
+    kite: {
+      label: 'Kite path',
+      boss: { x: 30, y: 50, r: 6 },
+      zones: [
+        { x: 20, y: 20, w: 60, h: 60, label: 'Kite loop', color: 'rgba(227,93,93,.08)' },
+      ],
+      slots: {
+        mt: [{ x: 30, y: 62, tag: 'MT', color: '#e35d5d' }],
+        ot: [{ x: 70, y: 30, tag: 'KITE', color: '#e3a13c' }],
+        special: [
+          { x: 75, y: 45, tag: 'K2', color: '#e3a13c' },
+          { x: 55, y: 25, tag: 'S', color: '#c4a574' },
+        ],
+        melee: [
+          { x: 40, y: 55, tag: 'M' },
+          { x: 48, y: 58, tag: 'M' },
+          { x: 42, y: 65, tag: 'M' },
+        ],
+        heal: [
+          { x: 55, y: 70, tag: 'H', color: '#6fc27a' },
+          { x: 65, y: 65, tag: 'H', color: '#6fc27a' },
+          { x: 50, y: 75, tag: 'H', color: '#6fc27a' },
+          { x: 72, y: 55, tag: 'H', color: '#6fc27a' },
+        ],
+        ranged: [
+          { x: 60, y: 80, tag: 'R', color: '#69CCF0' },
+          { x: 70, y: 75, tag: 'R', color: '#69CCF0' },
+          { x: 80, y: 70, tag: 'R', color: '#69CCF0' },
+          { x: 55, y: 85, tag: 'R', color: '#69CCF0' },
+          { x: 85, y: 60, tag: 'R', color: '#69CCF0' },
+          { x: 48, y: 70, tag: 'R', color: '#69CCF0' },
+        ],
+      },
+    },
+    dual: {
+      label: 'Split sides',
+      boss: { x: 50, y: 50, r: 8 },
+      zones: [
+        { x: 8, y: 20, w: 35, h: 60, label: 'Left', color: 'rgba(105,204,240,.08)' },
+        { x: 57, y: 20, w: 35, h: 60, label: 'Right', color: 'rgba(227,161,60,.08)' },
+      ],
+      slots: {
+        mt: [{ x: 50, y: 62, tag: 'MT', color: '#e35d5d' }],
+        ot: [
+          { x: 25, y: 50, tag: 'OT', color: '#e3a13c' },
+          { x: 75, y: 50, tag: 'OT', color: '#e3a13c' },
+        ],
+        melee: [
+          { x: 45, y: 58, tag: 'M' },
+          { x: 55, y: 58, tag: 'M' },
+          { x: 42, y: 65, tag: 'M' },
+          { x: 58, y: 65, tag: 'M' },
+        ],
+        heal: [
+          { x: 20, y: 70, tag: 'H', color: '#6fc27a' },
+          { x: 35, y: 75, tag: 'H', color: '#6fc27a' },
+          { x: 50, y: 78, tag: 'H', color: '#6fc27a' },
+          { x: 65, y: 75, tag: 'H', color: '#6fc27a' },
+          { x: 80, y: 70, tag: 'H', color: '#6fc27a' },
+        ],
+        ranged: [
+          { x: 15, y: 30, tag: 'R', color: '#69CCF0' },
+          { x: 25, y: 25, tag: 'R', color: '#69CCF0' },
+          { x: 18, y: 45, tag: 'R', color: '#69CCF0' },
+          { x: 75, y: 25, tag: 'R', color: '#69CCF0' },
+          { x: 85, y: 30, tag: 'R', color: '#69CCF0' },
+          { x: 82, y: 45, tag: 'R', color: '#69CCF0' },
+          { x: 30, y: 55, tag: 'R', color: '#69CCF0' },
+          { x: 70, y: 55, tag: 'R', color: '#69CCF0' },
+        ],
+        special: [
+          { x: 12, y: 60, tag: 'S', color: '#c4a574' },
+          { x: 88, y: 60, tag: 'S', color: '#c4a574' },
+        ],
+      },
+    },
+  };
+
+  /** Per-boss map type */
+  const BOSS_MAP = {
+    'mh-rage': 'spread',
+    'mh-anetheron': 'standard',
+    'mh-kaz': 'standard',
+    'mh-azgalor': 'spread',
+    'mh-archi': 'spread',
+    'bt-naj': 'standard',
+    'bt-supremus': 'kite',
+    'bt-shade': 'dual',
+    'bt-teron': 'standard',
+    'bt-gurtogg': 'standard',
+    'bt-ros': 'spread',
+    'bt-mother': 'spread',
+    'bt-council': 'dual',
+    'bt-illidan': 'standard',
+  };
+
+  function peopleFromAssignments(assignments, matchers) {
+    const out = [];
+    const seen = new Set();
+    (assignments || []).forEach((a) => {
+      const role = (a.role || '').toLowerCase();
+      const hit = matchers.some((m) =>
+        typeof m === 'string' ? role.includes(m) : m.test(role)
+      );
+      if (!hit) return;
+      (a.people || []).forEach((name) => {
+        if (!name || name === '—' || /entire raid|assign manually/i.test(name)) return;
+        const k = name.toLowerCase();
+        if (seen.has(k)) return;
+        seen.add(k);
+        out.push(name);
+      });
+    });
+    return out;
+  }
+
+  function buildMap(bossId, assignments) {
+    const layoutKey = BOSS_MAP[bossId] || 'standard';
+    const layout = MAP_LAYOUTS[layoutKey] || MAP_LAYOUTS.standard;
+    const boss = getBoss(bossId);
+
+    const mt = peopleFromAssignments(assignments, ['main tank', 'beam tank', 'tank a']);
+    const ot = peopleFromAssignments(assignments, [
+      'off tank',
+      'kiter',
+      'add tank',
+      'tank b',
+      'tank c',
+      'infernal',
+      'akama',
+    ]);
+    const melee = peopleFromAssignments(assignments, ['melee', 'physical', 'add aoe']);
+    const ranged = peopleFromAssignments(assignments, [
+      'ranged',
+      'caster',
+      'hunter',
+      'boss dps',
+      'even dps',
+      'channeler',
+      'dps',
+      'infernal burn',
+      'doom',
+    ]);
+    const heals = peopleFromAssignments(assignments, ['heal']);
+    const special = peopleFromAssignments(assignments, [
+      'kick',
+      'ghost',
+      'warlock',
+      'spine',
+      'decurse',
+      'tremor',
+      'bloodlust',
+      'shield break',
+      'fatal',
+      'special',
+    ]);
+
+    const markers = [];
+    // Boss marker
+    markers.push({
+      type: 'boss',
+      x: layout.boss.x,
+      y: layout.boss.y,
+      r: layout.boss.r || 7,
+      label: (boss && boss.name) || 'Boss',
+      short: 'BOSS',
+      color: '#a335ee',
+    });
+
+    function place(list, slots, defColor) {
+      (slots || []).forEach((slot, i) => {
+        const name = list[i];
+        if (!name) return;
+        markers.push({
+          type: 'player',
+          x: slot.x,
+          y: slot.y,
+          tag: slot.tag || 'P',
+          color: slot.color || defColor || '#e3a13c',
+          name,
+          short: String(name).slice(0, 8),
+        });
+      });
+    }
+
+    place(mt, layout.slots.mt, '#e35d5d');
+    place(ot, layout.slots.ot, '#e3a13c');
+    place(melee, layout.slots.melee, '#C79C6E');
+    place(heals, layout.slots.heal, '#6fc27a');
+    place(ranged, layout.slots.ranged, '#69CCF0');
+    place(special, layout.slots.special, '#c4a574');
+
+    // Overflow names as list (not on map)
+    const placed = new Set(markers.filter((m) => m.name).map((m) => m.name.toLowerCase()));
+    const overflow = []
+      .concat(mt, ot, melee, heals, ranged, special)
+      .filter((n, i, a) => a.indexOf(n) === i && !placed.has(n.toLowerCase()));
+
+    return {
+      layout: layoutKey,
+      label: layout.label,
+      bossName: (boss && boss.name) || '',
+      zones: layout.zones || [],
+      markers,
+      overflow: overflow.slice(0, 12),
+      legend: [
+        { tag: 'BOSS', color: '#a335ee', label: 'Boss' },
+        { tag: 'MT', color: '#e35d5d', label: 'Main tank' },
+        { tag: 'OT', color: '#e3a13c', label: 'Off tank / kite' },
+        { tag: 'M', color: '#C79C6E', label: 'Melee' },
+        { tag: 'H', color: '#6fc27a', label: 'Healer' },
+        { tag: 'R', color: '#69CCF0', label: 'Ranged' },
+        { tag: 'S', color: '#c4a574', label: 'Special' },
+      ],
+    };
+  }
+
+  /** SVG string for embedding in HTML */
+  function mapToSvg(map, opts) {
+    if (!map) return '';
+    const w = (opts && opts.w) || 640;
+    const h = (opts && opts.h) || 420;
+    const parts = [];
+    parts.push(
+      `<svg viewBox="0 0 ${w} ${h}" class="raid-map-svg" role="img" aria-label="Raid position map">`
+    );
+    // floor
+    parts.push(
+      `<rect x="0" y="0" width="${w}" height="${h}" fill="#0f1528" rx="12"/>`,
+      `<rect x="8" y="8" width="${w - 16}" height="${h - 16}" fill="none" stroke="rgba(227,161,60,.25)" stroke-width="1.5" rx="10"/>`
+    );
+    // grid
+    for (let i = 1; i < 4; i++) {
+      const x = (w * i) / 4;
+      const y = (h * i) / 4;
+      parts.push(
+        `<line x1="${x}" y1="12" x2="${x}" y2="${h - 12}" stroke="rgba(44,53,96,.5)" stroke-dasharray="4 6"/>`,
+        `<line x1="12" y1="${y}" x2="${w - 12}" y2="${y}" stroke="rgba(44,53,96,.5)" stroke-dasharray="4 6"/>`
+      );
+    }
+    // zones
+    (map.zones || []).forEach((z) => {
+      const zx = (z.x / 100) * w;
+      const zy = (z.y / 100) * h;
+      const zw = (z.w / 100) * w;
+      const zh = (z.h / 100) * h;
+      parts.push(
+        `<rect x="${zx}" y="${zy}" width="${zw}" height="${zh}" fill="${z.color || 'rgba(227,161,60,.08)'}" stroke="rgba(227,161,60,.2)" rx="8"/>`,
+        `<text x="${zx + 8}" y="${zy + 16}" fill="#9a6a3f" font-size="11" font-family="Inter,sans-serif">${escapeXml(z.label || '')}</text>`
+      );
+    });
+    // markers
+    (map.markers || []).forEach((m) => {
+      const cx = (m.x / 100) * w;
+      const cy = (m.y / 100) * h;
+      if (m.type === 'boss') {
+        const r = ((m.r || 7) / 100) * Math.min(w, h);
+        parts.push(
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${m.color}" opacity="0.9"/>`,
+          `<circle cx="${cx}" cy="${cy}" r="${r + 4}" fill="none" stroke="${m.color}" opacity="0.4" stroke-width="2"/>`,
+          `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="Inter,sans-serif">BOSS</text>`,
+          `<text x="${cx}" y="${cy + r + 14}" text-anchor="middle" fill="#f4bd5f" font-size="11" font-family="Inter,sans-serif">${escapeXml((m.label || '').slice(0, 18))}</text>`
+        );
+      } else {
+        const r = 11;
+        parts.push(
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${m.color || '#e3a13c'}" opacity="0.95" stroke="#0d1224" stroke-width="1.5"/>`,
+          `<text x="${cx}" y="${cy + 3.5}" text-anchor="middle" fill="#0d1224" font-size="8" font-weight="700" font-family="Inter,sans-serif">${escapeXml(m.tag || 'P')}</text>`,
+          `<text x="${cx}" y="${cy + r + 11}" text-anchor="middle" fill="#f3ecd9" font-size="9" font-family="Inter,sans-serif">${escapeXml(m.short || m.name || '')}</text>`
+        );
+      }
+    });
+    parts.push(`</svg>`);
+    return parts.join('');
+  }
+
+  function escapeXml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   function assignBoss(bossId, players) {
     const boss = getBoss(bossId);
     if (!boss) throw new Error('Unknown boss');
@@ -430,6 +816,8 @@
         boss,
         assignments: [{ role: 'Roster', people: ['—'], note: 'Import Raid-Helper or load GM demo first' }],
         empty: true,
+        map: null,
+        mapSvg: '',
       };
     }
     let assignments = [];
@@ -444,6 +832,7 @@
       note: a.note || '',
       people: Array.isArray(a.people) ? a.people : [String(a.people || '—')],
     }));
+    const map = buildMap(bossId, assignments);
     return {
       boss: {
         id: boss.id,
@@ -454,6 +843,8 @@
         strategy: boss.strategy || [],
       },
       assignments,
+      map,
+      mapSvg: mapToSvg(map),
       rosterSize: p.all.length,
       empty: false,
       generatedAt: new Date().toISOString(),
@@ -500,5 +891,9 @@
     assignAll,
     toDiscord,
     pool,
+    buildMap,
+    mapToSvg,
+    MAP_LAYOUTS,
+    BOSS_MAP,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
