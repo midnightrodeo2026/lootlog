@@ -544,6 +544,17 @@ a.wh-name > span[style*="background"],
 .comp-cover .cc-item.bad{border-left-color:#e35d5d}
 .comp-cover .cc-label{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px}
 .comp-cover .cc-detail{font-size:11.5px;color:var(--muted);line-height:1.4}
+.comp-raid-advice{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 16px;
+}
+@media(max-width:700px){.comp-raid-advice{grid-template-columns:1fr}}
+.comp-raid-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:12px 14px;border-top:2px solid var(--amber);
+}
+.comp-raid-card h4{margin:0 0 8px;font-size:13px;color:var(--amber2);font-weight:700}
+.comp-raid-card ul{margin:0;padding-left:16px;color:var(--muted);font-size:12.5px;line-height:1.45}
+.comp-raid-card li{margin:3px 0}
 
 .gm-pitch{
   margin:14px 0 0;padding-left:20px;color:var(--muted);font-size:13.5px;line-height:1.55;
@@ -1051,13 +1062,14 @@ a.wh-name > span[style*="background"],
         Admin: drag raiders between groups (widget). Optimize rebuilds auto seats; your moves are saved.
       </p>
       <div class="stats" style="grid-template-columns:repeat(5,1fr)">
-        <div class="stat"><div class="stat-n" id="compTotal">0</div><div class="stat-l">Raiders</div></div>
-        <div class="stat"><div class="stat-n" id="compTanks">0</div><div class="stat-l">Tanks</div></div>
-        <div class="stat"><div class="stat-n" id="compHeal">0</div><div class="stat-l">Healers</div></div>
-        <div class="stat"><div class="stat-n" id="compMelee">0</div><div class="stat-l">Melee</div></div>
-        <div class="stat"><div class="stat-n" id="compRanged">0</div><div class="stat-l">Ranged</div></div>
+        <div class="stat"><div class="stat-n" id="compTotal">0</div><div class="stat-l" id="compTotalL">Raiders</div></div>
+        <div class="stat"><div class="stat-n" id="compTanks">0</div><div class="stat-l" id="compTanksL">Tanks</div></div>
+        <div class="stat"><div class="stat-n" id="compHeal">0</div><div class="stat-l" id="compHealL">Healers</div></div>
+        <div class="stat"><div class="stat-n" id="compMelee">0</div><div class="stat-l" id="compMeleeL">Melee</div></div>
+        <div class="stat"><div class="stat-n" id="compRanged">0</div><div class="stat-l" id="compRangedL">Ranged</div></div>
       </div>
       <div id="compTips" class="notice" style="display:none"></div>
+      <div id="compRaidAdvice" class="comp-raid-advice"></div>
       <div class="section-title">// Buff coverage</div>
       <div id="compCoverage" class="comp-cover"></div>
       <div class="section-title">// Groups (party buffs)</div>
@@ -2471,11 +2483,28 @@ a.wh-name > span[style*="background"],
     }
     lastComp = result;
     const c = result.counts;
+    const ideal = result.ideal || {};
     if ($('compTotal')) $('compTotal').textContent = c.total;
     if ($('compTanks')) $('compTanks').textContent = c.tanks;
     if ($('compHeal')) $('compHeal').textContent = c.healers;
     if ($('compMelee')) $('compMelee').textContent = c.melee;
     if ($('compRanged')) $('compRanged').textContent = c.ranged;
+    // Labels show live count + ideal for this signup size
+    if ($('compTotalL'))
+      $('compTotalL').textContent =
+        c.total + ' raiders · ' + (c.groups || 0) + ' groups';
+    if ($('compTanksL'))
+      $('compTanksL').textContent =
+        'Tanks' + (ideal.tanks != null ? ' · ideal ' + ideal.tanks : '');
+    if ($('compHealL'))
+      $('compHealL').textContent =
+        'Healers' + (ideal.healers != null ? ' · ideal ' + ideal.healers : '');
+    if ($('compMeleeL'))
+      $('compMeleeL').textContent =
+        'Melee' + (ideal.melee != null ? ' · ideal ~' + ideal.melee : '');
+    if ($('compRangedL'))
+      $('compRangedL').textContent =
+        'Ranged' + (ideal.ranged != null ? ' · ideal ~' + ideal.ranged : '');
 
     const tips = $('compTips');
     if (tips) {
@@ -2483,8 +2512,21 @@ a.wh-name > span[style*="background"],
       if (result.manual) bits.unshift('Manual seats active — drag to rearrange, or Reset seats.');
       if (bits.length) {
         tips.style.display = 'block';
-        tips.innerHTML = '<b>Raid lead tips:</b> ' + bits.map(escapeHtml).join(' · ');
+        tips.innerHTML = '<b>Smart tips:</b> ' + bits.map(escapeHtml).join(' · ');
       } else tips.style.display = 'none';
+    }
+
+    if ($('compRaidAdvice')) {
+      const raids = result.raids || [];
+      $('compRaidAdvice').innerHTML = raids
+        .map(
+          (r) => `
+        <div class="comp-raid-card">
+          <h4>${escapeHtml(r.raid)}</h4>
+          <ul>${(r.lines || []).map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>
+        </div>`
+        )
+        .join('');
     }
 
     if ($('compCoverage')) {
@@ -2500,8 +2542,8 @@ a.wh-name > span[style*="background"],
     if ($('compDragHint')) {
       const n = players.length;
       $('compDragHint').textContent = canMove
-        ? `Using raid 25 (${n} players). Drag between groups. Optimize = auto WF stacks.`
-        : `Using raid 25 (${n}). Login as admin to drag people between groups.`;
+        ? `Live from signups (${n} players · ${c.groups || 0} groups). Optimize rebuilds best WF/buff stacks. Drag to fine-tune.`
+        : `Live from signups (${n} players). Admin can drag seats.`;
     }
 
     if ($('compGroups')) {

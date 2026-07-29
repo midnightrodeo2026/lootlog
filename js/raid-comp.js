@@ -326,17 +326,47 @@
   /* ─── group builder ────────────────────────────────────────────── */
 
   /**
-   * Standard progressive TBC layout:
-   *  G1 Tank threat  — tanks + WF shaman + tank healers (WF = tank threat)
-   *  G2 WF Melee A   — best melee + Enh (Improved WF) + BM FI / LotP if free
-   *  G3 WF Melee B   — remaining melee + 2nd shaman (resto/enh) for dual WF
-   *  G4 Casters      — SP, boomkin, mages, locks, ele (Moonkin + WoA)
-   *  G5 Hunters/Heal — hunters + leftover healers / utility
+   * Ideal role split for TBC content size (scales with how many you have).
+   * Not fixed 4/7/6/8 — proportional to signed count.
+   */
+  function idealSplit(n) {
+    n = Math.max(0, Number(n) || 0);
+    if (n <= 0) return { tanks: 0, healers: 0, melee: 0, ranged: 0, size: 0, groups: 0 };
+    // Soft targets by size band
+    let tanks, healers;
+    if (n <= 10) {
+      tanks = Math.min(2, Math.max(1, Math.round(n * 0.15)));
+      healers = Math.min(3, Math.max(2, Math.round(n * 0.25)));
+    } else if (n <= 15) {
+      tanks = 2;
+      healers = Math.min(4, Math.max(3, Math.round(n * 0.22)));
+    } else if (n <= 20) {
+      tanks = 3;
+      healers = Math.min(5, Math.max(4, Math.round(n * 0.24)));
+    } else {
+      // ~25-man
+      tanks = Math.min(4, Math.max(3, Math.round(n * 0.14)));
+      healers = Math.min(8, Math.max(5, Math.round(n * 0.26)));
+    }
+    const dps = Math.max(0, n - tanks - healers);
+    // ~40% melee / 60% ranged among DPS (TBC caster heavy is fine)
+    const melee = Math.round(dps * 0.42);
+    const ranged = dps - melee;
+    const groups = Math.min(5, Math.max(1, Math.ceil(n / 5)));
+    return { tanks, healers, melee, ranged, size: n, groups };
+  }
+
+  /**
+   * Adaptive TBC layout for whatever signed.
+   * Scales 1–5 groups. Maximizes WF / Moonkin / LotP / FI with available specs.
    */
   function buildGroups(players) {
     const all = players.map(normalizePlayer).filter((p) => p.name);
+    const ideal = idealSplit(all.length);
+    const groupCount = ideal.groups || 1;
     const placed = new Set();
-    const groups = [[], [], [], [], []];
+    const groups = [];
+    for (let i = 0; i < groupCount; i++) groups.push([]);
 
     function key(p) {
       return String(p.name || '').toLowerCase();
@@ -344,18 +374,17 @@
     function free(p) {
       return p && p.name && !placed.has(key(p));
     }
-    /** Seat player into group gi if free and under 5 */
     function seat(gi, p) {
+      if (gi < 0 || gi >= groups.length) return false;
       if (!free(p) || groups[gi].length >= 5) return false;
       groups[gi].push(p);
       placed.add(key(p));
       return true;
     }
-    /** Seat up to n matches from list into group */
     function seatFrom(gi, list, n) {
       let c = 0;
       const max = n == null ? 99 : n;
-      for (let i = 0; i < list.length && c < max && groups[gi].length < 5; i++) {
+      for (let i = 0; i < list.length && c < max && gi < groups.length && groups[gi].length < 5; i++) {
         if (seat(gi, list[i])) c++;
       }
       return c;
@@ -363,21 +392,25 @@
     function freeList(list) {
       return list.filter(free);
     }
+    function emptiest() {
+      let best = 0;
+      for (let i = 1; i < groups.length; i++) {
+        if (groups[i].length < groups[best].length) best = i;
+      }
+      return best;
+    }
 
     const tanks = all.filter(isTank).sort(byIlvl);
     const healers = all.filter(isHealer).sort(byIlvl);
     const melee = all.filter(isMeleeDps).sort(byIlvl);
     const ranged = all.filter(isRangedDps).sort(byIlvl);
-    const rest = all.filter(
-      (p) => !isTank(p) && !isHealer(p) && !isMeleeDps(p) && !isRangedDps(p)
-    );
 
     const enhAll = all.filter(isEnhShaman).sort(byIlvl);
     const restoSham = healers.filter(isRestoShaman);
     const eleAll = ranged.filter(isEleShaman);
     const meleeNoSham = melee.filter((p) => !isEnhShaman(p));
     const ferals = meleeNoSham.filter(isFeralCat);
-    const physicalMelee = meleeNoSham.filter((p) => !isFeralCat(p)); // warriors, rogues, ret
+    const physicalMelee = meleeNoSham.filter((p) => !isFeralCat(p));
 
     const hunters = ranged.filter(isHunter);
     const bmHunters = hunters.filter(isBMHunter);
@@ -409,103 +442,152 @@
         !isRestoDruid(h)
     );
 
-    const labels = [
-      'G1 · Tank threat + WF',
-      'G2 · Melee WF (Enh)',
-      'G3 · Melee WF #2',
-      'G4 · Casters',
-      'G5 · Hunters / Healers',
-    ];
-    const notes = [
-      'Tanks get Windfury for threat. Sanctuary · Devotion · tank healers.',
-      'Best melee + Enhancement (Improved WF). LotP / BM FI if available.',
-      'Overflow melee + 2nd shaman (resto) so two WF groups. Salv on DPS.',
-      'SPriest · Boomkin · Ele · mages/locks. Moonkin + Wrath of Air.',
-      'Hunters (Trueshot is raid-wide). Remaining healers & utility.',
-    ];
-    const focuses = ['tank', 'melee', 'melee', 'caster', 'mixed'];
+    // How many melee WF stacks can we run? (each needs a shaman)
+    const shamPool = freeList(enhAll).concat(freeList(restoSham)).concat(freeList(eleAll));
+    const meleeNeed = physicalMelee.length + ferals.length + enhAll.length;
+    const casterNeed = shadows.length + boomkins.length + mages.length + locks.length + eleAll.length;
+    const dualMelee = groupCount >= 3 && meleeNeed >= 4 && shamPool.length >= 2;
+    const wantCaster = groupCount >= 2 && casterNeed >= 2;
+    const wantTank = tanks.length >= 1;
 
-    // ── G1: Tanks + WF shaman + tank healers ──
-    seatFrom(0, tanks, 3);
-    // Prefer resto sham for tank WF (keep Enh for melee DPS group)
-    if (freeList(restoSham).length) seat(0, freeList(restoSham)[0]);
-    else if (freeList(enhAll).length > 1) seat(0, freeList(enhAll)[0]);
-    else if (freeList(enhAll).length === 1 && freeList(physicalMelee).length < 3) {
-      seat(0, freeList(enhAll)[0]);
-    }
-    seatFrom(0, hPals);
-    seatFrom(0, disc);
-    seatFrom(0, rDruid);
-    seatFrom(0, hPriest);
-    seatFrom(0, otherHeal);
-    seatFrom(0, tanks);
-
-    // ── G2: Top melee + Enh WF ──
-    seatFrom(1, enhAll, 1);
-    seatFrom(1, ferals, 1); // LotP
-    seatFrom(1, bmHunters, 1); // Ferocious Inspiration
-    seatFrom(1, physicalMelee);
-    seatFrom(1, ferals);
-
-    // ── G3: Second WF melee ──
-    if (freeList(restoSham).length) seat(2, freeList(restoSham)[0]);
-    else if (freeList(enhAll).length) seat(2, freeList(enhAll)[0]);
-    seatFrom(2, physicalMelee);
-    seatFrom(2, ferals);
-    seatFrom(2, tanks);
-    seatFrom(2, enhAll);
-
-    // ── G4: Casters ──
-    seatFrom(3, shadows);
-    seatFrom(3, boomkins);
-    seatFrom(3, eleAll);
-    seatFrom(3, mages);
-    seatFrom(3, locks);
-    seatFrom(3, otherRanged);
-    // Wrath of Air if no sham yet
-    if (groups[3].length < 5 && !groups[3].some(isAnyShaman) && freeList(restoSham).length) {
-      seat(3, freeList(restoSham)[0]);
+    // Dynamic labels / focuses by group index
+    const labels = [];
+    const notes = [];
+    const focuses = [];
+    for (let i = 0; i < groupCount; i++) {
+      labels.push('G' + (i + 1));
+      notes.push('');
+      focuses.push('mixed');
     }
 
-    // ── G5: Hunters + remaining healers ──
-    seatFrom(4, nonBmHunters);
-    seatFrom(4, bmHunters);
-    seatFrom(4, hPriest);
-    seatFrom(4, hPals);
-    seatFrom(4, disc);
-    seatFrom(4, rDruid);
-    seatFrom(4, otherHeal);
-    seatFrom(4, restoSham);
-    seatFrom(4, otherRanged);
-    seatFrom(4, locks);
-    seatFrom(4, mages);
+    let gi = 0;
+    // Tank threat group first if we have tanks
+    if (wantTank && gi < groupCount) {
+      labels[gi] = 'G' + (gi + 1) + ' · Tank threat + WF';
+      notes[gi] = 'Tanks + shaman WF for threat · tank healers';
+      focuses[gi] = 'tank';
+      seatFrom(gi, tanks, Math.min(3, tanks.length));
+      if (freeList(restoSham).length) seat(gi, freeList(restoSham)[0]);
+      else if (freeList(enhAll).length > (dualMelee ? 1 : 0)) seat(gi, freeList(enhAll)[0]);
+      else if (freeList(eleAll).length && !wantCaster) seat(gi, freeList(eleAll)[0]);
+      seatFrom(gi, hPals, 1);
+      seatFrom(gi, disc, 1);
+      seatFrom(gi, rDruid, 1);
+      seatFrom(gi, hPriest, 1);
+      seatFrom(gi, otherHeal, 1);
+      seatFrom(gi, tanks);
+      gi++;
+    }
 
-    // Dump anyone still free into emptiest group
+    // Melee WF #1 (Enh preferred)
+    if (meleeNeed > 0 && gi < groupCount) {
+      labels[gi] = 'G' + (gi + 1) + ' · Melee + WF';
+      notes[gi] = 'Physical DPS stack · Windfury / LotP / FI';
+      focuses[gi] = 'melee';
+      if (freeList(enhAll).length) seat(gi, freeList(enhAll)[0]);
+      else if (freeList(restoSham).length) seat(gi, freeList(restoSham)[0]);
+      seatFrom(gi, ferals, 1);
+      seatFrom(gi, bmHunters, 1);
+      seatFrom(gi, physicalMelee);
+      seatFrom(gi, ferals);
+      gi++;
+    }
+
+    // Melee WF #2 if enough melee + shamans
+    if (dualMelee && gi < groupCount && freeList(physicalMelee).concat(freeList(ferals)).length) {
+      labels[gi] = 'G' + (gi + 1) + ' · Melee WF #2';
+      notes[gi] = 'Second WF stack for remaining melee';
+      focuses[gi] = 'melee';
+      if (freeList(restoSham).length) seat(gi, freeList(restoSham)[0]);
+      else if (freeList(enhAll).length) seat(gi, freeList(enhAll)[0]);
+      else if (freeList(eleAll).length) seat(gi, freeList(eleAll)[0]);
+      seatFrom(gi, physicalMelee);
+      seatFrom(gi, ferals);
+      gi++;
+    }
+
+    // Casters
+    if (wantCaster && gi < groupCount) {
+      labels[gi] = 'G' + (gi + 1) + ' · Casters';
+      notes[gi] = 'Moonkin + Wrath of Air + SP · mages/locks';
+      focuses[gi] = 'caster';
+      seatFrom(gi, shadows);
+      seatFrom(gi, boomkins);
+      seatFrom(gi, eleAll);
+      seatFrom(gi, mages);
+      seatFrom(gi, locks);
+      seatFrom(gi, otherRanged);
+      if (groups[gi] && !groups[gi].some(isAnyShaman) && freeList(restoSham).length) {
+        seat(gi, freeList(restoSham)[0]);
+      }
+      gi++;
+    }
+
+    // Remaining groups: hunters + healers + leftovers
+    while (gi < groupCount) {
+      labels[gi] = 'G' + (gi + 1) + ' · Support / Hunters';
+      notes[gi] = 'Hunters · remaining healers · overflow';
+      focuses[gi] = 'mixed';
+      seatFrom(gi, nonBmHunters);
+      seatFrom(gi, bmHunters);
+      seatFrom(gi, hPriest);
+      seatFrom(gi, hPals);
+      seatFrom(gi, disc);
+      seatFrom(gi, rDruid);
+      seatFrom(gi, otherHeal);
+      seatFrom(gi, restoSham);
+      seatFrom(gi, otherRanged);
+      seatFrom(gi, locks);
+      seatFrom(gi, mages);
+      seatFrom(gi, physicalMelee);
+      gi++;
+    }
+
+    // Dump free into emptiest group under 5; expand only if still overflow and <5 groups
     const overflow = [];
     all.filter(free).forEach((p) => {
-      let best = 0;
-      for (let i = 1; i < 5; i++) if (groups[i].length < groups[best].length) best = i;
+      const best = emptiest();
       if (!seat(best, p)) {
-        for (let i = 0; i < 5; i++) {
-          if (seat(i, p)) return;
+        if (groups.length < 5) {
+          groups.push([]);
+          labels.push('G' + groups.length + ' · Overflow');
+          notes.push('Extra seats');
+          focuses.push('mixed');
+          seat(groups.length - 1, p);
+        } else {
+          overflow.push(p);
+          placed.add(key(p));
         }
-        overflow.push(p);
-        placed.add(key(p));
       }
     });
 
-    const groupList = groups.map((members, i) => {
-      const seatMem = members.slice(0, 5);
-      const buffs = analyzePartyBuffs(seatMem, focuses[i]);
+    // Drop empty groups at end (keep compact)
+    const packed = [];
+    groups.forEach((members, i) => {
+      if (!members.length) return;
+      packed.push({ members, label: labels[i], note: notes[i], focus: focuses[i] });
+    });
+    if (!packed.length && all.length) {
+      packed.push({
+        members: all.slice(0, 5),
+        label: 'G1 · Raid',
+        note: 'All available',
+        focus: 'mixed',
+      });
+    }
+
+    const groupList = packed.map((g, i) => {
+      const seatMem = g.members.slice(0, 5);
+      const buffs = analyzePartyBuffs(seatMem, g.focus || 'mixed');
       const activeNames = buffs.present.map((b) =>
         b.upgraded && b.id === 'wf' ? 'WF (Improved)' : b.short
       );
       const missNames = buffs.missing.map((b) => b.short);
       return {
         index: i + 1,
-        label: labels[i],
-        note: notes[i],
-        focus: focuses[i],
+        label: g.label || 'G' + (i + 1),
+        note: g.note || '',
+        focus: g.focus || 'mixed',
         members: seatMem,
         buffs: activeNames,
         buffDetail: buffs,
@@ -514,7 +596,54 @@
         hasImprovedWF: seatMem.some(isEnhShaman),
       };
     });
-    return { groups: groupList, overflow };
+    return { groups: groupList, overflow, ideal };
+  }
+
+  /** Per-raid advice (BT / Hyjal) using current counts */
+  function raidAdvice(counts) {
+    const out = [];
+    const n = counts.total || 0;
+    // Black Temple
+    out.push({
+      raid: 'Black Temple',
+      id: 'bt',
+      lines: [
+        counts.tanks >= 3
+          ? 'Tanks OK for Mother / Council / Illidan (3+).'
+          : 'BT wants 3–4 tanks (Mother beams, Council, Illidan). You have ' + counts.tanks + '.',
+        counts.healers >= 5
+          ? 'Healing depth OK for BT raid damage.'
+          : 'BT is healer-heavy (RoS, Mother, Illidan). You have ' + counts.healers + ' — stack heals.',
+        counts.melee + counts.ranged >= 10
+          ? 'DPS count fine for BT burn phases.'
+          : 'Low DPS for BT — expect longer enrages; tighten comp.',
+        counts.shamans > 0
+          ? 'Lust available for Illidan / Council burns.'
+          : 'No shamans — no Bloodlust for BT burns.',
+      ],
+    });
+    // Hyjal
+    out.push({
+      raid: 'Mount Hyjal',
+      id: 'hyjal',
+      lines: [
+        counts.tanks >= 2
+          ? 'Tanks OK for Hyjal (2–3).'
+          : 'Hyjal needs 2+ tanks (Anetheron infernals). You have ' + counts.tanks + '.',
+        counts.ranged >= 4
+          ? 'Ranged OK for kiting / spread fights.'
+          : 'Hyjal loves hunters/ranged (Supremus-style kiting, Archi). Only ' + counts.ranged + ' ranged.',
+        counts.healers >= 4
+          ? 'Heals OK for Hyjal waves / Archi.'
+          : 'Hyjal wave damage — bring more healers if possible (' + counts.healers + ' now).',
+        n >= 20
+          ? 'Size OK for 25-man Hyjal.'
+          : n >= 10
+            ? 'Smaller raid (' + n + ') — still works; stack essential buffs.'
+            : 'Very small roster — fill more signups before Hyjal.',
+      ],
+    });
+    return out;
   }
 
   /* ─── blessings ────────────────────────────────────────────────── */
@@ -930,6 +1059,7 @@
     const built = buildGroups(unique);
     const groupList = built.groups || built;
     const overflow = built.overflow || [];
+    const ideal = built.ideal || idealSplit(unique.length);
 
     const blessings = assignBlessings(unique);
     const utility = utilityAssignments(unique);
@@ -944,38 +1074,67 @@
       paladins: unique.filter(isPaladin).length,
       shamans: unique.filter(isAnyShaman).length,
       enh: unique.filter(isEnhShaman).length,
+      groups: groupList.length,
+    };
+
+    // Compare actual vs ideal for this signup size
+    const delta = {
+      tanks: counts.tanks - ideal.tanks,
+      healers: counts.healers - ideal.healers,
+      melee: counts.melee - ideal.melee,
+      ranged: counts.ranged - ideal.ranged,
     };
 
     const tips = [];
-    if (counts.total < 10) tips.push('Few raiders — import Raid-Helper first.');
+    tips.push(
+      'Using ' +
+        counts.total +
+        ' signed · ' +
+        counts.groups +
+        ' groups · ideal ~' +
+        ideal.tanks +
+        'T / ' +
+        ideal.healers +
+        'H / ' +
+        ideal.melee +
+        'M / ' +
+        ideal.ranged +
+        'R for this size'
+    );
+    if (counts.total < 8) tips.push('Very small roster — fill more RH signups when you can.');
     if (counts.enh === 0 && counts.shamans === 0)
       tips.push('No shaman: melee lose Windfury (huge physical DPS + tank threat loss).');
-    else if (counts.enh === 0)
-      tips.push('No Enh shaman: only base WF from resto/ele — still put shamans in melee parties.');
-    if (counts.shamans >= 2)
-      tips.push('2+ shamans: run dual WF melee groups (G2 + G3) for max physical.');
-    if (counts.tanks < 2) tips.push('Under 2 tanks signed.');
-    if (counts.healers < 4 && counts.total >= 20) tips.push('Low healers for 25-man.');
+    else if (counts.enh === 0 && counts.shamans > 0)
+      tips.push('No Enh: resto/ele still drop WF — seat shamans with melee/tanks.');
+    if (counts.shamans >= 2 && counts.melee >= 4)
+      tips.push('2+ shamans + melee: dual WF stacks for max physical.');
+    if (delta.tanks < 0) tips.push('Short ' + -delta.tanks + ' tank(s) vs ideal for ' + counts.total + '-man.');
+    if (delta.healers < 0)
+      tips.push('Short ' + -delta.healers + ' healer(s) vs ideal — tough on BT Mother / Illidan / Hyjal Archi.');
+    if (delta.tanks > 1) tips.push('Extra tanks — park OT in melee WF group or special assigns.');
     if (counts.paladins === 0) tips.push('No paladins: no Greater Blessings / auras.');
-    if (!unique.some(isBoomkin)) tips.push('No boomkin: casters miss Moonkin Aura in party.');
+    if (!unique.some(isBoomkin) && counts.ranged >= 3)
+      tips.push('No boomkin: casters miss Moonkin Aura — stack casters with Ele sham for WoA.');
     if (!unique.some(isFeralCat) && !unique.some((p) => isTank(p) && /druid/i.test(p.class)))
-      tips.push('No feral: missing Leader of the Pack (+5% crit) for physical groups.');
+      tips.push('No feral: missing Leader of the Pack (+5% crit) for physical.');
     if (overflow.length)
       tips.push(
-        'Overflow (>' + 25 + '): ' + overflow.map((p) => p.name).join(', ') + ' — bench or swap in.'
+        'Overflow: ' + overflow.map((p) => p.name).join(', ') + ' — over 25 or unseated.'
       );
-    tips.push(
-      'Tanks: WF group + Sanctuary/Kings, never Salvation. Hunters MD on pull. Melee Salv + wait threat.'
-    );
+
+    const raids = raidAdvice(counts);
 
     return {
       counts,
+      ideal,
+      delta,
       groups: groupList,
       overflow,
       blessings,
       utility,
       coverage,
       tips,
+      raids,
       generatedAt: new Date().toISOString(),
     };
   }
@@ -1172,5 +1331,7 @@
     applyManualSeats,
     seatsFromGroups,
     analyzePartyBuffs,
+    idealSplit,
+    raidAdvice,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
