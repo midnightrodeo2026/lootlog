@@ -822,9 +822,13 @@ a.wh-name > span[style*="background"],
           <button class="btn btn-ghost" id="rhOpenBtn" type="button">RH ↗</button>
         </div>
         <div class="row" style="margin-top:8px">
-          <input class="input" id="rhCalendarUrl" placeholder="RH unrestricted calendar link (once)…" style="flex:1;min-width:200px;max-width:none" title="Raid-Helper panel → Calendar → Unrestricted Calendar Link" />
-          <button class="btn btn-ghost" id="rhSaveCalBtn" type="button">Save calendar</button>
+          <input class="input" id="rhApiKey" type="password" placeholder="RH API key (Discord /apikey) — auto-loads all MR events" style="flex:1;min-width:200px;max-width:none" autocomplete="off" title="Official API: https://raid-helper.xyz/documentation/api — GET /api/v4/servers/{id}/events" />
+          <button class="btn btn-ghost" id="rhSaveApiBtn" type="button">Save key</button>
         </div>
+        <p class="share-hint" style="margin:8px 0 0;max-width:none;text-align:left;font-size:12px">
+          Official docs: <a href="https://raid-helper.xyz/documentation/api" target="_blank" rel="noopener">raid-helper.xyz/documentation/api</a>
+          · In Discord run <b>/apikey</b> (admin) → paste once → Auto events lists every Midnight Rodeo raid.
+        </p>
         <span class="msg" id="rhMsg" style="display:block;margin-top:8px"></span>
         <div id="rhUpcoming" class="rh-upcoming"></div>
         <div id="rhPreview" class="hidden" style="margin-top:12px"></div>
@@ -1320,6 +1324,7 @@ a.wh-name > span[style*="background"],
     return {
       raidHelperEventUrl: gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '',
       raidHelperServerId: gs.raidHelperServerId || cfg.raidHelperServerId || '',
+      raidHelperApiKey: gs.raidHelperApiKey || cfg.raidHelperApiKey || '',
       raidHelperCalendarKey: gs.raidHelperCalendarKey || cfg.raidHelperCalendarKey || '',
       guildIconUrl: cfg.guildIconUrl || '',
       guildName: gs.guildName || cfg.guildName || 'Midnight Rodeo',
@@ -1373,25 +1378,21 @@ a.wh-name > span[style*="background"],
 
   async function refreshServerEvents(opts) {
     const silent = opts && opts.silent;
-    if (!window.RaidHelper || !RaidHelper.listServerEvents) return null;
+    if (!window.RaidHelper || !RaidHelper.listGuildEvents) return null;
     const c = rhConfig();
-    if (!c.raidHelperServerId || !c.raidHelperCalendarKey) {
+    if (!c.raidHelperServerId || !(c.raidHelperApiKey || c.raidHelperCalendarKey)) {
       if (!silent) {
         setRhMsg(
-          'Paste unrestricted calendar link once (RH panel → Calendar). Then Auto events finds all Midnight Rodeo raids.',
+          'Paste API key from Discord /apikey (see raid-helper.xyz/documentation/api), then Auto events.',
           true
         );
       }
-      // Still try default single event for banner
       await refreshDefaultEventBanner();
       return null;
     }
     try {
-      if (!silent) setRhMsg('Loading Midnight Rodeo events…');
-      const list = await RaidHelper.listServerEvents(
-        c.raidHelperServerId,
-        c.raidHelperCalendarKey
-      );
+      if (!silent) setRhMsg('Loading Midnight Rodeo events (official API)…');
+      const list = await RaidHelper.listGuildEvents(c);
       lastServerEvents = list;
       renderUpcomingList(list);
       if (list.next && list.next.url) {
@@ -1410,7 +1411,7 @@ a.wh-name > span[style*="background"],
         );
         if (!silent) {
           setRhMsg(
-            `Found ${list.upcoming.length} upcoming · next “${list.next.title}” · ${list.next.date} ${list.next.time}`
+            `API · ${list.upcoming.length} upcoming / ${list.events.length} total · next “${list.next.title}” · ${list.next.date || ''} ${list.next.time || ''}`
           );
         }
       } else if (list.events.length) {
@@ -1420,7 +1421,7 @@ a.wh-name > span[style*="background"],
           'Last: <b>' + escapeHtml(last.title) + '</b> (no upcoming)',
           'event.html?event=' + encodeURIComponent(last.id)
         );
-        if (!silent) setRhMsg(`No upcoming events — ${list.events.length} on calendar.`);
+        if (!silent) setRhMsg(`API · no upcoming — ${list.events.length} events on server.`);
       }
       return list;
     } catch (e) {
@@ -1486,35 +1487,24 @@ a.wh-name > span[style*="background"],
         .join('');
   }
 
-  function saveCalendarFromInput() {
-    const raw = ($('rhCalendarUrl') && $('rhCalendarUrl').value.trim()) || '';
-    if (!raw || !window.RaidHelper) {
-      setRhMsg('Paste the unrestricted calendar link from Raid-Helper.', true);
+  function saveApiKeyFromInput() {
+    const raw = ($('rhApiKey') && $('rhApiKey').value.trim()) || '';
+    if (!raw) {
+      setRhMsg('Paste the API key from Discord /apikey.', true);
       return;
     }
-    const parsed = RaidHelper.parseCalendarUrl(raw);
     const c = rhConfig();
-    let serverId = (parsed && parsed.serverId) || c.raidHelperServerId;
-    let key = parsed && parsed.calendarKey;
-    if (!key && parsed && !parsed.serverId) key = raw;
+    const serverId = c.raidHelperServerId || (window.LOOTLOG_CONFIG || {}).raidHelperServerId || '';
     if (!serverId) {
-      setRhMsg('Could not read server id — use full calendar URL.', true);
-      return;
-    }
-    if (!key) {
-      setRhMsg('Could not read calendar key from that link.', true);
+      setRhMsg('Missing server id in config.js (raidHelperServerId).', true);
       return;
     }
     try {
       Accounts.updateSettings({
         raidHelperServerId: serverId,
-        raidHelperCalendarKey: key,
+        raidHelperApiKey: raw,
       });
-      if ($('rhCalendarUrl')) {
-        $('rhCalendarUrl').value =
-          'https://raid-helper.xyz/calendar/' + serverId + '/' + key;
-      }
-      setRhMsg('Calendar saved — loading Midnight Rodeo events…');
+      setRhMsg('API key saved locally — loading events…');
       refreshServerEvents({ silent: false });
     } catch (e) {
       setRhMsg(e.message || String(e), true);
@@ -3238,12 +3228,12 @@ a.wh-name > span[style*="background"],
   if ($('rhAutoBtn')) {
     $('rhAutoBtn').addEventListener('click', () => refreshServerEvents({ silent: false }));
   }
-  if ($('rhSaveCalBtn')) {
-    $('rhSaveCalBtn').addEventListener('click', saveCalendarFromInput);
+  if ($('rhSaveApiBtn')) {
+    $('rhSaveApiBtn').addEventListener('click', saveApiKeyFromInput);
   }
-  if ($('rhCalendarUrl')) {
-    $('rhCalendarUrl').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') saveCalendarFromInput();
+  if ($('rhApiKey')) {
+    $('rhApiKey').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveApiKeyFromInput();
     });
   }
   if ($('rhUpcoming')) {
@@ -3672,12 +3662,9 @@ a.wh-name > span[style*="background"],
     if ($('rhEventUrl') && rhCfg.raidHelperEventUrl) {
       $('rhEventUrl').value = rhCfg.raidHelperEventUrl;
     }
-    if ($('rhCalendarUrl') && rhCfg.raidHelperServerId && rhCfg.raidHelperCalendarKey) {
-      $('rhCalendarUrl').value =
-        'https://raid-helper.xyz/calendar/' +
-        rhCfg.raidHelperServerId +
-        '/' +
-        rhCfg.raidHelperCalendarKey;
+    if ($('rhApiKey') && rhCfg.raidHelperApiKey) {
+      // show placeholder only — don't echo full key in value for casual shoulder-surfing
+      $('rhApiKey').placeholder = 'API key saved · paste new to replace';
     }
 
     if ($('rosterGame')) $('rosterGame').value = 'classic';

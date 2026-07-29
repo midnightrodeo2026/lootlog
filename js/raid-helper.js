@@ -1,12 +1,20 @@
 /**
- * Raid-Helper.xyz public event API client
- * GET https://raid-helper.xyz/api/event/{eventId}
- * CORS: Access-Control-Allow-Origin: *
+ * Raid-Helper official API client
+ * Docs: https://raid-helper.xyz/documentation/api
  *
- * Used to pull Discord raid signups into Midnight Rodeo guild manager.
+ * Public (no auth):
+ *   GET /api/v4/events/{eventId}
+ * Server auth (header Authorization: <apikey from Discord /apikey>):
+ *   GET /api/v4/servers/{serverId}/events   (optional header Page: n)
+ *
+ * Legacy fallback:
+ *   GET /api/event/{eventId}
  */
 (function (global) {
-  const API = 'https://raid-helper.xyz/api/event/';
+  const BASE = 'https://raid-helper.xyz';
+  const API_V4_EVENT = BASE + '/api/v4/events/';
+  const API_LEGACY_EVENT = BASE + '/api/event/';
+  const API_V4_SERVER_EVENTS = BASE + '/api/v4/servers/';
 
   function extractEventId(input) {
     const s = String(input || '').trim();
@@ -20,7 +28,7 @@
   }
 
   function eventPageUrl(id) {
-    return `https://raid-helper.xyz/event/${id}`;
+    return BASE + '/event/' + id;
   }
 
   function parseUnixDate(unixtime, dateStr, timeStr) {
@@ -50,13 +58,12 @@
   }
 
   function dayKeyFromEvent(ev) {
-    const d = parseUnixDate(ev.unixtime, ev.date, ev.time);
+    const d = parseUnixDate(ev.unixtime || ev.startTime, ev.date, ev.time);
     if (!d || isNaN(d.getTime())) return '';
     const p = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
-  /** "Moon/Luna" or "Druul\\Hairydad" → parts */
   function nameParts(raw) {
     const s = String(raw || '').trim();
     if (!s) return [];
@@ -66,10 +73,6 @@
       .filter(Boolean);
   }
 
-  /**
-   * Auto-pick one name for dual RH nicknames.
-   * Prefer part before / (main). Admin can override via preferredName later.
-   */
   function pickMainName(raw, preferred) {
     if (preferred && String(preferred).trim()) return String(preferred).trim();
     const parts = nameParts(raw);
@@ -87,11 +90,14 @@
   }
 
   function normalizeSignup(s) {
+    // Support v4 (className/roleName/specName) and legacy (class/role/spec)
     const status = (s.status || 'primary').toLowerCase();
-    const role = s.role || s.cRole || '';
-    const cls = s.class || s.cClass || '';
+    const role = s.roleName || s.role || s.cRoleName || s.cRole || '';
+    const cls = s.className || s.class || s.cClassName || s.cClass || '';
+    const spec = s.specName || s.spec || s.cSpecName || s.cSpec || '';
     const soft = isSoftStatus(role, cls, status);
-    const isAbsence = /absence|absent/i.test(role) || /absence/i.test(cls) || status === 'absence';
+    const isAbsence =
+      /absence|absent/i.test(role) || /absence/i.test(cls) || status === 'absence';
     const isTentative =
       /tentative/i.test(role) || /tentative/i.test(cls) || status === 'tentative';
     const isLate = /late/i.test(role) || /late/i.test(cls) || status === 'late';
@@ -103,19 +109,18 @@
       nameParts: parts,
       mainName: parts[0] || rawName,
       class: cls,
-      spec: s.spec || s.cSpec || '',
+      spec: String(spec || '').replace(/(\d+)$/, ''),
       role: role,
       status: status,
-      userid: s.userid || s.userId || '',
+      userid: s.userId || s.userid || s.user_id || '',
       position: s.position,
       isAbsence,
       isTentative,
       isLate,
       isBench,
       isSoft: soft,
-      /** Hard raid seat (counts toward 25) */
       isPrimary: !soft && status !== 'absence',
-      signuptime: s.signuptime || null,
+      signuptime: s.entryTime || s.signuptime || null,
     };
   }
 
@@ -152,57 +157,310 @@
     };
   }
 
-  async function fetchEvent(eventIdOrUrl) {
-    const id = extractEventId(eventIdOrUrl);
-    if (!id) throw new Error('Paste a Raid-Helper event link or numeric event ID');
-
-    const res = await fetch(API + encodeURIComponent(id), {
-      headers: { Accept: 'application/json' },
-    });
-    if (!res.ok) {
-      throw new Error(
-        res.status === 404
-          ? 'Event not found — check the link is public and the ID is correct'
-          : `Raid-Helper error HTTP ${res.status}`
-      );
-    }
-    const data = await res.json();
-    const summary = summarize(data.signups || []);
-    const when = parseUnixDate(data.unixtime, data.date, data.time);
+  /** Normalize raw event JSON from v4 or legacy into one shape */
+  function normalizeEventPayload(data, id) {
+    const signups = data.signUps || data.signups || [];
+    const summary = summarize(signups);
+    const unixtime = data.startTime || data.unixtime || data.unixStart || null;
+    const leader = data.leaderName || data.leadername || data.leader || '';
+    const server = data.serverName || data.servername || data.server || '';
+    const channel = data.channelName || data.channelname || '';
+    const advanced = data.advancedSettings || data.advanced || {};
+    const when = parseUnixDate(unixtime, data.date, data.time);
 
     return {
-      id,
-      url: eventPageUrl(id),
+      id: String(data.id || data.raidid || id || ''),
+      url: eventPageUrl(String(data.id || data.raidid || id || '')),
       title: data.title || data.displayTitle || 'Raid',
       date: data.date || '',
       time: data.time || '',
-      unixtime: data.unixtime || null,
-      dayKey: dayKeyFromEvent(data),
+      unixtime: unixtime ? Number(unixtime) : null,
+      endTime: data.endTime || data.closingTime || data.closingtime || null,
+      dayKey: dayKeyFromEvent({
+        unixtime,
+        startTime: unixtime,
+        date: data.date,
+        time: data.time,
+      }),
       whenIso: when && !isNaN(when.getTime()) ? when.toISOString() : null,
-      leader: data.leadername || '',
-      server: data.servername || '',
-      channel: data.channelName || '',
+      leader,
+      server,
+      serverId: String(data.serverId || data.serverid || ''),
+      channel,
+      channelId: String(data.channelId || data.channelid || ''),
       description: data.description || data.description2 || '',
       roles: data.roles || [],
       classes: data.classes || [],
       color: data.color || '',
-      lastUpdated: data.last_updated || null,
+      lastUpdated: data.lastUpdated || data.last_updated || null,
+      image: advanced.image || '',
+      advanced,
       raw: data,
       ...summary,
     };
   }
 
   /**
-   * Map RH primary signups → playerInfo patches (one key per person).
-   * Dual names auto-collapse to main; nameOverrides[rhFullName] forces pick.
-   * Does NOT create ghost keys for "Main/Alt" duals.
+   * Fetch single event — official v4 (public), fallback legacy.
+   * Optional apiKey in Authorization for rate-limit by key (docs).
    */
+  async function fetchEvent(eventIdOrUrl, opts) {
+    const id = extractEventId(eventIdOrUrl);
+    if (!id) throw new Error('Paste a Raid-Helper event link or numeric event ID');
+
+    const headers = { Accept: 'application/json' };
+    const key = opts && opts.apiKey;
+    if (key) headers.Authorization = String(key).trim();
+
+    let data = null;
+    let res = await fetch(API_V4_EVENT + encodeURIComponent(id), {
+      headers,
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      data = await res.json();
+    } else {
+      // legacy fallback
+      res = await fetch(API_LEGACY_EVENT + encodeURIComponent(id), {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        throw new Error(
+          res.status === 404
+            ? 'Event not found — check the link is public and the ID is correct'
+            : `Raid-Helper error HTTP ${res.status}`
+        );
+      }
+      data = await res.json();
+    }
+    return normalizeEventPayload(data, id);
+  }
+
+  /**
+   * List all events on a Discord server (official API).
+   * GET /api/v4/servers/{serverId}/events
+   * Header: Authorization: <apikey>  (from Discord /apikey)
+   * Optional: Page header for pagination (max 1000 per page)
+   */
+  async function listServerEvents(serverId, apiKey, opts) {
+    const sid = String(serverId || '').trim();
+    const key = String(apiKey || '').trim();
+    if (!sid) throw new Error('Missing Discord server id');
+    if (!key) {
+      throw new Error(
+        'Need server API key — in Discord run /apikey (admin/manage server) and paste it here'
+      );
+    }
+
+    const page = (opts && opts.page) || 1;
+    const headers = {
+      Accept: 'application/json',
+      Authorization: key,
+    };
+    if (page > 1) headers.Page = String(page);
+
+    // Prefer v4; docs sometimes show v3 path — try both
+    const urls = [
+      API_V4_SERVER_EVENTS + encodeURIComponent(sid) + '/events',
+      BASE + '/api/v3/servers/' + encodeURIComponent(sid) + '/events',
+    ];
+
+    let res = null;
+    let data = null;
+    let lastErr = '';
+    for (const url of urls) {
+      res = await fetch(url, { headers, cache: 'no-store' });
+      if (res.ok) {
+        data = await res.json();
+        break;
+      }
+      const body = await res.text();
+      lastErr = res.status + ' ' + body.slice(0, 120);
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(
+          'Invalid API key — run /apikey in Discord and paste the current key (do not share it publicly)'
+        );
+      }
+    }
+    if (!data) throw new Error('Could not list server events (' + lastErr + ')');
+
+    // Response: array, or { events, page, pages, count, ... }
+    const arr = Array.isArray(data)
+      ? data
+      : data.events || data.postedEvents || data.items || [];
+    const events = arr.map((e) => {
+      const id = String(e.id || e.raidid || e.raidId || e.messageId || '');
+      const unixtime = e.startTime || e.unixtime || e.unixStart || null;
+      return {
+        id,
+        title: e.title || e.displayTitle || e.description || 'Raid',
+        date: e.date || '',
+        time: e.time || '',
+        unixtime: unixtime ? Number(unixtime) : null,
+        leader: e.leaderName || e.leadername || e.leader || '',
+        channel: e.channelName || e.channel || '',
+        server: e.serverName || e.servername || '',
+        color: e.color || '',
+        url: id ? eventPageUrl(id) : '',
+        raw: e,
+      };
+    });
+
+    events.sort((a, b) => (a.unixtime || 0) - (b.unixtime || 0));
+    const now = Date.now() / 1000;
+    const upcoming = events.filter((e) => !e.unixtime || e.unixtime >= now - 3 * 3600);
+    const past = events.filter((e) => e.unixtime && e.unixtime < now - 3 * 3600);
+
+    return {
+      serverId: sid,
+      events,
+      upcoming,
+      past,
+      next: upcoming[0] || null,
+      page: data.page || data.currentPage || page,
+      pages: data.pages || data.totalPages || 1,
+      count: data.count || data.eventCount || events.length,
+      total: data.total || data.totalEvents || events.length,
+      raw: data,
+    };
+  }
+
+  /** Calendar link fallback (unrestricted calendar key — not the official API key) */
+  function parseCalendarUrl(input) {
+    const s = String(input || '').trim();
+    if (!s) return null;
+    let m = s.match(
+      /raid-helper\.(?:xyz|dev)\/calendar\/(\d{10,})\/([A-Za-z0-9_\-]+)/i
+    );
+    if (m) return { serverId: m[1], calendarKey: m[2] };
+    if (/^[A-Za-z0-9_\-]{6,}$/.test(s) && !/^\d{15,}$/.test(s)) {
+      return { serverId: '', calendarKey: s };
+    }
+    m = s.match(/^(\d{10,})[\/\s]+([A-Za-z0-9_\-]+)$/);
+    if (m) return { serverId: m[1], calendarKey: m[2] };
+    return null;
+  }
+
+  async function listServerEventsViaCalendar(serverId, calendarKey) {
+    const sid = String(serverId || '').trim();
+    const key = String(calendarKey || '').trim();
+    if (!sid || !key || key === 'none') {
+      throw new Error('Need calendar server id + key');
+    }
+    const url =
+      BASE +
+      '/api/events/' +
+      encodeURIComponent(sid) +
+      '/' +
+      encodeURIComponent(key);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+      cache: 'no-store',
+    });
+    if (res.status === 403) throw new Error('Invalid calendar key');
+    if (!res.ok) throw new Error('Calendar list failed HTTP ' + res.status);
+    const data = await res.json();
+    const arr = data.events || data || [];
+    const events = (Array.isArray(arr) ? arr : []).map((e) => {
+      const id = String(e.id || e.raidid || '');
+      const unixtime = e.unixtime || e.startTime || null;
+      return {
+        id,
+        title: e.title || e.displayTitle || 'Raid',
+        date: e.date || '',
+        time: e.time || '',
+        unixtime: unixtime ? Number(unixtime) : null,
+        leader: e.leadername || e.leaderName || '',
+        channel: e.channelName || '',
+        server: e.servername || '',
+        color: e.color || '',
+        url: id ? eventPageUrl(id) : '',
+        raw: e,
+      };
+    });
+    events.sort((a, b) => (a.unixtime || 0) - (b.unixtime || 0));
+    const now = Date.now() / 1000;
+    const upcoming = events.filter((e) => !e.unixtime || e.unixtime >= now - 3 * 3600);
+    return {
+      serverId: sid,
+      events,
+      upcoming,
+      past: events.filter((e) => e.unixtime && e.unixtime < now - 3 * 3600),
+      next: upcoming[0] || null,
+      source: 'calendar',
+    };
+  }
+
+  /**
+   * Smart list: prefer official API key, else calendar key.
+   */
+  async function listGuildEvents(cfg) {
+    const c = cfg || {};
+    const sid = c.raidHelperServerId || c.serverId || '';
+    const apiKey = c.raidHelperApiKey || c.apiKey || '';
+    const calKey = c.raidHelperCalendarKey || c.calendarKey || '';
+
+    if (sid && apiKey) {
+      const list = await listServerEvents(sid, apiKey);
+      list.source = 'api';
+      return list;
+    }
+    if (sid && calKey) {
+      return listServerEventsViaCalendar(sid, calKey);
+    }
+    throw new Error(
+      'Set Raid-Helper API key (Discord /apikey) or unrestricted calendar link to auto-load Midnight Rodeo events'
+    );
+  }
+
+  async function resolveActiveEvent(cfg) {
+    const c = cfg || {};
+    try {
+      const list = await listGuildEvents(c);
+      if (list.next && list.next.id) {
+        return {
+          source: list.source || 'api',
+          eventId: list.next.id,
+          url: list.next.url,
+          list,
+        };
+      }
+      if (list.events.length) {
+        const last = list.events[list.events.length - 1];
+        return {
+          source: list.source || 'api',
+          eventId: last.id,
+          url: last.url,
+          list,
+        };
+      }
+    } catch (e) {
+      return {
+        source: 'error',
+        error: e.message,
+        eventId: extractEventId(c.raidHelperEventUrl || ''),
+      };
+    }
+    const id = extractEventId(c.raidHelperEventUrl || '');
+    return {
+      source: 'config',
+      eventId: id,
+      url: id ? eventPageUrl(id) : '',
+      list: null,
+    };
+  }
+
   function toPlayerPatches(event, nameOverrides) {
     const overrides = nameOverrides || {};
     const patches = {};
     for (const s of event.list || []) {
       if (!s.name || s.isSoft || !s.isPrimary) continue;
-      // Skip non-raid roles if class is soft-status leftover
       if (isSoftStatus(s.role, s.class, s.status)) continue;
 
       const preferred =
@@ -211,10 +469,7 @@
         overrides[(s.mainName || '').toLowerCase()];
       const display = pickMainName(s.name, preferred);
       const key = display.toLowerCase();
-      if (patches[key]) {
-        // rare collision after collapse — keep first, note rhName
-        continue;
-      }
+      if (patches[key]) continue;
       const parts = s.nameParts || nameParts(s.name);
       patches[key] = {
         displayName: display,
@@ -233,129 +488,8 @@
     return patches;
   }
 
-  /** Primary signed only (for 25-man raid roster) */
   function primarySignups(event) {
     return (event.list || []).filter((s) => s.isPrimary && !s.isSoft);
-  }
-
-  /**
-   * Public calendar list (no Discord login).
-   * RH panel → Calendar → "Unrestricted Calendar Link"
-   *   https://raid-helper.xyz/calendar/{serverId}/{calendarKey}
-   * API: POST /api/events/{serverId}/{calendarKey}  body {}
-   * Returns upcoming + past events for that Discord server.
-   */
-  function parseCalendarUrl(input) {
-    const s = String(input || '').trim();
-    if (!s) return null;
-    // full calendar URL
-    let m = s.match(
-      /raid-helper\.(?:xyz|dev)\/calendar\/(\d{10,})\/([A-Za-z0-9_\-]+)/i
-    );
-    if (m) return { serverId: m[1], calendarKey: m[2] };
-    // bare key with known server from config later
-    if (/^[A-Za-z0-9_\-]{6,}$/.test(s) && !/^\d{15,}$/.test(s)) {
-      return { serverId: '', calendarKey: s };
-    }
-    // serverId/key
-    m = s.match(/^(\d{10,})[\/\s]+([A-Za-z0-9_\-]+)$/);
-    if (m) return { serverId: m[1], calendarKey: m[2] };
-    return null;
-  }
-
-  async function listServerEvents(serverId, calendarKey) {
-    const sid = String(serverId || '').trim();
-    const key = String(calendarKey || '').trim();
-    if (!sid) throw new Error('Missing Raid-Helper server id');
-    if (!key || key === 'none') {
-      throw new Error(
-        'Need unrestricted calendar key — open Raid-Helper panel → Calendar → copy Unrestricted Calendar Link'
-      );
-    }
-    const url =
-      'https://raid-helper.xyz/api/events/' +
-      encodeURIComponent(sid) +
-      '/' +
-      encodeURIComponent(key);
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: '{}',
-      cache: 'no-store',
-    });
-    if (res.status === 403) {
-      throw new Error('Invalid calendar key — regenerate unrestricted link in RH Calendar settings');
-    }
-    if (!res.ok) {
-      throw new Error('Could not list server events (HTTP ' + res.status + ')');
-    }
-    const data = await res.json();
-    const events = (data.events || data || []).map((e) => {
-      const id = String(e.id || e.raidid || e.raidId || '');
-      const unixtime = e.unixtime || e.startTime || null;
-      return {
-        id,
-        title: e.title || e.displayTitle || e.description || 'Raid',
-        date: e.date || '',
-        time: e.time || '',
-        unixtime: unixtime ? Number(unixtime) : null,
-        leader: e.leadername || e.leader || '',
-        channel: e.channelName || e.channel || '',
-        server: e.servername || e.server || '',
-        color: e.color || '',
-        url: id ? eventPageUrl(id) : '',
-        raw: e,
-      };
-    });
-    // sort soonest first
-    events.sort((a, b) => (a.unixtime || 0) - (b.unixtime || 0));
-    const now = Date.now() / 1000;
-    const upcoming = events.filter((e) => !e.unixtime || e.unixtime >= now - 3 * 3600);
-    const past = events.filter((e) => e.unixtime && e.unixtime < now - 3 * 3600);
-    return {
-      serverId: sid,
-      calendarKey: key,
-      events,
-      upcoming,
-      past,
-      next: upcoming[0] || null,
-    };
-  }
-
-  /** Prefer calendar next event, else configured default event id */
-  async function resolveActiveEvent(cfg) {
-    const c = cfg || {};
-    const sid = c.raidHelperServerId || c.serverId || '';
-    const key = c.raidHelperCalendarKey || c.calendarKey || '';
-    if (sid && key) {
-      try {
-        const list = await listServerEvents(sid, key);
-        if (list.next && list.next.id) {
-          return {
-            source: 'calendar',
-            eventId: list.next.id,
-            url: list.next.url,
-            list,
-          };
-        }
-        if (list.events.length) {
-          const last = list.events[list.events.length - 1];
-          return { source: 'calendar-past', eventId: last.id, url: last.url, list };
-        }
-      } catch (e) {
-        return { source: 'calendar-error', error: e.message, eventId: extractEventId(c.raidHelperEventUrl || '') };
-      }
-    }
-    const id = extractEventId(c.raidHelperEventUrl || '');
-    return {
-      source: 'config',
-      eventId: id,
-      url: id ? eventPageUrl(id) : '',
-      list: null,
-    };
   }
 
   global.RaidHelper = {
@@ -371,6 +505,9 @@
     isSoftStatus,
     parseCalendarUrl,
     listServerEvents,
+    listServerEventsViaCalendar,
+    listGuildEvents,
     resolveActiveEvent,
+    normalizeEventPayload,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

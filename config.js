@@ -13,24 +13,24 @@ window.LOOTLOG_CONFIG = {
   expansion: 'tbc',
   tbcOnly: true,
 
-  // Discord / Raid-Helper server (Midnight Rodeo)
+  // Discord / Raid-Helper (Midnight Rodeo)
+  // Docs: https://raid-helper.xyz/documentation/api
   raidHelperServerId: '491809191154155520',
-  // Unrestricted calendar key — RH panel → Calendar → copy share link:
-  //   https://raid-helper.xyz/calendar/491809191154155520/<KEY>
-  // Paste full link or just the key here (or on Raids tab) for auto event discovery.
+  // Server API key — Discord: /apikey (admin or Manage Server only).
+  // Required to auto-list all guild events. Never commit a real key to a public repo.
+  raidHelperApiKey: '',
+  // Optional: unrestricted calendar key (fallback if no API key)
   raidHelperCalendarKey: '',
 
-  // Fallback single event if calendar key not set yet
+  // Fallback single event if API key not set yet
   raidHelperEventUrl: 'https://raid-helper.xyz/event/1530078606578024520',
 
-  // Discord server icon (shown in header)
+  // Discord server icon (header)
   guildIconUrl:
     'https://cdn.discordapp.com/icons/491809191154155520/57f435ac49e7f30c19490785c15e1b7f.png?size=128',
 
-  // Share THIS link in Discord (our board — no need to open RH)
-  // Live site: https://vorlof69.github.io/lootlog/event.html
+  // Share THIS link in Discord (our board)
   signupBoardPath: 'event.html',
 
-  // Optional event banner image (overrides RH advanced.image if set).
   eventBannerUrl: '',
 };

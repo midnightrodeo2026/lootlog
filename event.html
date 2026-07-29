@@ -530,29 +530,35 @@ a:hover{text-decoration:underline}
   let loading = false;
   let lastSyncAt = 0;
 
-  // If no ?event= and calendar key is set, auto-pick next Midnight Rodeo raid
+  // If no ?event=, use official API key (or calendar) to pick next Midnight Rodeo raid
   async function resolveEventRef() {
     if (params.get('event') || params.get('id')) return eventRef;
-    if (!window.RaidHelper || !RaidHelper.listServerEvents) return eventRef;
+    if (!window.RaidHelper || !RaidHelper.listGuildEvents) return eventRef;
     try {
-      let key = cfg.raidHelperCalendarKey || '';
-      let sid = cfg.raidHelperServerId || '';
+      let conf = {
+        raidHelperServerId: cfg.raidHelperServerId || '',
+        raidHelperApiKey: cfg.raidHelperApiKey || '',
+        raidHelperCalendarKey: cfg.raidHelperCalendarKey || '',
+        raidHelperEventUrl: defaultUrl,
+      };
       try {
         const raw = localStorage.getItem('midnight-rodeo-settings-v1');
         if (raw) {
           const s = JSON.parse(raw);
-          if (s.raidHelperCalendarKey) key = s.raidHelperCalendarKey;
-          if (s.raidHelperServerId) sid = s.raidHelperServerId;
-          if (s.raidHelperEventUrl && !(sid && key)) return s.raidHelperEventUrl;
+          if (s.raidHelperApiKey) conf.raidHelperApiKey = s.raidHelperApiKey;
+          if (s.raidHelperCalendarKey) conf.raidHelperCalendarKey = s.raidHelperCalendarKey;
+          if (s.raidHelperServerId) conf.raidHelperServerId = s.raidHelperServerId;
+          if (s.raidHelperEventUrl) conf.raidHelperEventUrl = s.raidHelperEventUrl;
         }
       } catch (_) {}
-      if (sid && key) {
-        const list = await RaidHelper.listServerEvents(sid, key);
+      if (conf.raidHelperServerId && (conf.raidHelperApiKey || conf.raidHelperCalendarKey)) {
+        const list = await RaidHelper.listGuildEvents(conf);
         if (list.next && list.next.id) return list.next.id;
         if (list.events && list.events.length) {
           return list.events[list.events.length - 1].id;
         }
       }
+      if (conf.raidHelperEventUrl) return conf.raidHelperEventUrl;
     } catch (_) {}
     return eventRef;
   }

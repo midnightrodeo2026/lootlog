@@ -29,6 +29,7 @@
     registeredAt: null,
     raidHelperEventUrl: '',
     raidHelperServerId: '',
+    raidHelperApiKey: '',
     raidHelperCalendarKey: '',
   };
 

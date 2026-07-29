@@ -5,7 +5,9 @@
  */
 (function (global) {
   const DEFAULT_EVENT_ID = '1530078606578024520';
-  const RH_API = 'https://raid-helper.xyz/api/event/';
+  // Official API: https://raid-helper.xyz/documentation/api
+  const RH_API_V4 = 'https://raid-helper.xyz/api/v4/events/';
+  const RH_API_LEGACY = 'https://raid-helper.xyz/api/event/';
   const LOCAL_KEY = 'mr-signup-board-v1';
   const TARGET_SIZE = 25;
 
@@ -107,29 +109,69 @@
   }
 
   function normalizeSignup(s, i) {
-    const role = s.role || 'Melee';
-    const cls = s.class || s.cClass || 'Unknown';
+    // v4: className / roleName / specName · legacy: class / role / spec
+    const role = s.roleName || s.role || s.cRoleName || 'Melee';
+    const cls = s.className || s.class || s.cClassName || s.cClass || 'Unknown';
+    const spec = s.specName || s.spec || s.cSpecName || s.cSpec || '';
     return {
       name: s.name || 'Unknown',
       class: cls,
-      spec: cleanSpec(s.spec || s.cSpec || ''),
-      rawSpec: s.spec || s.cSpec || '',
+      spec: cleanSpec(spec),
+      rawSpec: spec,
       role,
       position: s.position != null ? Number(s.position) : i + 1,
       status: s.status || 'primary',
-      userid: s.userid || '',
+      userid: s.userId || s.userid || '',
       local: !!s.local,
     };
   }
 
   async function fetchLive(eventId) {
     const id = extractId(eventId);
-    const res = await fetch(RH_API + encodeURIComponent(id), {
+    // Prefer shared RaidHelper client (v4 + legacy)
+    if (global.RaidHelper && typeof global.RaidHelper.fetchEvent === 'function') {
+      const ev = await global.RaidHelper.fetchEvent(id);
+      return {
+        title: ev.title,
+        date: ev.date,
+        time: ev.time,
+        unixtime: ev.unixtime,
+        leadername: ev.leader,
+        servername: ev.server,
+        channelName: ev.channel,
+        color: ev.color,
+        signups: (ev.list || []).map((s) => ({
+          name: s.name,
+          class: s.class,
+          spec: s.spec,
+          role: s.role,
+          status: s.status,
+          position: s.position,
+          userid: s.userid,
+        })),
+        raidid: ev.id,
+        advanced: ev.advanced || { image: ev.image },
+        servericon: '',
+      };
+    }
+    let res = await fetch(RH_API_V4 + encodeURIComponent(id), {
       headers: { Accept: 'application/json' },
       cache: 'no-store',
     });
+    if (!res.ok) {
+      res = await fetch(RH_API_LEGACY + encodeURIComponent(id), {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+    }
     if (!res.ok) throw new Error('Could not load event (HTTP ' + res.status + ')');
-    return res.json();
+    const data = await res.json();
+    // Normalize v4 → legacy field names used below
+    if (data.signUps && !data.signups) data.signups = data.signUps;
+    if (data.leaderName && !data.leadername) data.leadername = data.leaderName;
+    if (data.startTime && !data.unixtime) data.unixtime = data.startTime;
+    if (data.advancedSettings && !data.advanced) data.advanced = data.advancedSettings;
+    return data;
   }
 
   function mergeSignups(remoteSignups, local) {
@@ -373,7 +415,7 @@
         error: e.message,
       };
     }
-    const signups = mergeSignups(event.signups || [], local);
+    const signups = mergeSignups(event.signups || event.signUps || [], local);
     const model = buildBoardModel(Object.assign({ id }, event), signups);
     model.eventId = id;
     model.live = !event.error;
