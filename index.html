@@ -587,50 +587,148 @@ a.wh-name > span[style*="background"],
   display:inline-block;width:12px;height:12px;border-radius:50%;
   border:1px solid rgba(0,0,0,.3);
 }
-.ov-hero{
-  display:grid;grid-template-columns:1.4fr .9fr;gap:16px;margin:0 0 18px;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  padding:18px 18px 16px;border-top:2px solid var(--amber);
+/* Overview — cinematic command center */
+.ov-stage{
+  position:relative;overflow:hidden;border-radius:20px;margin:0 0 20px;
+  border:1px solid rgba(227,161,60,.28);
+  background:
+    radial-gradient(ellipse 70% 80% at 10% 20%, rgba(227,161,60,.14), transparent 50%),
+    radial-gradient(ellipse 50% 60% at 90% 80%, rgba(88,101,242,.12), transparent 45%),
+    linear-gradient(165deg, #141018 0%, #12182e 45%, #0e1424 100%);
+  box-shadow:0 24px 64px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
+  padding:22px 22px 18px;
 }
-@media(max-width:800px){.ov-hero{grid-template-columns:1fr}}
-.ov-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
-.ov-title{font-family:var(--font-display);font-size:clamp(20px,3vw,28px);margin:0 0 6px;color:var(--text);font-weight:650}
-.ov-sub{margin:0 0 14px;color:var(--muted);font-size:13.5px;line-height:1.45}
-.ov-actions{display:flex;flex-wrap:wrap;gap:8px}
-.ov-hero-side{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.ov-hero-side .stat{margin:0}
-.ov-snap{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;
+.ov-stage::before{
+  content:'';position:absolute;inset:-40% -20%;
+  background:conic-gradient(from 180deg at 50% 50%, transparent 0deg, rgba(227,161,60,.07) 60deg, transparent 120deg, rgba(105,204,240,.05) 200deg, transparent 280deg);
+  animation:ovSpin 28s linear infinite;pointer-events:none;
 }
-.ov-chip{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
-  padding:12px 14px;border-left:3px solid var(--muted);
+@keyframes ovSpin{to{transform:rotate(360deg)}}
+.ov-orb{
+  position:absolute;border-radius:50%;filter:blur(40px);pointer-events:none;opacity:.55;
+  animation:ovFloat 8s ease-in-out infinite;
 }
-.ov-chip.ok{border-left-color:var(--green)}
-.ov-chip.warn{border-left-color:var(--amber)}
-.ov-chip.bad{border-left-color:#e35d5d}
-.ov-chip b{display:block;font-size:13px;margin-bottom:3px}
-.ov-chip span{font-size:12px;color:var(--muted);line-height:1.4}
+.ov-orb.a{width:180px;height:180px;background:rgba(227,161,60,.22);top:-40px;right:8%;animation-delay:0s}
+.ov-orb.b{width:140px;height:140px;background:rgba(105,204,240,.14);bottom:10%;left:5%;animation-delay:-3s}
+@keyframes ovFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.ov-stage-inner{position:relative;z-index:1}
+.ov-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.ov-kicker{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--amber2);
+  margin-bottom:8px;
+}
+.ov-kicker .pulse-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(111,194,122,.5);animation:livePulse 1.6s ease infinite;
+}
+.ov-title{
+  font-family:var(--font-display);font-size:clamp(22px,3.5vw,32px);margin:0 0 8px;
+  color:#fff;font-weight:700;letter-spacing:-.02em;line-height:1.15;
+  text-shadow:0 2px 24px rgba(227,161,60,.2);
+}
+.ov-sub{margin:0;color:var(--muted);font-size:14px;line-height:1.5;max-width:42ch}
+.ov-metrics{display:flex;flex-wrap:wrap;gap:10px}
+.ov-metric{
+  min-width:88px;padding:12px 14px;border-radius:14px;text-align:center;
+  background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06);
+  backdrop-filter:blur(8px);animation:ovIn .5s ease both;
+}
+.ov-metric:nth-child(2){animation-delay:.05s}
+.ov-metric:nth-child(3){animation-delay:.1s}
+.ov-metric:nth-child(4){animation-delay:.15s}
+@keyframes ovIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ov-metric .n{
+  font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--amber2);
+  font-variant-numeric:tabular-nums;line-height:1.1;
+}
+.ov-metric .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;font-weight:600}
+.ov-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 6px;align-items:center}
+.btn-glow{
+  position:relative;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(227,161,60,.35), 0 8px 28px rgba(227,161,60,.25);
+  animation:btnPulse 2.8s ease infinite;
+}
+.btn-glow::after{
+  content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.18) 50%,transparent 60%);
+  transform:translateX(-120%);animation:shimmer 3.2s ease infinite;
+}
+@keyframes shimmer{0%,40%{transform:translateX(-120%)}70%,100%{transform:translateX(120%)}}
+@keyframes btnPulse{0%,100%{box-shadow:0 0 0 1px rgba(227,161,60,.35),0 8px 28px rgba(227,161,60,.22)}50%{box-shadow:0 0 0 1px rgba(244,189,95,.5),0 8px 36px rgba(227,161,60,.38)}}
+.ov-status-line{min-height:18px;font-size:12.5px;color:var(--muted);margin:4px 0 0}
+.ov-status-line.ok{color:var(--green)}
+.ov-status-line.err{color:var(--red)}
+
+/* Pipeline steps with class icons */
 .workflow{
-  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 18px;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:0 0 16px;
 }
-@media(max-width:800px){.workflow{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.workflow{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.workflow{grid-template-columns:1fr}}
 .wf-step{
-  display:flex;align-items:flex-start;gap:8px;text-align:left;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
-  padding:10px 12px;cursor:pointer;transition:border-color .12s,background .12s;
+  position:relative;display:flex;flex-direction:column;gap:10px;text-align:left;
+  background:rgba(27,34,69,.65);border:1px solid var(--line);border-radius:16px;
+  padding:14px 14px 12px;cursor:pointer;
+  transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  animation:ovIn .45s ease both;overflow:hidden;
 }
-.wf-step:hover{border-color:rgba(227,161,60,.4);background:rgba(227,161,60,.06)}
-.wf-step.done{border-color:rgba(35,165,89,.35)}
-.wf-step.done .wf-n{background:var(--green);color:#fff}
-.wf-step.next{border-color:rgba(227,161,60,.55);box-shadow:0 0 0 1px rgba(227,161,60,.2)}
+.wf-step:nth-child(1){animation-delay:.05s}
+.wf-step:nth-child(2){animation-delay:.1s}
+.wf-step:nth-child(3){animation-delay:.15s}
+.wf-step:nth-child(4){animation-delay:.2s}
+.wf-step:nth-child(5){animation-delay:.25s}
+.wf-step:hover{
+  transform:translateY(-3px);border-color:rgba(227,161,60,.45);
+  box-shadow:0 12px 32px rgba(0,0,0,.3);background:rgba(27,34,69,.9);
+}
+.wf-step.done{border-color:rgba(111,194,122,.4)}
+.wf-step.next{
+  border-color:rgba(227,161,60,.65);
+  box-shadow:0 0 0 1px rgba(227,161,60,.25), 0 12px 36px rgba(227,161,60,.12);
+}
+.wf-step-head{display:flex;align-items:center;gap:10px}
+.wf-ico{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  border:1px solid rgba(255,255,255,.1);box-shadow:0 4px 12px rgba(0,0,0,.35);
+  object-fit:cover;background:#0d1224;
+}
 .wf-n{
   flex-shrink:0;width:22px;height:22px;border-radius:50%;
   background:linear-gradient(135deg,#e3a13c,#c47a2a);color:#1a1000;
-  font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;
 }
-.wf-step b{display:block;font-size:13px;color:var(--text)}
-.wf-step small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.wf-step.done .wf-n{background:var(--green);color:#fff}
+.wf-step b{display:block;font-size:13.5px;color:var(--text);font-weight:650}
+.wf-step small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.wf-bar{
+  height:3px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:auto;
+}
+.wf-bar i{
+  display:block;height:100%;width:0;border-radius:99px;
+  background:linear-gradient(90deg,#e3a13c,#f4bd5f);transition:width .6s ease;
+}
+.wf-step.done .wf-bar i{width:100%;background:linear-gradient(90deg,#3d9a58,#6fc27a)}
+.wf-step.next .wf-bar i{width:45%;animation:barPulse 1.8s ease infinite}
+@keyframes barPulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* Class strip */
+.ov-classes{
+  display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;justify-content:center;
+}
+.ov-class{
+  width:40px;height:40px;border-radius:11px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);opacity:.85;
+  transition:transform .2s, opacity .2s, box-shadow .2s;
+  animation:ovIn .5s ease both;
+  box-shadow:0 4px 14px rgba(0,0,0,.3);
+}
+.ov-class:hover{transform:scale(1.12) translateY(-2px);opacity:1;box-shadow:0 8px 20px rgba(227,161,60,.25)}
+.ov-class img{width:100%;height:100%;object-fit:cover;display:block}
+
+.ov-footer-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 0}
+@media (prefers-reduced-motion:reduce){
+  .ov-stage::before,.ov-orb,.btn-glow,.btn-glow::after,.wf-step,.ov-metric,.ov-class{animation:none!important}
+}
 .raid-check{width:16px;height:16px;accent-color:var(--amber);cursor:pointer}
 .boss-map .map-token{cursor:grab}
 .boss-map .map-token:active{cursor:grabbing}
@@ -701,47 +799,86 @@ a.wh-name > span[style*="background"],
 
     <!-- OVERVIEW -->
     <section id="panel-overview" class="panel">
-      <div class="ov-hero" id="ovHero">
-        <div class="ov-hero-main">
-          <div class="ov-kicker" id="ovKicker">Tonight</div>
-          <h2 class="ov-title" id="ovTitle">Loading raid…</h2>
-          <p class="ov-sub" id="ovSub">Smart prep runs automatically for admin.</p>
-          <div class="ov-actions" id="ovActions">
-            <button class="btn btn-amber" id="ovSmartBtn" type="button" data-admin-only>⚡ Smart prep (auto all)</button>
+      <div class="ov-stage" id="ovHero">
+        <div class="ov-orb a" aria-hidden="true"></div>
+        <div class="ov-orb b" aria-hidden="true"></div>
+        <div class="ov-stage-inner">
+          <div class="ov-top">
+            <div>
+              <div class="ov-kicker"><span class="pulse-dot" aria-hidden="true"></span><span id="ovKicker">Tonight</span></div>
+              <h2 class="ov-title" id="ovTitle">Loading raid…</h2>
+              <p class="ov-sub" id="ovSub">Smart prep runs the night for you.</p>
+            </div>
+            <div class="ov-metrics">
+              <div class="ov-metric"><div class="n" id="ovSquad">0</div><div class="l">Raid 25</div></div>
+              <div class="ov-metric"><div class="n" id="ovSigned">0</div><div class="l">Signed</div></div>
+              <div class="ov-metric"><div class="n" id="ovItems">0</div><div class="l">Loot</div></div>
+              <div class="ov-metric"><div class="n" id="ovRaids">0</div><div class="l">Nights</div></div>
+            </div>
+          </div>
+          <div class="ov-actions">
+            <button class="btn btn-amber btn-glow" id="ovSmartBtn" type="button" data-admin-only>⚡ Smart prep</button>
             <button class="btn btn-ghost" id="ovNextBtn" type="button">Continue →</button>
             <a class="btn btn-ghost" href="event.html" style="text-decoration:none">📋 Board</a>
           </div>
-          <p class="status" id="ovSmartStatus" style="margin:10px 0 0;text-align:left"></p>
-        </div>
-        <div class="ov-hero-side">
-          <div class="stat"><div class="stat-n" id="ovSquad">0</div><div class="stat-l">Raid 25</div></div>
-          <div class="stat"><div class="stat-n" id="ovSigned">0</div><div class="stat-l">RH signed</div></div>
-          <div class="stat"><div class="stat-n" id="ovItems">0</div><div class="stat-l">Loot items</div></div>
-          <div class="stat"><div class="stat-n" id="ovRaids">0</div><div class="stat-l">Loot nights</div></div>
+          <p class="ov-status-line" id="ovSmartStatus"></p>
+          <div class="notice" id="ovViewOnly" hidden style="margin-top:12px">👁 View only — Admin unlocks Smart prep.</div>
         </div>
       </div>
+
+      <div class="ov-classes" id="ovClasses" aria-hidden="true"></div>
 
       <div class="workflow" id="raidWorkflow">
-        <div class="wf-step" data-goto="raids" data-step="raids"><span class="wf-n">1</span><div><b>Signups</b><small id="wf1">—</small></div></div>
-        <div class="wf-step" data-goto="roster" data-step="roster"><span class="wf-n">2</span><div><b>Raid 25</b><small id="wf2">—</small></div></div>
-        <div class="wf-step" data-goto="comp" data-step="comp"><span class="wf-n">3</span><div><b>Comp</b><small id="wf3">—</small></div></div>
-        <div class="wf-step" data-goto="bosses" data-step="bosses"><span class="wf-n">4</span><div><b>Bosses</b><small id="wf4">—</small></div></div>
-        <div class="wf-step" data-goto="ledger" data-step="ledger"><span class="wf-n">5</span><div><b>Loot</b><small id="wf5">—</small></div></div>
+        <div class="wf-step" data-goto="raids" data-step="raids">
+          <div class="wf-step-head">
+            <img class="wf-ico" src="https://wow.zamimg.com/images/wow/icons/large/inv_misc_note_06.jpg" alt="" width="36" height="36" loading="lazy" />
+            <span class="wf-n">1</span>
+            <div><b>Signups</b><small id="wf1">—</small></div>
+          </div>
+          <div class="wf-bar"><i></i></div>
+        </div>
+        <div class="wf-step" data-goto="roster" data-step="roster">
+          <div class="wf-step-head">
+            <img class="wf-ico" src="https://wow.zamimg.com/images/wow/icons/large/achievement_guildperk_everyones_a_hero.jpg" alt="" width="36" height="36" loading="lazy" />
+            <span class="wf-n">2</span>
+            <div><b>Raid 25</b><small id="wf2">—</small></div>
+          </div>
+          <div class="wf-bar"><i></i></div>
+        </div>
+        <div class="wf-step" data-goto="comp" data-step="comp">
+          <div class="wf-step-head">
+            <img class="wf-ico" src="https://wow.zamimg.com/images/wow/icons/large/spell_nature_bloodlust.jpg" alt="" width="36" height="36" loading="lazy" />
+            <span class="wf-n">3</span>
+            <div><b>Comp</b><small id="wf3">—</small></div>
+          </div>
+          <div class="wf-bar"><i></i></div>
+        </div>
+        <div class="wf-step" data-goto="bosses" data-step="bosses">
+          <div class="wf-step-head">
+            <img class="wf-ico" src="https://wow.zamimg.com/images/wow/icons/large/achievement_boss_illidan.jpg" alt="" width="36" height="36" loading="lazy" />
+            <span class="wf-n">4</span>
+            <div><b>Bosses</b><small id="wf4">—</small></div>
+          </div>
+          <div class="wf-bar"><i></i></div>
+        </div>
+        <div class="wf-step" data-goto="ledger" data-step="ledger">
+          <div class="wf-step-head">
+            <img class="wf-ico" src="https://wow.zamimg.com/images/wow/icons/large/inv_misc_bag_10.jpg" alt="" width="36" height="36" loading="lazy" />
+            <span class="wf-n">5</span>
+            <div><b>Loot</b><small id="wf5">—</small></div>
+          </div>
+          <div class="wf-bar"><i></i></div>
+        </div>
       </div>
 
-      <div class="notice" id="ovViewOnly" hidden>👁 <b>View only.</b> Admin unlocks Smart prep, roster, and loot edits.</div>
-
-      <div class="section-title" style="margin-top:8px">// Live snapshot</div>
-      <div id="ovSnap" class="ov-snap"></div>
-
-      <div class="share-row" id="ovManageRow" style="margin-top:18px">
+      <div class="ov-footer-row" id="ovManageRow">
         <button class="btn btn-ghost" id="copyLinkBtn" type="button">🔗 Copy link</button>
         <button class="btn btn-ghost" id="exportAllBtn" type="button" data-admin-only>⬇ Export</button>
         <button class="btn btn-ghost" id="importAllBtn" type="button" data-admin-only>⬆ Import</button>
         <button class="btn btn-ghost" id="clearDataBtn" type="button" data-admin-only>🗑 Clear</button>
         <input type="file" id="importFile" accept="application/json,.json" hidden />
       </div>
-      <div class="section-title" style="margin-top:22px">// Recent loot</div>
+      <div class="section-title" style="margin-top:20px">// Recent loot</div>
       <div id="ovRecent" class="ledger"></div>
     </section>
 
@@ -2573,7 +2710,7 @@ a.wh-name > span[style*="background"],
     const set = (t, err) => {
       if (st) {
         st.textContent = t || '';
-        st.className = 'status' + (err ? ' err' : ' ok');
+        st.className = 'ov-status-line' + (err ? ' err' : ' ok');
       }
       if (!silent && t) $('footerMsg').textContent = t;
     };
@@ -2706,6 +2843,18 @@ a.wh-name > span[style*="background"],
   }
 
   /* ---- Renders ---- */
+  const WOW_CLASS_ICONS = [
+    ['Warrior', 'classicon_warrior'],
+    ['Paladin', 'classicon_paladin'],
+    ['Hunter', 'classicon_hunter'],
+    ['Rogue', 'classicon_rogue'],
+    ['Priest', 'classicon_priest'],
+    ['Shaman', 'classicon_shaman'],
+    ['Mage', 'classicon_mage'],
+    ['Warlock', 'classicon_warlock'],
+    ['Druid', 'classicon_druid'],
+  ];
+
   function renderOverview() {
     applyAccessGate();
     const st = getRaidStatus();
@@ -2715,21 +2864,45 @@ a.wh-name > span[style*="background"],
     if ($('ovSigned')) $('ovSigned').textContent = st.signed;
     if ($('ovTitle')) $('ovTitle').textContent = st.title;
     if ($('ovSub')) {
-      $('ovSub').textContent = st.when + (canEdit()
-        ? ' · Smart prep fills roster, 25, comp & bosses for you.'
-        : ' · View only — admin runs Smart prep.');
+      $('ovSub').textContent =
+        st.when +
+        (canEdit()
+          ? ' · One tap Smart prep — roster, 25, comp & bosses.'
+          : ' · View only · Admin for Smart prep.');
     }
     if ($('ovKicker')) {
-      $('ovKicker').textContent = st.steps.roster && st.steps.comp ? 'Raid ready' : 'Tonight';
+      $('ovKicker').textContent =
+        st.steps.roster && st.steps.comp && st.steps.bosses ? 'Raid ready' : 'Live raid desk';
+    }
+    if ($('ovSmartStatus')) {
+      const line = $('ovSmartStatus');
+      if (!line.textContent) {
+        line.textContent = st.steps.roster
+          ? 'Pipeline ready — open Comp or Bosses anytime.'
+          : canEdit()
+            ? 'Tip: Smart prep does the night setup for you.'
+            : '';
+        line.className = 'ov-status-line' + (st.steps.roster ? ' ok' : '');
+      }
     }
 
-    // Workflow chips
+    // Class icon strip (TBC 9)
+    if ($('ovClasses') && !$('ovClasses').dataset.ready) {
+      $('ovClasses').innerHTML = WOW_CLASS_ICONS.map(([name, ico], i) =>
+        `<div class="ov-class" title="${escapeHtml(name)}" style="animation-delay:${i * 0.04}s">
+          <img src="https://wow.zamimg.com/images/wow/icons/large/${ico}.jpg" alt="${escapeHtml(name)}" width="40" height="40" loading="lazy" />
+        </div>`
+      ).join('');
+      $('ovClasses').dataset.ready = '1';
+    }
+
+    // Workflow (single source of status — no duplicate snapshot)
     const labels = {
       raids: st.steps.raids ? st.signed + ' signed' : 'Import RH',
-      roster: st.steps.roster ? st.squadN + '/' + RAID_SIZE : 'Pick 25',
-      comp: st.steps.comp ? 'Groups set' : 'Optimize',
-      bosses: st.steps.bosses ? 'Mapped' : 'Place',
-      ledger: st.steps.ledger ? entries.length + ' items' : 'Gargul later',
+      roster: st.steps.roster ? st.squadN + '/' + RAID_SIZE : 'Auto-pick 25',
+      comp: st.steps.comp ? 'Groups set' : 'Auto optimize',
+      bosses: st.steps.bosses ? 'Mapped' : 'Auto place',
+      ledger: st.steps.ledger ? entries.length + ' items' : 'After raid',
     };
     const ids = { raids: 'wf1', roster: 'wf2', comp: 'wf3', bosses: 'wf4', ledger: 'wf5' };
     Object.keys(ids).forEach((k) => {
@@ -2741,60 +2914,14 @@ a.wh-name > span[style*="background"],
       el.classList.toggle('done', !!(st.steps[k]));
       el.classList.toggle('next', st.next === k);
     });
-    if ($('wfSquadHint')) {
-      $('wfSquadHint').textContent = st.squadN
-        ? st.squadN + ' / ' + RAID_SIZE
-        : 'Auto on Smart prep';
-    }
 
-    // Snapshot cards
-    if ($('ovSnap')) {
-      const chips = [
-        {
-          cls: st.steps.raids ? 'ok' : 'warn',
-          t: 'Signups',
-          d: st.hasRh
-            ? escapeHtml(st.title) + ' · ' + st.signed + ' primary'
-            : 'No RH import yet',
-        },
-        {
-          cls: st.squadN >= RAID_SIZE ? 'ok' : st.squadN ? 'warn' : 'bad',
-          t: 'Raid 25',
-          d: st.squadN
-            ? st.squadN + ' locked in for groups & bosses'
-            : 'Will auto-pick on Smart prep',
-        },
-        {
-          cls: st.steps.comp ? 'ok' : 'warn',
-          t: 'Composition',
-          d: st.steps.comp
-            ? 'Buff groups ready (WF / casters)'
-            : 'Opens with auto optimize',
-        },
-        {
-          cls: st.steps.bosses ? 'ok' : 'warn',
-          t: 'Boss maps',
-          d: st.steps.bosses
-            ? 'BT + Hyjal auto-assigned'
-            : 'Places when 25 is ready',
-        },
-      ];
-      $('ovSnap').innerHTML = chips
-        .map(
-          (c) =>
-            `<div class="ov-chip ${c.cls}"><b>${c.t}</b><span>${c.d}</span></div>`
-        )
-        .join('');
-    }
-
-    // Next button target
     if ($('ovNextBtn')) {
       const names = {
-        raids: 'Open Signups',
-        roster: 'Open Raid 25',
-        comp: 'Open Comp',
-        bosses: 'Open Bosses',
-        ledger: 'Open Loot',
+        raids: 'Signups',
+        roster: 'Raid 25',
+        comp: 'Comp',
+        bosses: 'Bosses',
+        ledger: 'Loot',
       };
       $('ovNextBtn').textContent = (names[st.next] || 'Continue') + ' →';
       $('ovNextBtn').onclick = () => switchTab(st.next);
@@ -2803,7 +2930,7 @@ a.wh-name > span[style*="background"],
     const recent = entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
     const el = $('ovRecent');
     if (!recent.length) {
-      el.innerHTML = `<div class="empty">No loot yet. After the raid open <b>5 · Loot</b> and paste Gargul.</div>`;
+      el.innerHTML = `<div class="empty">No loot yet — after the raid open <b>5 · Loot</b> and paste Gargul.</div>`;
     } else {
       el.innerHTML = recent.map(e => `
         <div class="lcard">
