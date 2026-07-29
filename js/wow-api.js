@@ -1,10 +1,7 @@
 /**
- * Midnight Rodeo — WoW API client
- * Characters: Blizzard proxy
- * Items: Wowhead nether tooltip API (multi-expansion)
- *
- * Gargul simple format: date,player,itemId
- *   2026-03-20,Aerindel,219333
+ * Midnight Rodeo — TBC Classic API client
+ * Characters: Blizzard proxy (classic namespaces)
+ * Items: Wowhead TBC only (dataEnv=5, domain=tbc)
  */
 (function (global) {
   const DEFAULTS = {
@@ -14,8 +11,9 @@
     defaultRealm: '',
     locale: 'en_US',
     guildName: 'Midnight Rodeo',
-    // Prefer order for item lookup. Retail first — modern Gargul IDs (200k+) are current content.
-    itemDataEnvs: [1, 2, 5, 8, 9, 3, 4],
+    expansion: 'tbc',
+    // TBC Classic only
+    itemDataEnvs: [5],
   };
 
   const QUALITY_NAMES = {
@@ -29,19 +27,13 @@
     7: 'Heirloom',
   };
 
-  /** dataEnv → wowhead path domain for links / tooltips */
-  const ENV_DOMAIN = {
-    1: '', // retail
-    2: 'classic',
-    3: 'ptr',
-    4: 'beta',
-    5: 'tbc',
-    8: 'wotlk',
-    9: 'cata',
-  };
+  const TBC_DOMAIN = 'tbc';
+  const TBC_DATA_ENV = 5;
 
   function getConfig() {
     const c = Object.assign({}, DEFAULTS, global.LOOTLOG_CONFIG || {});
+    c.expansion = 'tbc';
+    c.itemDataEnvs = [TBC_DATA_ENV];
     try {
       const realm = localStorage.getItem('lootlog-default-realm');
       const game = localStorage.getItem('lootlog-game');
@@ -129,19 +121,16 @@
   function wowheadItemUrl(itemId, domain) {
     const id = encodeURIComponent(String(itemId || '').replace(/\D/g, ''));
     if (!id) return '';
-    const d = domain || '';
-    if (!d) return `https://www.wowhead.com/item=${id}`;
-    return `https://www.wowhead.com/${d}/item=${id}`;
+    // Always TBC for this guild app
+    return `https://www.wowhead.com/tbc/item=${id}`;
   }
 
   function wowheadDataAttr(domain) {
-    // tooltips.js: data-wowhead="domain=tbc" or omit for retail
-    if (!domain) return '';
-    return ` data-wowhead="domain=${domain}"`;
+    return ' data-wowhead="domain=tbc"';
   }
 
   const itemCache = new Map();
-  const ITEM_CACHE_KEY = 'lootlog-item-cache-v2';
+  const ITEM_CACHE_KEY = 'lootlog-item-cache-tbc-v1';
 
   function loadDiskCache() {
     try {
@@ -168,59 +157,48 @@
 
   loadDiskCache();
 
-  async function fetchTooltip(id, dataEnv) {
-    const res = await fetch(
-      `https://nether.wowhead.com/tooltip/item/${id}?dataEnv=${dataEnv}&locale=0`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data || !data.name) return null;
-    return data;
-  }
-
-  /**
-   * Resolve item by ID across expansions until one hits.
-   * Your sample IDs (219333 etc.) are current retail — dataEnv 1.
-   */
   async function lookupItem(itemId) {
     const id = String(itemId || '').replace(/\D/g, '');
     if (!id) return null;
     if (itemCache.has(id)) return itemCache.get(id);
 
-    const envs = getConfig().itemDataEnvs || DEFAULTS.itemDataEnvs;
-    for (const dataEnv of envs) {
-      try {
-        const data = await fetchTooltip(id, dataEnv);
-        if (!data) continue;
-        const q = typeof data.quality === 'number' ? data.quality : null;
-        const domain = ENV_DOMAIN[dataEnv] != null ? ENV_DOMAIN[dataEnv] : '';
-        const out = {
-          id,
-          name: data.name || `Item #${id}`,
-          quality: q,
-          qualityName: q != null ? QUALITY_NAMES[q] || String(q) : '',
-          icon: data.icon || '',
-          iconUrl: data.icon
-            ? `https://wow.zamimg.com/images/wow/icons/large/${data.icon}.jpg`
-            : '',
-          ilvl: parseIlvlFromTooltip(data.tooltip),
-          dataEnv,
-          domain,
-          url: wowheadItemUrl(id, domain),
-        };
-        itemCache.set(id, out);
-        saveDiskCache();
-        return out;
-      } catch {
-        /* try next env */
+    try {
+      const res = await fetch(
+        `https://nether.wowhead.com/tooltip/item/${id}?dataEnv=${TBC_DATA_ENV}&locale=0`
+      );
+      if (!res.ok) {
+        itemCache.set(id, null);
+        return null;
       }
+      const data = await res.json();
+      if (!data || !data.name) {
+        itemCache.set(id, null);
+        return null;
+      }
+      const q = typeof data.quality === 'number' ? data.quality : null;
+      const out = {
+        id,
+        name: data.name || `Item #${id}`,
+        quality: q,
+        qualityName: q != null ? QUALITY_NAMES[q] || String(q) : '',
+        icon: data.icon || '',
+        iconUrl: data.icon
+          ? `https://wow.zamimg.com/images/wow/icons/large/${data.icon}.jpg`
+          : '',
+        ilvl: parseIlvlFromTooltip(data.tooltip),
+        dataEnv: TBC_DATA_ENV,
+        domain: TBC_DOMAIN,
+        url: wowheadItemUrl(id, TBC_DOMAIN),
+      };
+      itemCache.set(id, out);
+      saveDiskCache();
+      return out;
+    } catch {
+      itemCache.set(id, null);
+      return null;
     }
-
-    itemCache.set(id, null);
-    return null;
   }
 
-  // Back-compat alias
   const lookupItemTbc = lookupItem;
 
   async function lookupItems(ids, { concurrency = 6, onProgress } = {}) {
@@ -241,20 +219,14 @@
       }
     }
 
-    const workers = Array.from(
-      { length: Math.min(concurrency, unique.length || 1) },
-      () => worker()
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, unique.length || 1) }, () => worker())
     );
-    await Promise.all(workers);
     return results;
   }
 
   const lookupItemsTbc = lookupItems;
 
-  /**
-   * Pure Gargul simple-line parser for tests & shared use.
-   * Supports: date,player,itemId  and  date,player,itemName
-   */
   function parseGargulSimpleLine(line) {
     if (!line || !String(line).trim()) return null;
     const cells = [];
@@ -281,7 +253,6 @@
       /^\d{4}-\d{1,2}-\d{1,2}/.test(x) || /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(x);
     const looksLikeId = (x) => /^\d{3,}$/.test(x);
 
-    // Fast path: exactly date, player, itemId
     if (cells.length >= 3 && looksLikeDate(cells[0]) && looksLikeId(cells[2])) {
       return {
         date: cells[0],
@@ -291,7 +262,6 @@
         rollType: cells[3] || '',
       };
     }
-    // date, player, itemName
     if (cells.length >= 3 && looksLikeDate(cells[0]) && !looksLikeId(cells[2])) {
       return {
         date: cells[0],
@@ -301,7 +271,6 @@
         rollType: cells[3] && !looksLikeId(cells[3]) ? cells[3] : cells[4] || '',
       };
     }
-    // player, itemId (no date)
     if (cells.length === 2 && looksLikeId(cells[1])) {
       return {
         date: '',
@@ -328,6 +297,7 @@
     wowheadDataAttr,
     parseGargulSimpleLine,
     QUALITY_NAMES,
-    ENV_DOMAIN,
+    TBC_DOMAIN,
+    TBC_DATA_ENV,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,14 +1,16 @@
-// Midnight Rodeo lootlog config
-// Battle.net keys: https://develop.battle.net/access/clients
-// Deploy: api/blizzard-proxy (see its README)
-
+// Midnight Rodeo — TBC Classic guild manager config
 window.LOOTLOG_CONFIG = {
-  // Cloudflare Worker URL after `npx wrangler deploy`
+  // Optional Blizzard armory proxy (see api/blizzard-proxy)
   blizzardProxyUrl: '',
 
   region: 'us',
-  game: 'classic', // 'classic' | 'classic1x'
+  game: 'classic',
   defaultRealm: '',
   locale: 'en_US',
   guildName: 'Midnight Rodeo',
+  expansion: 'tbc',
+
+  // Default Raid-Helper event (Discord raid signups)
+  // Example: https://raid-helper.xyz/event/1530078606578024520
+  raidHelperEventUrl: 'https://raid-helper.xyz/event/1530078606578024520',
 };

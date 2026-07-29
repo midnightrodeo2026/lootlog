@@ -4,12 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Midnight Rodeo — Loot Ledger</title>
-<meta name="description" content="Midnight Rodeo TBC Classic loot council ledger — Gargul imports, raid logs, Blizzard gear sync." />
+<meta name="description" content="Midnight Rodeo TBC Classic guild manager — Raid-Helper signups, roster, loot council, Gargul." />
 <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true, iconSize: 'medium'};</script>
 <script src="https://wow.zamimg.com/js/tooltips.js"></script>
 <script src="config.js"></script>
 <script src="js/accounts.js"></script>
 <script src="js/wow-api.js"></script>
+<script src="js/raid-helper.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -483,7 +484,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         <span class="dot">—</span>
         <span id="guildRegisteredLabel">LEDGER READY</span>
       </div>
-      <div class="banner-credit">Created by <b>Hornyslewt</b></div>
+      <div class="banner-credit">TBC Classic guild manager · Created by <b>Hornyslewt</b></div>
     </header>
 
     <nav class="tabs" role="tablist" id="mainTabs">
@@ -521,17 +522,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         <button class="card" type="button" data-goto="roster">
           <div class="card-ico">👤</div>
           <div class="card-t">Roster</div>
-          <div class="card-d">Player ranks, class colors, gear sync from Blizzard armory.</div>
+          <div class="card-d">Raid-Helper signups, class/spec, ranks, loot counts.</div>
         </button>
         <button class="card" type="button" data-goto="items">
           <div class="card-ico">⚖</div>
           <div class="card-t">Items</div>
-          <div class="card-d">Drop frequency for every item your guild has awarded.</div>
+          <div class="card-d">TBC item drops, icons, and recipients for the council.</div>
         </button>
         <button class="card" type="button" data-goto="raids">
           <div class="card-ico">📄</div>
           <div class="card-t">Raids</div>
-          <div class="card-d">Full log history for every submitted raid night.</div>
+          <div class="card-d">Raid-Helper import + loot logs for every raid night.</div>
         </button>
       </div>
       <div class="share-row">
@@ -552,10 +553,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         <div class="pen">
           <div class="pen-head">
             <div class="pen-title">Paste Gargul export</div>
-            <div class="pen-hint">Guild format: <code>date,player,itemId</code> · also CSV headers · Detailed JSON</div>
+            <div class="pen-hint">TBC Gargul: <code>date,player,itemId</code> · header CSV · Detailed JSON</div>
           </div>
-          <textarea class="input" id="mrPaste" placeholder="2026-03-20,Aerindel,219333&#10;2026-03-20,Thorvak,219354&#10;2026-03-20,Lunara,219312&#10;&#10;…or /gl export Detailed JSON"></textarea>
-          <button class="btn btn-ghost" id="mrSampleBtn" type="button" style="margin-top:8px">Load sample (3 lines)</button>
+          <textarea class="input" id="mrPaste" placeholder="2026-03-20,Aerindel,28729&#10;2026-03-20,Thorvak,28714&#10;2026-03-20,Lunara,28734&#10;&#10;…or /gl export Detailed JSON (TBC item IDs)"></textarea>
+          <button class="btn btn-ghost" id="mrSampleBtn" type="button" style="margin-top:8px">Load TBC sample</button>
           <div class="row">
             <button class="btn btn-amber" id="mrBrandBtn" type="button">🔥 Brand it</button>
             <button class="btn btn-ghost" id="mrClearPaste" type="button">Clear</button>
@@ -601,7 +602,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
     <!-- ROSTER -->
     <section id="panel-roster" class="panel" hidden>
-      <div class="section-title">// Raid roster</div>
+      <div class="section-title">// Guild & raid roster (TBC)</div>
       <div class="controls">
         <input class="input" id="rosterRealm" placeholder="Realm" />
         <select class="input" id="rosterGame" style="max-width:150px">
@@ -610,21 +611,28 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         </select>
         <button class="btn btn-orange" id="rosterLookupAll" type="button">Gear sync all</button>
         <button class="btn btn-ghost" id="rosterTestApi" type="button">Test API</button>
+        <button class="btn btn-ghost" id="rosterFromRh" type="button">↻ From last RH import</button>
         <span class="status" id="rosterApiStatus"></span>
+      </div>
+      <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+        <div class="stat"><div class="stat-n" id="rosterCount">0</div><div class="stat-l">On roster</div></div>
+        <div class="stat"><div class="stat-n" id="rosterTanks">0</div><div class="stat-l">Tanks</div></div>
+        <div class="stat"><div class="stat-n" id="rosterHeal">0</div><div class="stat-l">Healers</div></div>
+        <div class="stat"><div class="stat-n" id="rosterDps">0</div><div class="stat-l">DPS</div></div>
       </div>
       <div class="table-wrap">
         <table class="tbl">
           <thead>
             <tr>
-              <th>Rank</th><th>Player</th><th>Class / Spec</th><th>iLvl</th>
+              <th>Rank</th><th>Player</th><th>RH role</th><th>Class / Spec</th><th>iLvl</th>
               <th>Items</th><th>Last active</th><th>Gear sync</th><th></th>
             </tr>
           </thead>
           <tbody id="rosterBody"></tbody>
         </table>
       </div>
-      <div class="empty" id="rosterEmpty" hidden>No raiders yet — brand loot on the Ledger tab.</div>
-      <p class="share-hint" style="margin-top:14px">Set realm, deploy <code>api/blizzard-proxy</code>, put the URL in <code>config.js</code>, then Gear sync. Rank can be set when unlocked.</p>
+      <div class="empty" id="rosterEmpty" hidden>No raiders yet — import a Raid-Helper event or brand loot.</div>
+      <p class="share-hint" style="margin-top:14px">Pull Discord signups from <b>Raids → Raid-Helper</b>. Optional Blizzard gear sync needs <code>config.js</code> + proxy.</p>
     </section>
 
     <!-- ITEMS -->
@@ -654,14 +662,35 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
     <!-- RAIDS -->
     <section id="panel-raids" class="panel" hidden>
-      <div class="section-title">// Raid history</div>
+      <div class="section-title">// Raids · Raid-Helper + loot</div>
+
+      <div class="pen" style="margin-bottom:18px">
+        <div class="pen-head">
+          <div class="pen-title">Import Raid-Helper event</div>
+          <div class="pen-hint">Discord signups → raid roster (TBC guild manager)</div>
+        </div>
+        <div class="row" style="margin-top:0">
+          <input class="input" id="rhEventUrl" placeholder="https://raid-helper.xyz/event/…" style="flex:1;min-width:220px;max-width:none" />
+          <button class="btn btn-amber" id="rhImportBtn" type="button">Import signups</button>
+          <button class="btn btn-ghost" id="rhOpenBtn" type="button">Open link</button>
+        </div>
+        <span class="msg" id="rhMsg" style="display:block;margin-top:8px"></span>
+        <div id="rhPreview" class="hidden" style="margin-top:14px"></div>
+      </div>
+
       <div class="stats">
         <div class="stat"><div class="stat-n" id="raRaids">0</div><div class="stat-l">Raids logged</div></div>
         <div class="stat"><div class="stat-n" id="raItems">0</div><div class="stat-l">Total items</div></div>
         <div class="stat"><div class="stat-n" id="raLargest">0</div><div class="stat-l">Largest roster</div></div>
       </div>
+
+      <div class="section-title">// Raid-Helper events</div>
+      <div id="rhEventsList" class="raid-list" style="margin-bottom:22px"></div>
+      <div class="empty" id="rhEventsEmpty" hidden>No Raid-Helper imports yet. Paste an event link above.</div>
+
+      <div class="section-title">// Loot by raid night</div>
       <div id="raidsList" class="raid-list"></div>
-      <div class="empty" id="raidsEmpty" hidden>No raid nights yet.</div>
+      <div class="empty" id="raidsEmpty" hidden>No loot nights yet — brand Gargul on Ledger.</div>
     </section>
 
     <!-- SETTINGS -->
@@ -766,13 +795,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         </div>
 
         <div class="settings-card" id="cardApi">
-          <h3>Blizzard API</h3>
+          <h3>Integrations · TBC</h3>
           <p class="share-hint" style="text-align:left;max-width:none;margin:0 0 10px">
-            Character gear sync uses <code>config.js</code> → <code>blizzardProxyUrl</code>.
-            Deploy <code>api/blizzard-proxy</code> with Battle.net client id/secret.
+            <b>Expansion:</b> Burning Crusade Classic only (Wowhead TBC items).<br/>
+            Gear sync: <code>config.js</code> → <code>blizzardProxyUrl</code>.
           </p>
           <div class="field">
-            <label>Proxy status</label>
+            <label for="setRhUrl">Default Raid-Helper event URL</label>
+            <input class="input" id="setRhUrl" placeholder="https://raid-helper.xyz/event/…" />
+          </div>
+          <button class="btn btn-amber" id="saveRhUrlBtn" type="button">Save RH link</button>
+          <span class="msg" id="rhSaveMsg" style="margin-left:8px"></span>
+          <div class="field" style="margin-top:14px">
+            <label>Blizzard proxy status</label>
             <div class="status" id="settingsApiStatus">Checking…</div>
           </div>
           <button class="btn btn-ghost" id="settingsTestApi" type="button">Test API</button>
@@ -907,6 +942,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   const STORAGE_KEY = 'midnight-rodeo-loot-log';
   const PLAYER_INFO_KEY = 'midnight-rodeo-player-info';
   const META_KEY = 'midnight-rodeo-meta';
+  const RH_EVENTS_KEY = 'midnight-rodeo-rh-events';
 
   const WOW_CLASSES = ['Warrior','Paladin','Hunter','Rogue','Priest','Shaman','Mage','Warlock','Druid'];
   const RANKS = ['Guild Master','Officer','Officer Alt','Raider','Trial','Alt'];
@@ -914,6 +950,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   let entries = [];
   let playerInfo = {};
   let meta = { registeredAt: null };
+  let rhEvents = []; // imported Raid-Helper events
+  let lastRhPreview = null;
   let freshIds = new Set();
   let currentTab = 'overview';
   let authMode = 'login'; // 'login' | 'setup'
@@ -1007,9 +1045,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   }
 
   function itemDomain(e) {
-    if (e && e.wowDomain != null) return e.wowDomain;
-    if (e && e.domain != null) return e.domain;
-    return ''; // retail default — sample Gargul IDs are current content
+    // Guild manager is TBC-only
+    return (e && (e.wowDomain || e.domain)) || 'tbc';
   }
   function whHref(itemId, domain) {
     if (window.WowApi && WowApi.wowheadItemUrl) return WowApi.wowheadItemUrl(itemId, domain);
@@ -1077,6 +1114,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         await saveMeta();
       }
     } catch { meta = { registeredAt: null }; }
+    try {
+      const res = await store.get(RH_EVENTS_KEY);
+      rhEvents = res && res.value ? JSON.parse(res.value) : [];
+      if (!Array.isArray(rhEvents)) rhEvents = [];
+    } catch { rhEvents = []; }
+  }
+  async function saveRhEvents() {
+    try { await store.set(RH_EVENTS_KEY, JSON.stringify(rhEvents)); } catch {}
   }
   async function saveEntries() {
     try {
@@ -1203,7 +1248,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
       rollType: rollType || '',
       quality: quality || '',
       disenchantsInto: disenchantsInto || '',
-      wowDomain: '',
+      wowDomain: 'tbc',
     };
   }
 
@@ -1423,8 +1468,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
   function fillSettingsForm() {
     const gs = guildSettings();
-    if ($('setGuildName')) $('setGuildName').value = gs.guildName || '';
-    if ($('setRealm')) $('setRealm').value = gs.realm || '';
+    const cfg = window.LOOTLOG_CONFIG || {};
+    if ($('setGuildName')) $('setGuildName').value = gs.guildName || cfg.guildName || '';
+    if ($('setRealm')) $('setRealm').value = gs.realm || cfg.defaultRealm || '';
     if ($('setGame')) $('setGame').value = gs.game || 'classic';
     if ($('setRegion')) $('setRegion').value = gs.region || 'us';
     if ($('setRequireLogin')) $('setRequireLogin').checked = !!gs.requireLogin;
@@ -1432,6 +1478,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     if ($('setOfficerRoster')) $('setOfficerRoster').checked = gs.officersCanEditRoster !== false;
     if ($('setOfficerSync')) $('setOfficerSync').checked = gs.officersCanGearSync !== false;
     if ($('setViewerExport')) $('setViewerExport').checked = gs.viewersCanExport !== false;
+    if ($('setRhUrl')) $('setRhUrl').value = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
 
     const admin = can('manageSettings');
     ['setGuildName','setRealm','setGame','setRegion','setRequireLogin','setPublicView','setOfficerRoster','setOfficerSync','setViewerExport','saveGuildBtn','saveAccessBtn','createUserBtn','newUserName','newUserDisplay','newUserPass','newUserRole','exportAccountsBtn','importAccountsBtn'].forEach(id => {
@@ -1608,7 +1655,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     return playerInfo[(name || '').toLowerCase()] || {};
   }
 
-  function renderRoster() {
+  function collectRosterPlayers() {
     const byPlayer = {};
     for (const e of entries) {
       if (!byPlayer[e.player]) byPlayer[e.player] = { count: 0, last: null };
@@ -1618,14 +1665,28 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         byPlayer[e.player].last = t;
       }
     }
-    // include players who only exist in playerInfo (manual)
-    Object.keys(playerInfo).forEach(k => {
-      const display = playerInfo[k].displayName || k;
-      if (!byPlayer[display] && !Object.keys(byPlayer).some(p => p.toLowerCase() === k)) {
-        // skip pure info without loot for now
+    // Include Raid-Helper / manual players from playerInfo
+    Object.keys(playerInfo).forEach((k) => {
+      const info = playerInfo[k] || {};
+      const display = info.displayName || info.rhName || k;
+      const existing = Object.keys(byPlayer).find((p) => p.toLowerCase() === k || p.toLowerCase() === display.toLowerCase());
+      if (!existing) {
+        byPlayer[display] = { count: 0, last: null, fromRh: !!info.lastRhImport };
       }
     });
+    return byPlayer;
+  }
 
+  function rhRoleBucket(role) {
+    const r = (role || '').toLowerCase();
+    if (/tank/.test(r)) return 'tank';
+    if (/heal/.test(r)) return 'heal';
+    if (/melee|ranged|dps|mdps|rdps/.test(r)) return 'dps';
+    return 'other';
+  }
+
+  function renderRoster() {
+    const byPlayer = collectRosterPlayers();
     const rows = Object.keys(byPlayer).map(p => ({
       player: p,
       count: byPlayer[p].count,
@@ -1640,6 +1701,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
       return b.count - a.count || a.player.localeCompare(b.player);
     });
 
+    let tanks = 0, heals = 0, dps = 0;
+    rows.forEach((r) => {
+      const b = rhRoleBucket(r.info.rhRole);
+      if (b === 'tank') tanks++;
+      else if (b === 'heal') heals++;
+      else if (b === 'dps') dps++;
+    });
+    if ($('rosterCount')) $('rosterCount').textContent = rows.length;
+    if ($('rosterTanks')) $('rosterTanks').textContent = tanks;
+    if ($('rosterHeal')) $('rosterHeal').textContent = heals;
+    if ($('rosterDps')) $('rosterDps').textContent = dps;
+
     $('rosterEmpty').hidden = rows.length > 0;
     const apiReady = !!(window.WowApi && window.WowApi.isConfigured());
 
@@ -1650,11 +1723,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
       const rank = info.rank || 'Raider';
       const classSpec = cls
         ? `${escapeHtml(cls)}${info.spec ? ' · ' + escapeHtml(info.spec) : ''}`
-        : '<span class="unsynced">— unsynced —</span>';
+        : '<span class="unsynced">— no class —</span>';
+      const rhRole = info.rhRole
+        ? `<span class="tag">${escapeHtml(info.rhRole)}</span>`
+        : '<span class="muted">—</span>';
       const ilvl = info.ilvl ? `<span class="num">${escapeHtml(String(info.ilvl))}</span>` : '<span class="muted">—</span>';
       const sync = info.lastGearSync
         ? `<span class="sync-ok">✓ ${fmtDateTime(info.lastGearSync)}</span>`
-        : `<span class="sync-miss">—</span>`;
+        : (info.lastRhImport ? `<span class="sync-ok" title="From Raid-Helper">RH</span>` : `<span class="sync-miss">—</span>`);
       const busy = lookupBusy.has(r.player.toLowerCase());
       const canRoster = can('editRoster');
       const rankCell = canRoster
@@ -1665,8 +1741,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
       return `<tr>
         <td>${rankCell}</td>
-        <td class="player-name ${nameCls}">${escapeHtml(r.player)}</td>
-        <td>${!cls ? '<span class="unsynced">— unsynced —</span>' : classSpec}</td>
+        <td class="player-name ${nameCls}" title="${escapeHtml(info.rhName || '')}">${escapeHtml(r.player)}</td>
+        <td>${rhRole}</td>
+        <td>${classSpec}</td>
         <td>${canRoster
           ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="ilvl" value="${escapeHtml(info.ilvl||'')}" style="max-width:70px;padding:4px 6px" />`
           : ilvl}</td>
@@ -1725,24 +1802,179 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     refreshWowhead();
   }
 
+  function setRhMsg(text, isErr) {
+    const el = $('rhMsg');
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.toggle('err', !!isErr);
+  }
+
+  function renderRhPreview(ev) {
+    const box = $('rhPreview');
+    if (!box || !ev) { if (box) box.classList.add('hidden'); return; }
+    const roles = Object.keys(ev.byRole || {}).sort();
+    const roleBits = roles.map(r => `<span class="tag">${escapeHtml(r)}: ${ev.byRole[r]}</span>`).join(' ');
+    const primary = (ev.list || []).filter(s => s.isPrimary);
+    const byRoleGroups = {};
+    primary.forEach(s => {
+      const role = s.role || 'Other';
+      if (!byRoleGroups[role]) byRoleGroups[role] = [];
+      byRoleGroups[role].push(s);
+    });
+    const sections = Object.keys(byRoleGroups).sort().map(role => {
+      const people = byRoleGroups[role]
+        .map(s => `<span class="player-name ${classCss(s.class)}">${escapeHtml(s.name)}</span><span class="muted"> ${escapeHtml(s.spec || s.class || '')}</span>`)
+        .join('<br/>');
+      return `<div style="min-width:140px;flex:1"><div class="section-title" style="text-align:left;margin:0 0 8px">// ${escapeHtml(role)} (${byRoleGroups[role].length})</div>${people || '—'}</div>`;
+    }).join('');
+
+    box.classList.remove('hidden');
+    box.innerHTML = `
+      <div class="lcard" style="grid-template-columns:1fr;display:block">
+        <div style="font-family:var(--font-display);font-weight:650;font-size:18px;margin-bottom:6px">${escapeHtml(ev.title)}</div>
+        <div class="muted" style="margin-bottom:8px">
+          ${escapeHtml(ev.dayKey || ev.date)} · ${escapeHtml(ev.time || '')}
+          · Lead <b style="color:var(--text)">${escapeHtml(ev.leader || '—')}</b>
+          · ${escapeHtml(ev.server || '')} / #${escapeHtml(ev.channel || '')}
+        </div>
+        <div class="row" style="margin:0 0 10px">${roleBits}
+          <span class="tag greed">Signed: ${ev.primary}</span>
+          <span class="tag">Absence: ${ev.absence}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px">${sections}</div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn btn-amber" id="rhApplyBtn" type="button">Apply to guild roster</button>
+          <a class="btn btn-ghost" href="${escapeHtml(ev.url)}" target="_blank" rel="noopener">Open in Raid-Helper</a>
+        </div>
+      </div>`;
+    const apply = $('rhApplyBtn');
+    if (apply) apply.addEventListener('click', () => applyRhEventToGuild(ev));
+  }
+
+  async function applyRhEventToGuild(ev) {
+    if (!window.RaidHelper) return;
+    const patches = RaidHelper.toPlayerPatches(ev);
+    let n = 0;
+    Object.keys(patches).forEach((key) => {
+      if (!playerInfo[key]) playerInfo[key] = {};
+      Object.assign(playerInfo[key], patches[key]);
+      n++;
+    });
+    // Store compact event (no huge raw if possible)
+    const stored = {
+      id: ev.id,
+      url: ev.url,
+      title: ev.title,
+      date: ev.date,
+      time: ev.time,
+      dayKey: ev.dayKey,
+      whenIso: ev.whenIso,
+      leader: ev.leader,
+      server: ev.server,
+      channel: ev.channel,
+      primary: ev.primary,
+      absence: ev.absence,
+      byRole: ev.byRole,
+      list: (ev.list || []).map(s => ({
+        name: s.name, class: s.class, spec: s.spec, role: s.role,
+        status: s.status, isAbsence: s.isAbsence, isPrimary: s.isPrimary,
+      })),
+      importedAt: new Date().toISOString(),
+    };
+    rhEvents = [stored].concat(rhEvents.filter(e => e.id !== stored.id));
+    await savePlayerInfo();
+    await saveRhEvents();
+    setRhMsg(`Applied ${ev.primary} signups to roster · event saved.`);
+    renderRoster();
+    renderRaids();
+    switchTab('roster');
+  }
+
+  function renderRhEventsList() {
+    const list = $('rhEventsList');
+    const empty = $('rhEventsEmpty');
+    if (!list) return;
+    if (!rhEvents.length) {
+      list.innerHTML = '';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (empty) empty.hidden = true;
+    list.innerHTML = rhEvents.map(ev => {
+      const roleLine = Object.keys(ev.byRole || {}).map(r => `${r} ${ev.byRole[r]}`).join(' · ');
+      return `
+      <div class="raid-row">
+        <div class="raid-meta">
+          <div><strong>${escapeHtml(ev.title)}</strong></div>
+          <div>${escapeHtml(ev.dayKey || ev.date)} · ${escapeHtml(ev.time || '')} · Lead ${escapeHtml(ev.leader || '—')}</div>
+          <div class="muted">${ev.primary || 0} signed · ${ev.absence || 0} absence · ${escapeHtml(roleLine)}</div>
+          <div class="muted">Imported ${ev.importedAt ? fmtDateTime(ev.importedAt) : '—'}</div>
+        </div>
+        <div class="raid-actions">
+          <button class="btn btn-orange" type="button" data-rh-view="${escapeHtml(ev.id)}">View roster</button>
+          <button class="btn btn-ghost" type="button" data-rh-apply="${escapeHtml(ev.id)}">Re-apply</button>
+          <a class="btn btn-green" href="${escapeHtml(ev.url)}" target="_blank" rel="noopener">RH ↗</a>
+          <button class="btn btn-ghost" type="button" data-rh-del="${escapeHtml(ev.id)}" style="color:var(--red)">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
   function renderRaids() {
     const groups = raidGroups();
-    $('raRaids').textContent = groups.length;
+    // Count RH roster sizes too
+    const rhLargest = rhEvents.length
+      ? Math.max(...rhEvents.map(e => e.primary || 0), 0)
+      : 0;
+    const lootLargest = groups.length ? Math.max(...groups.map(g => g.players.size)) : 0;
+    $('raRaids').textContent = groups.length + rhEvents.length;
     $('raItems').textContent = entries.length;
-    $('raLargest').textContent = groups.length ? Math.max(...groups.map(g => g.players.size)) : 0;
+    $('raLargest').textContent = Math.max(lootLargest, rhLargest);
+
+    renderRhEventsList();
+
     $('raidsEmpty').hidden = groups.length > 0;
-    $('raidsList').innerHTML = groups.map(g => `
+    $('raidsList').innerHTML = groups.map(g => {
+      const rh = rhEvents.find(e => e.dayKey === g.key);
+      return `
       <div class="raid-row" data-raid="${escapeHtml(g.key)}">
         <div class="raid-meta">
-          <div><strong>Raid Date:</strong> ${escapeHtml(g.key)}</div>
+          <div><strong>Loot night:</strong> ${escapeHtml(g.key)}</div>
           <div><strong>Submitted:</strong> ${g.submitted ? dayKey(g.submitted) : '—'}</div>
-          <div><strong>Items:</strong> ${g.items.length} <span class="muted">—</span> <strong>Raiders:</strong> ${g.players.size}</div>
+          <div><strong>Items:</strong> ${g.items.length} <span class="muted">—</span> <strong>Looted by:</strong> ${g.players.size}
+            ${rh ? ` <span class="tag greed">RH: ${rh.primary} signed</span>` : ''}
+          </div>
         </div>
         <div class="raid-actions">
           <button class="btn btn-orange" data-viewlog="${escapeHtml(g.key)}" type="button">View log</button>
           <button class="btn btn-green" data-raidcsv="${escapeHtml(g.key)}" type="button">⬇ CSV</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+  }
+
+  function showStoredRhEvent(id) {
+    const ev = rhEvents.find(e => e.id === id);
+    if (!ev) return;
+    // rebuild list shape for preview
+    const fake = Object.assign({}, ev, {
+      list: (ev.list || []).map(s => Object.assign({
+        isPrimary: s.isPrimary !== false && !s.isAbsence,
+        isAbsence: !!s.isAbsence,
+        isBench: false,
+      }, s)),
+    });
+    // recompute byRole if missing
+    if (!fake.byRole) {
+      fake.byRole = {};
+      (fake.list || []).filter(s => s.isPrimary).forEach(s => {
+        fake.byRole[s.role || 'Other'] = (fake.byRole[s.role || 'Other'] || 0) + 1;
+      });
+    }
+    lastRhPreview = fake;
+    renderRhPreview(fake);
+    $('rhEventUrl').value = ev.url || '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function openViewLog(key) {
@@ -1933,12 +2165,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   $('mrClearPaste').addEventListener('click', () => { $('mrPaste').value = ''; });
   if ($('mrSampleBtn')) {
     $('mrSampleBtn').addEventListener('click', () => {
+      // Classic TBC Karazhan-era sample item IDs
       $('mrPaste').value = [
-        '2026-03-20,Aerindel,219333',
-        '2026-03-20,Thorvak,219354',
-        '2026-03-20,Lunara,219312',
+        '2026-03-20,Aerindel,28729',
+        '2026-03-20,Thorvak,28714',
+        '2026-03-20,Lunara,28734',
       ].join('\n');
-      setMsg('Sample loaded — click Brand it (lootmaster).');
+      setMsg('TBC sample loaded — click Brand it (lootmaster).');
     });
   }
   $('mrEnrichBtn').addEventListener('click', async () => {
@@ -2101,6 +2334,86 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     const c = ev.target.closest('[data-raidcsv]');
     if (c) raidCsv(c.dataset.raidcsv);
   });
+
+  /* ---- Raid-Helper ---- */
+  async function runRhImport() {
+    if (!window.RaidHelper) {
+      setRhMsg('Raid-Helper client missing (js/raid-helper.js).', true);
+      return;
+    }
+    const input = ($('rhEventUrl') && $('rhEventUrl').value) || '';
+    setRhMsg('Fetching event from Raid-Helper…');
+    try {
+      const ev = await RaidHelper.fetchEvent(input);
+      lastRhPreview = ev;
+      renderRhPreview(ev);
+      setRhMsg(`Loaded “${ev.title}” · ${ev.primary} signed · ${ev.absence} absence · ${ev.server || ''}`);
+    } catch (e) {
+      setRhMsg(e.message || String(e), true);
+      if ($('rhPreview')) $('rhPreview').classList.add('hidden');
+    }
+  }
+  if ($('rhImportBtn')) $('rhImportBtn').addEventListener('click', runRhImport);
+  if ($('rhOpenBtn')) {
+    $('rhOpenBtn').addEventListener('click', () => {
+      const u = ($('rhEventUrl') && $('rhEventUrl').value.trim()) || '';
+      if (u) window.open(u, '_blank', 'noopener');
+    });
+  }
+  if ($('rhEventsList')) {
+    $('rhEventsList').addEventListener('click', async (ev) => {
+      const view = ev.target.closest('[data-rh-view]');
+      if (view) { showStoredRhEvent(view.dataset.rhView); return; }
+      const apply = ev.target.closest('[data-rh-apply]');
+      if (apply) {
+        const stored = rhEvents.find(e => e.id === apply.dataset.rhApply);
+        if (stored) {
+          // re-fetch for freshest data if possible
+          try {
+            const fresh = await RaidHelper.fetchEvent(stored.url || stored.id);
+            lastRhPreview = fresh;
+            await applyRhEventToGuild(fresh);
+          } catch {
+            showStoredRhEvent(stored.id);
+            await applyRhEventToGuild(Object.assign({}, stored, {
+              list: (stored.list || []).map(s => Object.assign({ isPrimary: !s.isAbsence, isAbsence: !!s.isAbsence }, s)),
+            }));
+          }
+        }
+        return;
+      }
+      const del = ev.target.closest('[data-rh-del]');
+      if (del) {
+        rhEvents = rhEvents.filter(e => e.id !== del.dataset.rhDel);
+        await saveRhEvents();
+        renderRaids();
+        setRhMsg('Event removed from local list.');
+      }
+    });
+  }
+  if ($('rosterFromRh')) {
+    $('rosterFromRh').addEventListener('click', () => {
+      if (!rhEvents.length) {
+        setRosterStatus('Import a Raid-Helper event on the Raids tab first.', 'err');
+        return;
+      }
+      applyRhEventToGuild(Object.assign({}, rhEvents[0], {
+        list: (rhEvents[0].list || []).map(s => Object.assign({ isPrimary: !s.isAbsence, isAbsence: !!s.isAbsence }, s)),
+      }));
+    });
+  }
+  if ($('saveRhUrlBtn')) {
+    $('saveRhUrlBtn').addEventListener('click', () => {
+      try {
+        const url = ($('setRhUrl') && $('setRhUrl').value.trim()) || '';
+        Accounts.updateSettings({ raidHelperEventUrl: url });
+        if ($('rhEventUrl')) $('rhEventUrl').value = url;
+        setSaveMsg('rhSaveMsg', 'Saved.', false);
+      } catch (e) {
+        setSaveMsg('rhSaveMsg', e.message, true);
+      }
+    });
+  }
   $('logClose').addEventListener('click', closeViewLog);
   $('logBackdrop').addEventListener('click', (ev) => { if (ev.target.id === 'logBackdrop') closeViewLog(); });
   $('logCsv').addEventListener('click', () => { if (viewLogKey) raidCsv(viewLogKey); });
@@ -2365,14 +2678,24 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     await Accounts.migrateLegacyAuth();
 
     const gs = guildSettings();
+    const cfg = Object.assign({}, window.LOOTLOG_CONFIG || {}, window.WowApi ? WowApi.getConfig() : {});
     if (window.WowApi) {
-      const cfg = window.WowApi.getConfig();
       const realm = gs.realm || cfg.defaultRealm || '';
       const game = gs.game || cfg.game || 'classic';
       if ($('rosterRealm') && realm) $('rosterRealm').value = realm;
       if ($('rosterGame')) $('rosterGame').value = game;
       if (window.WowApi.isConfigured()) setRosterStatus('Proxy configured — Test API or Gear sync.');
-      else setRosterStatus('Gear sync idle — set config.js when ready.');
+      else setRosterStatus('TBC guild manager · optional gear sync via config.js');
+    }
+
+    // Prefill Raid-Helper URL
+    const rhUrl = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
+    if ($('rhEventUrl') && rhUrl) $('rhEventUrl').value = rhUrl;
+    if ($('setRhUrl') && rhUrl) $('setRhUrl').value = rhUrl;
+
+    // Banner: TBC guild manager
+    if ($('guildRealmLabel') && !gs.realm && !cfg.defaultRealm) {
+      $('guildRealmLabel').textContent = 'TBC CLASSIC';
     }
 
     await loadAll();
@@ -2388,10 +2711,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     else renderCurrentTab();
 
     const s = session();
-    const gname = guildSettings().guildName || 'Midnight Rodeo';
+    const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
     $('footerMsg').textContent = s
-      ? `${gname} · signed in as ${s.displayName} · ${entries.length} items`
-      : `${gname} · ${entries.length} item${entries.length===1?'':'s'} on record · guest`;
+      ? `${gname} TBC · ${s.displayName} · ${entries.length} loot · ${rhEvents.length} RH event(s)`
+      : `${gname} TBC guild manager · ${entries.length} loot · guest`;
   })();
 
   window.addEventListener('hashchange', applyHash);
