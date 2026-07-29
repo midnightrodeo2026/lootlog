@@ -822,7 +822,7 @@ a.wh-name > span[style*="background"],
             <a class="btn btn-ghost" href="event.html" style="text-decoration:none">📋 Board</a>
           </div>
           <p class="ov-status-line" id="ovSmartStatus"></p>
-          <div class="notice" id="ovViewOnly" hidden style="margin-top:12px">👁 View only — Admin unlocks Smart prep.</div>
+          <div class="notice" id="ovViewOnly" hidden style="margin-top:12px">👁 View only.</div>
         </div>
       </div>
 
@@ -2866,7 +2866,7 @@ a.wh-name > span[style*="background"],
         st.when +
         (canEdit()
           ? ' · One tap Smart prep — roster, 25, comp & bosses.'
-          : ' · View only · Admin for Smart prep.');
+          : ' · View only.');
     }
     if ($('ovKicker')) {
       $('ovKicker').textContent =
@@ -4504,8 +4504,7 @@ a.wh-name > span[style*="background"],
         });
     } else {
       const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
-      $('footerMsg').textContent =
-        gname + ' · view only · Admin for Smart prep';
+      $('footerMsg').textContent = gname + ' · World of Warcraft Guild Manager';
     }
   })();
 
