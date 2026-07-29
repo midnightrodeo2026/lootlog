@@ -829,9 +829,10 @@ a.wh-name > span[style*="background"],
       <div class="row" style="justify-content:center;margin-bottom:14px">
         <button class="btn btn-amber" data-raid-pick="hyjal" type="button" id="bossRaidHyjal">Mount Hyjal</button>
         <button class="btn btn-orange" data-raid-pick="bt" type="button" id="bossRaidBt">Black Temple</button>
-        <button class="btn btn-ghost" id="bossAutoAll" type="button">⚡ Auto-assign all bosses</button>
+        <button class="btn btn-ghost" id="bossAutoAll" type="button">⚡ Re-place everyone now</button>
         <button class="btn btn-ghost" id="bossCopyBtn" type="button">📋 Copy boss for Discord</button>
       </div>
+      <p class="status ok" id="bossLiveStatus" style="text-align:center;margin:0 0 12px">Live · auto-places when roster changes</p>
       <div class="stats" style="grid-template-columns:repeat(4,1fr)">
         <div class="stat"><div class="stat-n" id="bossRosterN">0</div><div class="stat-l">In roster</div></div>
         <div class="stat"><div class="stat-n" id="bossTankN">0</div><div class="stat-l">Tanks</div></div>
@@ -1744,6 +1745,8 @@ a.wh-name > span[style*="background"],
   let bossSelectedId = null;
   let lastBossAssign = null;
   let lastBossAll = null;
+  let lastBossRosterFp = '';
+  let bossLiveMsg = '';
 
   function getCompPlayers() {
     if (window.RaidComp) return RaidComp.fromAppState(playerInfo, rhEvents);
@@ -1759,6 +1762,52 @@ a.wh-name > span[style*="background"],
     });
   }
 
+  /** Fingerprint of who is in the raid + their roles — changes when people join/leave/swap */
+  function rosterFingerprint() {
+    try {
+      const players = getCompPlayers();
+      return players
+        .map((p) =>
+          [
+            (p.displayName || p.name || '').toLowerCase(),
+            p.class || '',
+            p.spec || '',
+            p.rhRole || p.role || '',
+            p.ilvl || '',
+          ].join(':')
+        )
+        .sort()
+        .join('|');
+    } catch {
+      return String(Date.now());
+    }
+  }
+
+  /** Smart: whenever roster changes, re-place everyone on maps & assigns */
+  function onRosterChanged(reason) {
+    lastBossRosterFp = ''; // force refresh
+    if (window.RaidBosses) {
+      try {
+        const players = getCompPlayers();
+        if (players.length) {
+          lastBossAll = RaidBosses.assignAll(players);
+          bossLiveMsg = reason
+            ? `Live · re-placed from ${reason} · ${players.length} raiders`
+            : `Live · ${players.length} raiders`;
+        } else {
+          lastBossAll = null;
+          bossLiveMsg = 'Waiting for roster…';
+        }
+      } catch (_) {
+        /* keep UI up */
+      }
+    }
+    // Refresh open views
+    if (currentTab === 'bosses') renderBosses();
+    else if (currentTab === 'comp') renderComp();
+    else if (currentTab === 'roster') renderRoster();
+  }
+
   function renderBosses() {
     if (!window.RaidBosses) {
       if ($('bossEmpty')) {
@@ -1768,16 +1817,32 @@ a.wh-name > span[style*="background"],
       return;
     }
     const players = getCompPlayers();
+    const fp = rosterFingerprint();
+    // Auto re-assign if people changed
+    if (fp !== lastBossRosterFp) {
+      lastBossRosterFp = fp;
+      if (players.length) {
+        try {
+          lastBossAll = RaidBosses.assignAll(players);
+          bossLiveMsg = `Live · auto-placed ${players.length} raiders`;
+        } catch (_) {}
+      }
+    }
+
     const p = RaidBosses.pool(players);
     if ($('bossRosterN')) $('bossRosterN').textContent = p.all.length;
     if ($('bossTankN')) $('bossTankN').textContent = p.tanks.length;
     if ($('bossHealN')) $('bossHealN').textContent = p.heals.length;
     if ($('bossDpsN')) $('bossDpsN').textContent = p.melee.length + p.ranged.length;
+    if ($('bossLiveStatus')) {
+      $('bossLiveStatus').textContent =
+        bossLiveMsg || (p.all.length ? `Live · ${p.all.length} raiders` : 'Load demo or Raid-Helper');
+      $('bossLiveStatus').className = 'status ' + (p.all.length ? 'ok' : '');
+    }
 
     const empty = !p.all.length;
     if ($('bossEmpty')) $('bossEmpty').hidden = !empty;
 
-    // raid toggle style
     if ($('bossRaidHyjal')) $('bossRaidHyjal').classList.toggle('btn-raid-on', bossRaidId === 'hyjal');
     if ($('bossRaidBt')) $('bossRaidBt').classList.toggle('btn-raid-on', bossRaidId === 'bt');
 
@@ -1793,19 +1858,27 @@ a.wh-name > span[style*="background"],
     }
 
     if (bossSelectedId) {
-      showBossDetail(bossSelectedId);
+      showBossDetail(bossSelectedId, { force: true });
     } else if (bosses[0] && !empty) {
       bossSelectedId = bosses[0].id;
-      showBossDetail(bossSelectedId);
+      showBossDetail(bossSelectedId, { force: true });
     } else if ($('bossDetail')) {
       $('bossDetail').hidden = true;
     }
   }
 
-  function showBossDetail(bossId) {
+  function showBossDetail(bossId, opts) {
     if (!window.RaidBosses) return;
     bossSelectedId = bossId;
     const players = getCompPlayers();
+    // Always recompute from current roster (smart live place)
+    const fp = rosterFingerprint();
+    if (fp !== lastBossRosterFp) {
+      lastBossRosterFp = fp;
+      if (players.length) {
+        try { lastBossAll = RaidBosses.assignAll(players); } catch (_) {}
+      }
+    }
     let result;
     try {
       result = RaidBosses.assignBoss(bossId, players);
@@ -1813,6 +1886,7 @@ a.wh-name > span[style*="background"],
       if ($('bossDetail')) {
         $('bossDetail').hidden = false;
         $('bossDetailTitle').textContent = 'Error';
+        if ($('bossMap')) $('bossMap').innerHTML = '';
         $('bossAssign').innerHTML = `<div class="empty">${escapeHtml(e.message || String(e))}</div>`;
       }
       return;
@@ -1824,9 +1898,8 @@ a.wh-name > span[style*="background"],
     if ($('bossDetailRaid')) {
       const layout = (result.map && result.map.label) || 'Map';
       $('bossDetailRaid').textContent =
-        b.raidLabel + ' · ' + layout + ' map · auto · ' + (result.rosterSize || 0) + ' raiders';
+        b.raidLabel + ' · ' + layout + ' · LIVE auto · ' + (result.rosterSize || 0) + ' raiders';
     }
-    // Position map
     if ($('bossMap')) {
       $('bossMap').innerHTML = result.mapSvg || '<div class="empty">No map</div>';
     }
@@ -1842,7 +1915,7 @@ a.wh-name > span[style*="background"],
       const ov = (result.map && result.map.overflow) || [];
       $('bossMapOverflow').textContent = ov.length
         ? 'Also assigned (list): ' + ov.join(', ')
-        : '';
+        : 'Map updates automatically when the raid roster changes.';
     }
     if ($('bossStrat')) {
       $('bossStrat').innerHTML = (b.strategy || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
@@ -1857,7 +1930,6 @@ a.wh-name > span[style*="background"],
           </div>
         </div>`).join('');
     }
-    // highlight row
     document.querySelectorAll('.boss-row').forEach((el) => {
       el.classList.toggle('active', el.getAttribute('data-boss') === bossId);
     });
@@ -2291,7 +2363,8 @@ a.wh-name > span[style*="background"],
     rhEvents = [stored].concat(rhEvents.filter(e => e.id !== stored.id));
     await savePlayerInfo();
     await saveRhEvents();
-    setRhMsg(`Applied ${ev.primary} signups to roster · event saved.`);
+    setRhMsg(`Applied ${ev.primary} signups to roster · event saved · bosses re-placed.`);
+    onRosterChanged('Raid-Helper import');
     renderRoster();
     renderRaids();
     switchTab('roster');
@@ -2668,6 +2741,7 @@ a.wh-name > span[style*="background"],
     if (field === 'ilvl') val = val.replace(/[^\d.]/g, '');
     playerInfo[key][field] = val;
     await savePlayerInfo();
+    onRosterChanged('roster edit');
   });
   $('rosterBody').addEventListener('click', async (ev) => {
     const btn = ev.target.closest('[data-lookup]');
