@@ -684,7 +684,7 @@ a.wh-name > span[style*="background"],
     <section id="panel-roster" class="panel" hidden>
       <div class="section-title">// Roster</div>
       <div class="controls">
-        <input class="input" id="rosterRealm" placeholder="Realm" />
+        <input class="input" id="rosterRealm" type="hidden" value="" />
         <select class="input" id="rosterGame" hidden>
           <option value="classic" selected>classic</option>
         </select>
@@ -837,10 +837,7 @@ a.wh-name > span[style*="background"],
           <label for="setGuildName">Name</label>
           <input class="input" id="setGuildName" placeholder="Midnight Rodeo" />
         </div>
-        <div class="field">
-          <label for="setRealm">Realm</label>
-          <input class="input" id="setRealm" placeholder="Realm" />
-        </div>
+        <input class="input" id="setRealm" type="hidden" value="" />
         <div class="field">
           <label for="setRhUrl">Raid-Helper event URL</label>
           <input class="input" id="setRhUrl" placeholder="https://raid-helper.xyz/event/…" />
@@ -1491,7 +1488,6 @@ a.wh-name > span[style*="background"],
     const gs = guildSettings();
     const cfg = window.LOOTLOG_CONFIG || {};
     if ($('setGuildName')) $('setGuildName').value = gs.guildName || cfg.guildName || '';
-    if ($('setRealm')) $('setRealm').value = gs.realm || cfg.defaultRealm || '';
     if ($('setGame')) $('setGame').value = 'classic';
     if ($('setRegion')) $('setRegion').value = gs.region || 'us';
     if ($('setRhUrl')) $('setRhUrl').value = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
@@ -1502,7 +1498,7 @@ a.wh-name > span[style*="background"],
     if ($('setViewerExport')) $('setViewerExport').checked = true;
 
     const admin = can('manageSettings');
-    ['setGuildName','setRealm','setRegion','setRhUrl','saveGuildBtn','saveRhUrlBtn'].forEach(id => {
+    ['setGuildName','setRegion','setRhUrl','saveGuildBtn','saveRhUrlBtn'].forEach(id => {
       const el = $(id);
       if (el) el.disabled = !admin;
     });
@@ -2711,10 +2707,9 @@ a.wh-name > span[style*="background"],
       else setRosterStatus(h.error || 'Unreachable', 'err');
     });
   }
-  ['rosterRealm','rosterGame'].forEach(id => {
-    const el = $(id);
-    if (el) el.addEventListener('change', () => { getRosterRealmGame(); updateGuildHeader(); });
-  });
+  if ($('rosterGame')) {
+    $('rosterGame').addEventListener('change', () => { getRosterRealmGame(); });
+  }
 
   if ($('itemsFilter')) $('itemsFilter').addEventListener('input', renderItems);
   if ($('itemsSort')) $('itemsSort').addEventListener('change', renderItems);
@@ -3036,14 +3031,13 @@ a.wh-name > span[style*="background"],
       try {
         const gs = Accounts.updateSettings({
           guildName: $('setGuildName').value.trim() || 'Midnight Rodeo',
-          realm: $('setRealm').value.trim(),
+          realm: '',
           game: 'classic',
           region: ($('setRegion') && $('setRegion').value) || 'us',
           raidHelperEventUrl: ($('setRhUrl') && $('setRhUrl').value.trim()) || '',
         });
-        if ($('rosterRealm') && gs.realm) $('rosterRealm').value = gs.realm;
         if ($('rhEventUrl') && gs.raidHelperEventUrl) $('rhEventUrl').value = gs.raidHelperEventUrl;
-        if (window.WowApi) WowApi.setUiPrefs({ realm: gs.realm, game: 'classic' });
+        if (window.WowApi) WowApi.setUiPrefs({ realm: '', game: 'classic' });
         updateGuildHeader();
         setSaveMsg('guildSaveMsg', 'Saved.', false);
       } catch (e) {
@@ -3108,12 +3102,8 @@ a.wh-name > span[style*="background"],
     const gs = guildSettings();
     const cfg = Object.assign({}, window.LOOTLOG_CONFIG || {}, window.WowApi ? WowApi.getConfig() : {});
     if (window.WowApi) {
-      const realm = gs.realm || cfg.defaultRealm || '';
-      const game = gs.game || cfg.game || 'classic';
-      if ($('rosterRealm') && realm) $('rosterRealm').value = realm;
-      if ($('rosterGame')) $('rosterGame').value = game;
-      if (window.WowApi.isConfigured()) setRosterStatus('Proxy configured — Test API or Gear sync.');
-      else setRosterStatus('TBC guild manager · admin password to edit');
+      if ($('rosterGame')) $('rosterGame').value = 'classic';
+      setRosterStatus('Auto gear sync from Raid-Helper + loot');
     }
 
     // Prefill Raid-Helper URL
