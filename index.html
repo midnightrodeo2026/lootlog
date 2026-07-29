@@ -87,42 +87,80 @@ a{color:inherit}
 }
 .wrap{max-width:1100px;margin:0 auto}
 
-/* Guild banner — rodeo */
+/* Guild banner — matches event.html branding */
 .banner{
+  position:relative;overflow:hidden;
   border:1px solid rgba(227,161,60,.35);
   background:
-    var(--grad-soft),
+    radial-gradient(ellipse 90% 70% at 50% -20%, rgba(227,161,60,.16), transparent 55%),
     linear-gradient(180deg, #1a1408 0%, #12182e 55%, #0e1220 100%);
   border-radius:var(--radius);
-  padding:32px 24px 28px;text-align:center;margin-bottom:24px;
+  padding:28px 22px 22px;text-align:center;margin-bottom:22px;
   box-shadow:var(--shadow), 0 0 0 1px rgba(0,0,0,.25), inset 0 1px 0 rgba(243,236,217,.06);
 }
-.banner-logo{
-  width:56px;height:56px;margin:0 auto 12px;
-  border-radius:14px;
+.banner::before{
+  content:'';position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(227,161,60,.4),transparent);
+}
+.banner-marks{
+  display:flex;align-items:center;justify-content:center;gap:12px;margin:0 auto 14px;
+}
+.banner-logo,.banner-icon{
+  width:52px;height:52px;border-radius:14px;
   background:linear-gradient(145deg,#2a1710 0%,#1b2245 55%,#0f1528 100%);
   border:1px solid rgba(227,161,60,.45);
-  box-shadow:0 0 24px rgba(227,161,60,.2), inset 0 1px 0 rgba(243,236,217,.08);
-  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 22px rgba(227,161,60,.22), inset 0 1px 0 rgba(243,236,217,.08);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
 }
-.banner-logo svg{width:32px;height:32px;display:block}
+.banner-logo svg{width:28px;height:28px;display:block}
+.banner-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.banner-icon[hidden]{display:none}
 .banner h1{
   font-family:var(--font-rodeo);font-weight:400;
-  font-size:clamp(34px,6.5vw,54px);
+  font-size:clamp(32px,6vw,50px);
   margin:0;letter-spacing:.03em;line-height:1.05;
   color:var(--text);
   text-shadow:0 0 28px rgba(227,161,60,.22), 0 2px 0 var(--scorch);
 }
 .banner h1 span{color:var(--amber2)}
 .banner-meta{
-  margin-top:12px;font-family:var(--font);font-size:12px;font-weight:600;
+  margin-top:10px;font-family:var(--font);font-size:12px;font-weight:600;
   letter-spacing:.1em;text-transform:uppercase;color:var(--amber);
 }
 .banner-credit{
-  margin-top:10px;font-family:var(--font);font-size:13px;font-weight:500;
+  margin-top:8px;font-family:var(--font);font-size:13px;font-weight:500;
   color:var(--muted);letter-spacing:-.01em;
 }
 .banner-credit b{font-weight:600;color:var(--amber2)}
+.banner-live{
+  margin:12px auto 0;max-width:520px;
+  display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  font-size:12.5px;color:var(--muted);
+  background:rgba(0,0,0,.28);border:1px solid var(--line);
+  border-radius:99px;padding:6px 14px;
+}
+.banner-live .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(35,165,89,.5);animation:livePulse 1.6s ease infinite;
+}
+@keyframes livePulse{
+  0%{box-shadow:0 0 0 0 rgba(35,165,89,.45)}
+  70%{box-shadow:0 0 0 7px rgba(35,165,89,0)}
+  100%{box-shadow:0 0 0 0 rgba(35,165,89,0)}
+}
+.banner-live b{color:var(--amber2);font-weight:700}
+.banner-live a{color:var(--text);font-weight:600;text-decoration:none}
+.banner-live a:hover{color:var(--amber2)}
+.rh-upcoming{display:flex;flex-direction:column;gap:8px;margin:10px 0 0}
+.rh-up-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:10px 12px;
+}
+.rh-up-row.next{border-color:rgba(227,161,60,.4);background:rgba(227,161,60,.06)}
+.rh-up-meta{min-width:0;flex:1}
+.rh-up-meta strong{display:block;font-size:14px}
+.rh-up-meta span{font-size:12px;color:var(--muted)}
 
 /* Tabs */
 .tabs{
@@ -574,17 +612,25 @@ a.wh-name > span[style*="background"],
   <div class="wrap">
 
     <header class="banner">
-      <div class="banner-logo" aria-hidden="true">
-        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="32" cy="32" r="28" stroke="#e3a13c" stroke-width="2" opacity="0.5"/>
-          <path d="M18 40 L32 14 L46 40 Z" stroke="#f4bd5f" stroke-width="2.2" fill="rgba(227,161,60,.15)" stroke-linejoin="round"/>
-          <path d="M26 40 L32 28 L38 40" stroke="#f3ecd9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="32" cy="44" r="3" fill="#e3a13c"/>
-        </svg>
+      <div class="banner-marks">
+        <div class="banner-logo" aria-hidden="true" title="Midnight Rodeo">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 40 L32 14 L46 40 Z" stroke="#f4bd5f" stroke-width="3" fill="rgba(227,161,60,.2)" stroke-linejoin="round"/>
+            <circle cx="32" cy="44" r="3.5" fill="#e3a13c"/>
+          </svg>
+        </div>
+        <div class="banner-icon" id="guildIconWrap" hidden>
+          <img id="guildIconImg" alt="Guild icon" width="52" height="52" />
+        </div>
       </div>
       <h1>Midnight <span>Rodeo</span></h1>
       <div class="banner-meta" id="guildRealmLabel">World of Warcraft Guild Manager</div>
       <div class="banner-credit">Created by <b>Hornyslewt</b></div>
+      <div class="banner-live" id="bannerLive" hidden>
+        <span class="dot" aria-hidden="true"></span>
+        <span id="bannerLiveText">Loading raid…</span>
+        <a href="event.html" id="bannerLiveBoard">Board</a>
+      </div>
     </header>
 
     <nav class="tabs" role="tablist" id="mainTabs">
@@ -765,16 +811,22 @@ a.wh-name > span[style*="background"],
       <div class="section-title">// Raids</div>
       <div class="pen" style="margin-bottom:16px">
         <div class="pen-head">
-          <div class="pen-title">Raid-Helper</div>
-          <div class="pen-hint">Import Discord signups</div>
+          <div class="pen-title">Midnight Rodeo · Raid-Helper</div>
+          <div class="pen-hint">Auto-loads server events when calendar key is set</div>
         </div>
         <div class="row" style="margin-top:0">
           <input class="input" id="rhEventUrl" placeholder="https://raid-helper.xyz/event/…" style="flex:1;min-width:200px;max-width:none" />
           <button class="btn btn-amber" id="rhImportBtn" type="button">Import</button>
+          <button class="btn btn-ghost" id="rhAutoBtn" type="button">↻ Auto events</button>
           <a class="btn btn-ghost" href="event.html" style="text-decoration:none">Board</a>
           <button class="btn btn-ghost" id="rhOpenBtn" type="button">RH ↗</button>
         </div>
+        <div class="row" style="margin-top:8px">
+          <input class="input" id="rhCalendarUrl" placeholder="RH unrestricted calendar link (once)…" style="flex:1;min-width:200px;max-width:none" title="Raid-Helper panel → Calendar → Unrestricted Calendar Link" />
+          <button class="btn btn-ghost" id="rhSaveCalBtn" type="button">Save calendar</button>
+        </div>
         <span class="msg" id="rhMsg" style="display:block;margin-top:8px"></span>
+        <div id="rhUpcoming" class="rh-upcoming"></div>
         <div id="rhPreview" class="hidden" style="margin-top:12px"></div>
       </div>
       <div class="stats">
@@ -1262,9 +1314,23 @@ a.wh-name > span[style*="background"],
     el.classList.toggle('err', kind === 'err');
   }
 
-  function updateGuildHeader() {
+  function rhConfig() {
+    const cfg = window.LOOTLOG_CONFIG || {};
     const gs = guildSettings();
-    const name = gs.guildName || 'Midnight Rodeo';
+    return {
+      raidHelperEventUrl: gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '',
+      raidHelperServerId: gs.raidHelperServerId || cfg.raidHelperServerId || '',
+      raidHelperCalendarKey: gs.raidHelperCalendarKey || cfg.raidHelperCalendarKey || '',
+      guildIconUrl: cfg.guildIconUrl || '',
+      guildName: gs.guildName || cfg.guildName || 'Midnight Rodeo',
+    };
+  }
+
+  let lastServerEvents = null;
+
+  function updateGuildHeader() {
+    const c = rhConfig();
+    const name = c.guildName || 'Midnight Rodeo';
     const h1 = document.querySelector('.banner h1');
     if (h1) {
       const parts = name.trim().split(/\s+/);
@@ -1274,9 +1340,184 @@ a.wh-name > span[style*="background"],
         h1.innerHTML = escapeHtml(name);
       }
     }
+    // Guild Discord icon (same server as event board)
+    const wrap = $('guildIconWrap');
+    const img = $('guildIconImg');
+    if (wrap && img && c.guildIconUrl) {
+      wrap.hidden = false;
+      if (img.getAttribute('data-url') !== c.guildIconUrl) {
+        img.setAttribute('data-url', c.guildIconUrl);
+        img.src = c.guildIconUrl;
+        img.onerror = () => { wrap.hidden = true; };
+      }
+    }
     document.title = name + ' — World of Warcraft Guild Manager';
     if ($('guildRealmLabel')) {
       $('guildRealmLabel').textContent = 'World of Warcraft Guild Manager';
+    }
+  }
+
+  function setBannerLive(text, href) {
+    const el = $('bannerLive');
+    const tx = $('bannerLiveText');
+    const link = $('bannerLiveBoard');
+    if (!el || !tx) return;
+    if (!text) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    tx.innerHTML = text;
+    if (link && href) link.href = href;
+  }
+
+  async function refreshServerEvents(opts) {
+    const silent = opts && opts.silent;
+    if (!window.RaidHelper || !RaidHelper.listServerEvents) return null;
+    const c = rhConfig();
+    if (!c.raidHelperServerId || !c.raidHelperCalendarKey) {
+      if (!silent) {
+        setRhMsg(
+          'Paste unrestricted calendar link once (RH panel → Calendar). Then Auto events finds all Midnight Rodeo raids.',
+          true
+        );
+      }
+      // Still try default single event for banner
+      await refreshDefaultEventBanner();
+      return null;
+    }
+    try {
+      if (!silent) setRhMsg('Loading Midnight Rodeo events…');
+      const list = await RaidHelper.listServerEvents(
+        c.raidHelperServerId,
+        c.raidHelperCalendarKey
+      );
+      lastServerEvents = list;
+      renderUpcomingList(list);
+      if (list.next && list.next.url) {
+        if ($('rhEventUrl')) $('rhEventUrl').value = list.next.url;
+        try {
+          Accounts.updateSettings({ raidHelperEventUrl: list.next.url });
+        } catch (_) {}
+        setBannerLive(
+          'Next: <b>' +
+            escapeHtml(list.next.title) +
+            '</b> · ' +
+            escapeHtml(list.next.date || '') +
+            ' ' +
+            escapeHtml(list.next.time || ''),
+          'event.html?event=' + encodeURIComponent(list.next.id)
+        );
+        if (!silent) {
+          setRhMsg(
+            `Found ${list.upcoming.length} upcoming · next “${list.next.title}” · ${list.next.date} ${list.next.time}`
+          );
+        }
+      } else if (list.events.length) {
+        const last = list.events[list.events.length - 1];
+        if ($('rhEventUrl')) $('rhEventUrl').value = last.url;
+        setBannerLive(
+          'Last: <b>' + escapeHtml(last.title) + '</b> (no upcoming)',
+          'event.html?event=' + encodeURIComponent(last.id)
+        );
+        if (!silent) setRhMsg(`No upcoming events — ${list.events.length} on calendar.`);
+      }
+      return list;
+    } catch (e) {
+      if (!silent) setRhMsg(e.message || String(e), true);
+      await refreshDefaultEventBanner();
+      return null;
+    }
+  }
+
+  async function refreshDefaultEventBanner() {
+    if (!window.RaidHelper) return;
+    const c = rhConfig();
+    const id = RaidHelper.extractEventId(c.raidHelperEventUrl);
+    if (!id) {
+      setBannerLive('', '');
+      return;
+    }
+    try {
+      const ev = await RaidHelper.fetchEvent(id);
+      setBannerLive(
+        '<b>' +
+          escapeHtml(ev.title) +
+          '</b> · ' +
+          escapeHtml(ev.dayKey || ev.date || '') +
+          ' ' +
+          escapeHtml(ev.time || '') +
+          ' · ' +
+          (ev.primary || 0) +
+          ' signed',
+        'event.html?event=' + encodeURIComponent(id)
+      );
+    } catch (_) {
+      setBannerLive('Raid board ready', 'event.html');
+    }
+  }
+
+  function renderUpcomingList(list) {
+    const box = $('rhUpcoming');
+    if (!box) return;
+    if (!list || !list.events || !list.events.length) {
+      box.innerHTML = '';
+      return;
+    }
+    const show = (list.upcoming.length ? list.upcoming : list.events).slice(0, 8);
+    box.innerHTML =
+      '<div class="section-title" style="margin:8px 0 4px">// Server events</div>' +
+      show
+        .map((e, i) => {
+          const isNext = list.next && e.id === list.next.id;
+          return `<div class="rh-up-row ${isNext ? 'next' : ''}">
+          <div class="rh-up-meta">
+            <strong>${escapeHtml(e.title)}${isNext ? ' · next' : ''}</strong>
+            <span>${escapeHtml(e.date || '')} · ${escapeHtml(e.time || '')}${
+            e.leader ? ' · Lead ' + escapeHtml(e.leader) : ''
+          }</span>
+          </div>
+          <div class="row" style="margin:0">
+            <button class="btn btn-amber" type="button" data-rh-load="${escapeHtml(e.id)}" style="padding:6px 10px;font-size:12px">Import</button>
+            <a class="btn btn-ghost" href="event.html?event=${encodeURIComponent(e.id)}" style="padding:6px 10px;font-size:12px;text-decoration:none">Board</a>
+          </div>
+        </div>`;
+        })
+        .join('');
+  }
+
+  function saveCalendarFromInput() {
+    const raw = ($('rhCalendarUrl') && $('rhCalendarUrl').value.trim()) || '';
+    if (!raw || !window.RaidHelper) {
+      setRhMsg('Paste the unrestricted calendar link from Raid-Helper.', true);
+      return;
+    }
+    const parsed = RaidHelper.parseCalendarUrl(raw);
+    const c = rhConfig();
+    let serverId = (parsed && parsed.serverId) || c.raidHelperServerId;
+    let key = parsed && parsed.calendarKey;
+    if (!key && parsed && !parsed.serverId) key = raw;
+    if (!serverId) {
+      setRhMsg('Could not read server id — use full calendar URL.', true);
+      return;
+    }
+    if (!key) {
+      setRhMsg('Could not read calendar key from that link.', true);
+      return;
+    }
+    try {
+      Accounts.updateSettings({
+        raidHelperServerId: serverId,
+        raidHelperCalendarKey: key,
+      });
+      if ($('rhCalendarUrl')) {
+        $('rhCalendarUrl').value =
+          'https://raid-helper.xyz/calendar/' + serverId + '/' + key;
+      }
+      setRhMsg('Calendar saved — loading Midnight Rodeo events…');
+      refreshServerEvents({ silent: false });
+    } catch (e) {
+      setRhMsg(e.message || String(e), true);
     }
   }
 
@@ -2994,6 +3235,35 @@ a.wh-name > span[style*="background"],
     }
   }
   if ($('rhImportBtn')) $('rhImportBtn').addEventListener('click', runRhImport);
+  if ($('rhAutoBtn')) {
+    $('rhAutoBtn').addEventListener('click', () => refreshServerEvents({ silent: false }));
+  }
+  if ($('rhSaveCalBtn')) {
+    $('rhSaveCalBtn').addEventListener('click', saveCalendarFromInput);
+  }
+  if ($('rhCalendarUrl')) {
+    $('rhCalendarUrl').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveCalendarFromInput();
+    });
+  }
+  if ($('rhUpcoming')) {
+    $('rhUpcoming').addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('[data-rh-load]');
+      if (!btn || !window.RaidHelper) return;
+      const id = btn.getAttribute('data-rh-load');
+      if (!id) return;
+      if ($('rhEventUrl')) $('rhEventUrl').value = RaidHelper.eventPageUrl(id);
+      setRhMsg('Loading event…');
+      try {
+        const evData = await RaidHelper.fetchEvent(id);
+        lastRhPreview = evData;
+        renderRhPreview(evData);
+        setRhMsg(`Loaded “${evData.title}” · ${evData.primary} signed — click Apply to set roster`);
+      } catch (e) {
+        setRhMsg(e.message || String(e), true);
+      }
+    });
+  }
   if ($('rhOpenBtn')) {
     $('rhOpenBtn').addEventListener('click', () => {
       const u = ($('rhEventUrl') && $('rhEventUrl').value.trim()) || '';
@@ -3397,9 +3667,18 @@ a.wh-name > span[style*="background"],
       setRosterStatus('Auto gear sync from Raid-Helper + loot');
     }
 
-    // Prefill Raid-Helper URL
-    const rhUrl = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
-    if ($('rhEventUrl') && rhUrl) $('rhEventUrl').value = rhUrl;
+    // Prefill Raid-Helper URL + calendar
+    const rhCfg = rhConfig();
+    if ($('rhEventUrl') && rhCfg.raidHelperEventUrl) {
+      $('rhEventUrl').value = rhCfg.raidHelperEventUrl;
+    }
+    if ($('rhCalendarUrl') && rhCfg.raidHelperServerId && rhCfg.raidHelperCalendarKey) {
+      $('rhCalendarUrl').value =
+        'https://raid-helper.xyz/calendar/' +
+        rhCfg.raidHelperServerId +
+        '/' +
+        rhCfg.raidHelperCalendarKey;
+    }
 
     if ($('rosterGame')) $('rosterGame').value = 'classic';
 
@@ -3411,6 +3690,13 @@ a.wh-name > span[style*="background"],
         const n = rebuildRosterFromRh(hydrateStoredRh(rhEvents[0]));
         if (n) await savePlayerInfo();
       } catch (_) {}
+    }
+
+    // Auto-discover Midnight Rodeo RH events (calendar) or fall back to default event banner
+    try {
+      await refreshServerEvents({ silent: true });
+    } catch (_) {
+      try { await refreshDefaultEventBanner(); } catch (__) {}
     }
 
     // Drop old auto-demo data so the app starts clean

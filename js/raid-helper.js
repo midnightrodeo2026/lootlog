@@ -238,6 +238,126 @@
     return (event.list || []).filter((s) => s.isPrimary && !s.isSoft);
   }
 
+  /**
+   * Public calendar list (no Discord login).
+   * RH panel → Calendar → "Unrestricted Calendar Link"
+   *   https://raid-helper.xyz/calendar/{serverId}/{calendarKey}
+   * API: POST /api/events/{serverId}/{calendarKey}  body {}
+   * Returns upcoming + past events for that Discord server.
+   */
+  function parseCalendarUrl(input) {
+    const s = String(input || '').trim();
+    if (!s) return null;
+    // full calendar URL
+    let m = s.match(
+      /raid-helper\.(?:xyz|dev)\/calendar\/(\d{10,})\/([A-Za-z0-9_\-]+)/i
+    );
+    if (m) return { serverId: m[1], calendarKey: m[2] };
+    // bare key with known server from config later
+    if (/^[A-Za-z0-9_\-]{6,}$/.test(s) && !/^\d{15,}$/.test(s)) {
+      return { serverId: '', calendarKey: s };
+    }
+    // serverId/key
+    m = s.match(/^(\d{10,})[\/\s]+([A-Za-z0-9_\-]+)$/);
+    if (m) return { serverId: m[1], calendarKey: m[2] };
+    return null;
+  }
+
+  async function listServerEvents(serverId, calendarKey) {
+    const sid = String(serverId || '').trim();
+    const key = String(calendarKey || '').trim();
+    if (!sid) throw new Error('Missing Raid-Helper server id');
+    if (!key || key === 'none') {
+      throw new Error(
+        'Need unrestricted calendar key — open Raid-Helper panel → Calendar → copy Unrestricted Calendar Link'
+      );
+    }
+    const url =
+      'https://raid-helper.xyz/api/events/' +
+      encodeURIComponent(sid) +
+      '/' +
+      encodeURIComponent(key);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+      cache: 'no-store',
+    });
+    if (res.status === 403) {
+      throw new Error('Invalid calendar key — regenerate unrestricted link in RH Calendar settings');
+    }
+    if (!res.ok) {
+      throw new Error('Could not list server events (HTTP ' + res.status + ')');
+    }
+    const data = await res.json();
+    const events = (data.events || data || []).map((e) => {
+      const id = String(e.id || e.raidid || e.raidId || '');
+      const unixtime = e.unixtime || e.startTime || null;
+      return {
+        id,
+        title: e.title || e.displayTitle || e.description || 'Raid',
+        date: e.date || '',
+        time: e.time || '',
+        unixtime: unixtime ? Number(unixtime) : null,
+        leader: e.leadername || e.leader || '',
+        channel: e.channelName || e.channel || '',
+        server: e.servername || e.server || '',
+        color: e.color || '',
+        url: id ? eventPageUrl(id) : '',
+        raw: e,
+      };
+    });
+    // sort soonest first
+    events.sort((a, b) => (a.unixtime || 0) - (b.unixtime || 0));
+    const now = Date.now() / 1000;
+    const upcoming = events.filter((e) => !e.unixtime || e.unixtime >= now - 3 * 3600);
+    const past = events.filter((e) => e.unixtime && e.unixtime < now - 3 * 3600);
+    return {
+      serverId: sid,
+      calendarKey: key,
+      events,
+      upcoming,
+      past,
+      next: upcoming[0] || null,
+    };
+  }
+
+  /** Prefer calendar next event, else configured default event id */
+  async function resolveActiveEvent(cfg) {
+    const c = cfg || {};
+    const sid = c.raidHelperServerId || c.serverId || '';
+    const key = c.raidHelperCalendarKey || c.calendarKey || '';
+    if (sid && key) {
+      try {
+        const list = await listServerEvents(sid, key);
+        if (list.next && list.next.id) {
+          return {
+            source: 'calendar',
+            eventId: list.next.id,
+            url: list.next.url,
+            list,
+          };
+        }
+        if (list.events.length) {
+          const last = list.events[list.events.length - 1];
+          return { source: 'calendar-past', eventId: last.id, url: last.url, list };
+        }
+      } catch (e) {
+        return { source: 'calendar-error', error: e.message, eventId: extractEventId(c.raidHelperEventUrl || '') };
+      }
+    }
+    const id = extractEventId(c.raidHelperEventUrl || '');
+    return {
+      source: 'config',
+      eventId: id,
+      url: id ? eventPageUrl(id) : '',
+      list: null,
+    };
+  }
+
   global.RaidHelper = {
     extractEventId,
     eventPageUrl,
@@ -249,5 +369,8 @@
     nameParts,
     primarySignups,
     isSoftStatus,
+    parseCalendarUrl,
+    listServerEvents,
+    resolveActiveEvent,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

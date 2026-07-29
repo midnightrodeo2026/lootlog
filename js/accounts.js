@@ -28,6 +28,8 @@
     themeAccent: 'amber',
     registeredAt: null,
     raidHelperEventUrl: '',
+    raidHelperServerId: '',
+    raidHelperCalendarKey: '',
   };
 
   async function hashPassword(password, salt) {

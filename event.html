@@ -63,8 +63,10 @@ a:hover{text-decoration:underline}
   border:1px solid rgba(227,161,60,.45);
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 0 18px rgba(227,161,60,.18);
+  overflow:hidden;flex-shrink:0;
 }
 .brand-mark svg{width:20px;height:20px}
+.brand-mark img{width:100%;height:100%;object-fit:cover;display:block}
 .brand b{color:var(--amber2)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .btn{
@@ -399,7 +401,7 @@ a:hover{text-decoration:underline}
 <div class="page">
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true">
+      <div class="brand-mark" id="brandMark" aria-hidden="true">
         <svg viewBox="0 0 64 64" fill="none"><path d="M18 40 L32 14 L46 40 Z" stroke="#f4bd5f" stroke-width="3" fill="rgba(227,161,60,.2)" stroke-linejoin="round"/><circle cx="32" cy="44" r="3.5" fill="#e3a13c"/></svg>
       </div>
       <span>Midnight <b>Rodeo</b></span>
@@ -505,11 +507,55 @@ a:hover{text-decoration:underline}
   const cfg = window.LOOTLOG_CONFIG || {};
   const defaultUrl = cfg.raidHelperEventUrl || '';
   const params = new URLSearchParams(location.search);
-  const eventRef = params.get('event') || params.get('id') || defaultUrl || SignupBoard.DEFAULT_EVENT_ID;
+  let eventRef = params.get('event') || params.get('id') || defaultUrl || SignupBoard.DEFAULT_EVENT_ID;
+
+  // Match main app: guild Discord icon in brand mark when available
+  (function applyGuildIcon() {
+    const url = cfg.guildIconUrl || '';
+    const mark = document.getElementById('brandMark');
+    if (!url || !mark) return;
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    img.width = 36;
+    img.height = 36;
+    img.onerror = () => { img.remove(); };
+    img.onload = () => {
+      mark.innerHTML = '';
+      mark.appendChild(img);
+    };
+  })();
 
   let model = null;
   let loading = false;
   let lastSyncAt = 0;
+
+  // If no ?event= and calendar key is set, auto-pick next Midnight Rodeo raid
+  async function resolveEventRef() {
+    if (params.get('event') || params.get('id')) return eventRef;
+    if (!window.RaidHelper || !RaidHelper.listServerEvents) return eventRef;
+    try {
+      let key = cfg.raidHelperCalendarKey || '';
+      let sid = cfg.raidHelperServerId || '';
+      try {
+        const raw = localStorage.getItem('midnight-rodeo-settings-v1');
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s.raidHelperCalendarKey) key = s.raidHelperCalendarKey;
+          if (s.raidHelperServerId) sid = s.raidHelperServerId;
+          if (s.raidHelperEventUrl && !(sid && key)) return s.raidHelperEventUrl;
+        }
+      } catch (_) {}
+      if (sid && key) {
+        const list = await RaidHelper.listServerEvents(sid, key);
+        if (list.next && list.next.id) return list.next.id;
+        if (list.events && list.events.length) {
+          return list.events[list.events.length - 1].id;
+        }
+      }
+    } catch (_) {}
+    return eventRef;
+  }
 
   function el(id) { return document.getElementById(id); }
 
@@ -820,8 +866,11 @@ a:hover{text-decoration:underline}
     }
   }, 15000);
 
-  refresh();
-  setInterval(() => refresh({ silent: true }), 60000);
+  resolveEventRef().then((ref) => {
+    eventRef = ref || eventRef;
+    refresh();
+    setInterval(() => refresh({ silent: true }), 60000);
+  });
 })();
 </script>
 </body>
