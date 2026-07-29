@@ -1004,55 +1004,66 @@
   }
 
   /**
-   * Build player list for comp.
-   * Prefer RH primary signed (≈25); fall back to playerInfo.
-   * Dual RH names collapse to one display name.
+   * Build player list for comp/bosses.
+   * Prefer playerInfo (already RH-synced). Full dual names as displayName.
+   * Optional squadKeys filter (lowercase keys) for the active 25.
    */
-  function fromAppState(playerInfo, rhEvents) {
+  function fromAppState(playerInfo, rhEvents, squadKeys) {
     const map = {};
     const pi = playerInfo || {};
+    const squad =
+      squadKeys && squadKeys.length
+        ? new Set(squadKeys.map((k) => String(k).toLowerCase()))
+        : null;
 
-    // Prefer latest RH event primary seats
-    const ev = rhEvents && rhEvents[0];
-    if (ev && Array.isArray(ev.list) && ev.list.length) {
-      ev.list.forEach((s) => {
-        if (!s || !s.name || isSoftRh(s)) return;
-        if (s.isPrimary === false) return;
-        const info =
-          pi[pickName(s.name).toLowerCase()] ||
-          pi[String(s.name).toLowerCase()] ||
-          {};
-        const display = pickName(s.name, info);
-        const key = display.toLowerCase();
-        if (map[key]) return;
-        map[key] = {
-          displayName: display,
-          class: info.class || s.class || '',
-          spec: (info.spec || s.spec || '').toString().replace(/(\d+)$/, ''),
-          rhRole: info.rhRole || s.role || '',
-          ilvl: info.ilvl,
-        };
-      });
-      if (Object.keys(map).length) return Object.values(map);
+    function add(key, rec) {
+      const k = String(key).toLowerCase();
+      if (squad && !squad.has(k)) {
+        // also allow match by display main
+        const main = pickName(rec.displayName || k).toLowerCase();
+        if (!squad.has(main) && !squad.has(String(rec.displayName || '').toLowerCase()))
+          return;
+      }
+      if (map[k]) return;
+      map[k] = rec;
     }
 
-    // Fallback: playerInfo only (dedupe duals)
     Object.keys(pi).forEach((k) => {
       const info = pi[k] || {};
-      if (info.fromRh === false && !info.class && !info.rhRole) return;
-      const name = info.displayName || pickName(info.rhName || k, info);
-      const key = name.toLowerCase();
-      if (map[key]) return;
-      // skip soft roles stored by mistake
-      if (isSoftRh({ role: info.rhRole, class: info.class, status: info.rhStatus })) return;
-      map[key] = {
-        displayName: name,
+      if (info.fromRh === false && !info.class && !info.rhRole && !info.lastRhImport)
+        return;
+      if (isSoftRh({ role: info.rhRole, class: info.class, status: info.rhStatus }))
+        return;
+      const display =
+        info.displayName || info.rhName || pickName(k, info) || k;
+      add(k, {
+        displayName: display,
         class: info.class,
         spec: info.spec,
         rhRole: info.rhRole,
         ilvl: info.ilvl,
-      };
+      });
     });
+
+    // Merge any RH primaries missing from playerInfo
+    const ev = rhEvents && rhEvents[0];
+    if (ev && Array.isArray(ev.list)) {
+      ev.list.forEach((s) => {
+        if (!s || !s.name || isSoftRh(s)) return;
+        if (s.isPrimary === false) return;
+        const main = pickName(s.name).toLowerCase();
+        if (map[main]) return;
+        const info = pi[main] || {};
+        add(main, {
+          displayName: info.displayName || s.name,
+          class: info.class || s.class || '',
+          spec: (info.spec || s.spec || '').toString().replace(/(\d+)$/, ''),
+          rhRole: info.rhRole || s.role || '',
+          ilvl: info.ilvl,
+        });
+      });
+    }
+
     return Object.values(map);
   }
 

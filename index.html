@@ -314,6 +314,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 .tbl td{padding:12px 14px;border-bottom:1px solid rgba(44,53,96,.7);vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tbody tr:hover td{background:rgba(227,161,60,.05)}
+.tbl tbody tr.in-raid td{background:rgba(35,165,89,.07)}
 .num{font-family:var(--font-mono);font-size:13px;color:var(--amber2);font-weight:500}
 .muted{color:var(--muted)}
 .rank-label{font-size:12.5px;color:var(--muted);font-weight:500}
@@ -590,6 +591,27 @@ a.wh-name > span[style*="background"],
   display:inline-block;width:12px;height:12px;border-radius:50%;
   border:1px solid rgba(0,0,0,.3);
 }
+.workflow{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 18px;
+}
+@media(max-width:800px){.workflow{grid-template-columns:1fr 1fr}}
+.wf-step{
+  display:flex;align-items:flex-start;gap:8px;text-align:left;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:10px 12px;cursor:pointer;transition:border-color .12s,background .12s;
+}
+.wf-step:hover{border-color:rgba(227,161,60,.4);background:rgba(227,161,60,.06)}
+.wf-n{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,#e3a13c,#c47a2a);color:#1a1000;
+  font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;
+}
+.wf-step b{display:block;font-size:13px;color:var(--text)}
+.wf-step small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.raid-check{width:16px;height:16px;accent-color:var(--amber);cursor:pointer}
+.boss-map .map-token{cursor:grab}
+.boss-map .map-token:active{cursor:grabbing}
+.boss-map-hint{font-size:12px;color:var(--muted);margin:6px 0 0;text-align:center}
 
 /* Soft scrollbar */
 ::-webkit-scrollbar{width:10px;height:10px}
@@ -660,26 +682,39 @@ a.wh-name > span[style*="background"],
 
     <!-- OVERVIEW -->
     <section id="panel-overview" class="panel">
+      <div class="workflow" id="raidWorkflow">
+        <div class="wf-step" data-goto="raids"><span class="wf-n">1</span><div><b>RH signups</b><small>Import from Raid-Helper</small></div></div>
+        <div class="wf-step" data-goto="roster"><span class="wf-n">2</span><div><b>Pick 25</b><small id="wfSquadHint">Raid leader assigns seats</small></div></div>
+        <div class="wf-step" data-goto="comp"><span class="wf-n">3</span><div><b>Comp</b><small>Smart groups + drag</small></div></div>
+        <div class="wf-step" data-goto="bosses"><span class="wf-n">4</span><div><b>Boss maps</b><small>Live positions</small></div></div>
+        <div class="wf-step" data-goto="ledger"><span class="wf-n">5</span><div><b>Gargul</b><small>Loot after raid</small></div></div>
+      </div>
       <div class="stats">
         <div class="stat"><div class="stat-n" id="ovRaids">0</div><div class="stat-l">Raids Logged</div></div>
         <div class="stat"><div class="stat-n" id="ovItems">0</div><div class="stat-l">Total Items</div></div>
         <div class="stat"><div class="stat-n" id="ovRaiders">0</div><div class="stat-l">Unique Raiders</div></div>
+        <div class="stat"><div class="stat-n" id="ovSquad">0</div><div class="stat-l">Raid 25</div></div>
       </div>
       <div class="cards">
         <button class="card" type="button" data-goto="roster">
           <div class="card-ico">👤</div>
-          <div class="card-t">Roster</div>
-          <div class="card-d">Raid-Helper signups, class/spec, ranks, loot counts.</div>
+          <div class="card-t">Pick raid 25</div>
+          <div class="card-d">Tick who is in the 25 from RH signups. Dual names kept as-is.</div>
         </button>
         <button class="card" type="button" data-goto="comp">
           <div class="card-ico">⚡</div>
           <div class="card-t">Comp</div>
-          <div class="card-d">Buff groups + Paladin blessings for max DPS.</div>
+          <div class="card-d">Smart WF / buff groups from the 25 — drag to fix.</div>
         </button>
         <button class="card" type="button" data-goto="bosses">
           <div class="card-ico">🗡</div>
           <div class="card-t">Bosses</div>
-          <div class="card-d">BT + Hyjal auto positions &amp; strategy sheets.</div>
+          <div class="card-d">Jordee-style maps — drag tokens live (admin).</div>
+        </button>
+        <button class="card" type="button" data-goto="ledger">
+          <div class="card-ico">💎</div>
+          <div class="card-t">After raid</div>
+          <div class="card-d">Paste Gargul export when the night is done.</div>
         </button>
       </div>
       <div class="share-row">
@@ -748,32 +783,35 @@ a.wh-name > span[style*="background"],
 
     <!-- ROSTER -->
     <section id="panel-roster" class="panel" hidden>
-      <div class="section-title">// Roster</div>
+      <div class="section-title">// Raid 25 · from Raid-Helper</div>
       <div class="controls">
         <input class="input" id="rosterRealm" type="hidden" value="" />
         <select class="input" id="rosterGame" hidden>
           <option value="classic" selected>classic</option>
         </select>
-        <button class="btn btn-amber" id="rosterFromRh" type="button">↻ From Raid-Helper</button>
-        <button class="btn btn-ghost" id="rosterLookupAll" type="button">↻ Gear sync (auto)</button>
-        <button class="btn btn-ghost" id="rosterTestApi" type="button" hidden>Test API</button>
-        <span class="status ok" id="rosterApiStatus">RH signed only · dual names auto → one</span>
+        <button class="btn btn-amber" id="rosterFromRh" type="button">↻ Import RH</button>
+        <button class="btn btn-ghost" id="rosterAuto25" type="button">Auto-pick 25</button>
+        <button class="btn btn-ghost" id="rosterClear25" type="button">Clear picks</button>
+        <button class="btn btn-ghost" id="rosterLookupAll" type="button">↻ Gear sync</button>
+        <span class="status ok" id="rosterApiStatus">Tick who is in the 25 · dual names kept</span>
       </div>
-      <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+      <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
+        <div class="stat"><div class="stat-n" id="rosterSquadN">0</div><div class="stat-l">In raid</div></div>
         <div class="stat"><div class="stat-n" id="rosterCount">0</div><div class="stat-l">Signed</div></div>
         <div class="stat"><div class="stat-n" id="rosterTanks">0</div><div class="stat-l">Tanks</div></div>
         <div class="stat"><div class="stat-n" id="rosterHeal">0</div><div class="stat-l">Healers</div></div>
         <div class="stat"><div class="stat-n" id="rosterDps">0</div><div class="stat-l">DPS</div></div>
       </div>
       <p class="share-hint" style="margin:0 0 12px;max-width:none;text-align:left" id="rosterHint">
-        Roster = Raid-Helper <b>primary signed</b> (not absence / tent). Dual names like Moon/Luna auto-use the first; admin can pick the other.
+        Workflow: people sign on RH → here the raid lead <b>picks 25</b> → Comp → Boss maps → after raid, Gargul on Ledger.
+        Names show as signed (e.g. Moon/Luna). Admin can edit the name.
       </p>
       <div class="table-wrap">
         <table class="tbl">
           <thead>
             <tr>
-              <th>Rank</th><th>Player</th><th>RH name</th><th>Role</th><th>Class / Spec</th><th>iLvl</th>
-              <th>Items</th><th></th>
+              <th>In 25</th><th>Rank</th><th>Player</th><th>Role</th><th>Class / Spec</th><th>iLvl</th>
+              <th>Loot</th>
             </tr>
           </thead>
           <tbody id="rosterBody"></tbody>
@@ -1004,6 +1042,9 @@ a.wh-name > span[style*="background"],
   const PLAYER_INFO_KEY = 'midnight-rodeo-player-info';
   const COMP_SEATS_KEY = 'midnight-rodeo-comp-seats';
   const NAME_OVERRIDES_KEY = 'midnight-rodeo-name-overrides';
+  const RAID_SQUAD_KEY = 'midnight-rodeo-raid-squad';
+  const BOSS_SLOTS_KEY = 'midnight-rodeo-boss-slots';
+  const RAID_SIZE = 25;
   const META_KEY = 'midnight-rodeo-meta';
   const RH_EVENTS_KEY = 'midnight-rodeo-rh-events';
 
@@ -1014,8 +1055,10 @@ a.wh-name > span[style*="background"],
   let playerInfo = {};
   let meta = { registeredAt: null };
   let rhEvents = []; // imported Raid-Helper events
-  let nameOverrides = {}; // dual RH name picks: "Moon/Luna" → "Luna"
+  let nameOverrides = {}; // dual RH name picks
   let compSeats = {}; // manual group seats: name → 0-4
+  let raidSquad = []; // keys of the 25 in tonight's raid
+  let bossSlots = {}; // { bossId: { 'mt-0': 'Name', ... } }
   let lastRhPreview = null;
   let freshIds = new Set();
   let currentTab = 'overview';
@@ -1191,6 +1234,16 @@ a.wh-name > span[style*="background"],
       if (!compSeats || typeof compSeats !== 'object') compSeats = {};
     } catch { compSeats = {}; }
     try {
+      const raw = localStorage.getItem(RAID_SQUAD_KEY);
+      raidSquad = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(raidSquad)) raidSquad = [];
+    } catch { raidSquad = []; }
+    try {
+      const raw = localStorage.getItem(BOSS_SLOTS_KEY);
+      bossSlots = raw ? JSON.parse(raw) : {};
+      if (!bossSlots || typeof bossSlots !== 'object') bossSlots = {};
+    } catch { bossSlots = {}; }
+    try {
       const res = await store.get(META_KEY);
       meta = res && res.value ? JSON.parse(res.value) : { registeredAt: null };
       if (!meta.registeredAt && entries.length) {
@@ -1225,6 +1278,73 @@ a.wh-name > span[style*="background"],
   }
   function saveCompSeats() {
     try { localStorage.setItem(COMP_SEATS_KEY, JSON.stringify(compSeats)); } catch {}
+  }
+  function saveRaidSquad() {
+    try { localStorage.setItem(RAID_SQUAD_KEY, JSON.stringify(raidSquad)); } catch {}
+  }
+  function saveBossSlots() {
+    try { localStorage.setItem(BOSS_SLOTS_KEY, JSON.stringify(bossSlots)); } catch {}
+  }
+
+  function squadSet() {
+    return new Set((raidSquad || []).map((k) => String(k).toLowerCase()));
+  }
+  function isInSquad(key) {
+    return squadSet().has(String(key || '').toLowerCase());
+  }
+  function toggleSquad(key, on) {
+    const k = String(key || '').toLowerCase();
+    if (!k) return;
+    const set = squadSet();
+    if (on) {
+      if (set.size >= RAID_SIZE && !set.has(k)) return false;
+      set.add(k);
+    } else set.delete(k);
+    raidSquad = [...set];
+    saveRaidSquad();
+    return true;
+  }
+
+  /** Smart auto-pick 25 from current signed roster */
+  function autoPickRaid25() {
+    const by = collectRosterPlayers();
+    const rows = Object.keys(by).map((p) => {
+      const info = by[p].info || pinfo(p);
+      return {
+        key: pickPlayerName(info.rhName || info.displayName || p).toLowerCase(),
+        info,
+        role: rhRoleBucket(info.rhRole),
+        ilvl: Number(info.ilvl) || 0,
+      };
+    });
+    rows.sort((a, b) => b.ilvl - a.ilvl);
+    const pick = [];
+    const addRole = (role, max) => {
+      let n = 0;
+      for (const r of rows) {
+        if (pick.length >= RAID_SIZE || n >= max) break;
+        if (r.role !== role || pick.includes(r.key)) continue;
+        pick.push(r.key);
+        n++;
+      }
+    };
+    addRole('tank', 4);
+    addRole('heal', 7);
+    addRole('dps', 20);
+    // fill remainder any role
+    for (const r of rows) {
+      if (pick.length >= RAID_SIZE) break;
+      if (!pick.includes(r.key)) pick.push(r.key);
+    }
+    raidSquad = pick.slice(0, RAID_SIZE);
+    saveRaidSquad();
+    // reset comp/boss overrides for new 25
+    compSeats = {};
+    saveCompSeats();
+    bossSlots = {};
+    saveBossSlots();
+    onRosterChanged('auto-pick 25');
+    return raidSquad.length;
   }
   async function saveMeta() {
     try { await store.set(META_KEY, JSON.stringify(meta)); } catch {}
@@ -1830,17 +1950,21 @@ a.wh-name > span[style*="background"],
   let bossLiveMsg = '';
 
   function getCompPlayers() {
-    if (window.RaidComp) return RaidComp.fromAppState(playerInfo, rhEvents);
-    return Object.keys(playerInfo || {}).map((k) => {
-      const info = playerInfo[k] || {};
-      return {
-        displayName: info.displayName || k,
-        class: info.class,
-        spec: info.spec,
-        rhRole: info.rhRole,
-        ilvl: info.ilvl,
-      };
-    });
+    // Active raid 25 only when squad is set; else all signed
+    const squad = raidSquad && raidSquad.length ? raidSquad : null;
+    if (window.RaidComp) return RaidComp.fromAppState(playerInfo, rhEvents, squad);
+    return Object.keys(playerInfo || {})
+      .filter((k) => !squad || squad.includes(k.toLowerCase()))
+      .map((k) => {
+        const info = playerInfo[k] || {};
+        return {
+          displayName: info.displayName || info.rhName || k,
+          class: info.class,
+          spec: info.spec,
+          rhRole: info.rhRole,
+          ilvl: info.ilvl,
+        };
+      });
   }
 
   /** Fingerprint of who is in the raid + their roles — changes when people join/leave/swap */
@@ -1917,7 +2041,10 @@ a.wh-name > span[style*="background"],
     if ($('bossDpsN')) $('bossDpsN').textContent = p.melee.length + p.ranged.length;
     if ($('bossLiveStatus')) {
       $('bossLiveStatus').textContent =
-        bossLiveMsg || (p.all.length ? `Live · ${p.all.length} raiders` : 'Load demo or Raid-Helper');
+        bossLiveMsg ||
+        (p.all.length
+          ? `Live · ${p.all.length} in raid 25 · click map tokens to swap (admin)`
+          : 'Pick 25 on Roster first');
       $('bossLiveStatus').className = 'status ' + (p.all.length ? 'ok' : '');
     }
 
@@ -1974,18 +2101,39 @@ a.wh-name > span[style*="background"],
     }
     lastBossAssign = result;
     const b = result.boss;
+    const canMove = can('editRoster') || canEdit();
+    // Apply saved live slot overrides (admin moves)
+    let map = result.map;
+    let mapSvg = result.mapSvg;
+    const ov = bossSlots[bossId] || {};
+    if (map && Object.keys(ov).length && RaidBosses.mapWithOverrides) {
+      const m2 = RaidBosses.mapWithOverrides(bossId, result.assignments, ov, canMove);
+      map = m2.map;
+      mapSvg = m2.mapSvg;
+    } else if (map && RaidBosses.mapToSvg) {
+      mapSvg = RaidBosses.mapToSvg(map, { interactive: canMove });
+    }
+
     if ($('bossDetail')) $('bossDetail').hidden = false;
     if ($('bossDetailTitle')) $('bossDetailTitle').textContent = b.name;
     if ($('bossDetailRaid')) {
-      const layout = (result.map && result.map.label) || 'Map';
+      const layout = (map && map.label) || 'Map';
+      const n = result.rosterSize || 0;
       $('bossDetailRaid').textContent =
-        b.raidLabel + ' · ' + layout + ' · LIVE auto · ' + (result.rosterSize || 0) + ' raiders';
+        b.raidLabel +
+        ' · ' +
+        layout +
+        ' · ' +
+        n +
+        ' in raid' +
+        (canMove ? ' · drag tokens to move' : '');
     }
     if ($('bossMap')) {
-      $('bossMap').innerHTML = result.mapSvg || '<div class="empty">No map</div>';
+      $('bossMap').innerHTML = mapSvg || '<div class="empty">No map</div>';
+      if (canMove) bindBossMapDrag(bossId, result);
     }
-    if ($('bossMapLegend') && result.map && result.map.legend) {
-      $('bossMapLegend').innerHTML = result.map.legend
+    if ($('bossMapLegend') && map && map.legend) {
+      $('bossMapLegend').innerHTML = map.legend
         .map(
           (L) =>
             `<span><i style="background:${escapeHtml(L.color)}"></i>${escapeHtml(L.label)}</span>`
@@ -1993,10 +2141,12 @@ a.wh-name > span[style*="background"],
         .join('');
     }
     if ($('bossMapOverflow')) {
-      const ov = (result.map && result.map.overflow) || [];
-      $('bossMapOverflow').textContent = ov.length
-        ? 'Also assigned (list): ' + ov.join(', ')
-        : 'Map updates automatically when the raid roster changes.';
+      const ovList = (map && map.overflow) || [];
+      $('bossMapOverflow').innerHTML =
+        (canMove
+          ? '<div class="boss-map-hint">Admin: drag a name onto another slot to swap (Jordee-style sheet).</div>'
+          : '') +
+        (ovList.length ? 'Also assigned (list): ' + ovList.map(escapeHtml).join(', ') : '');
     }
     if ($('bossStrat')) {
       $('bossStrat').innerHTML = (b.strategy || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
@@ -2016,6 +2166,59 @@ a.wh-name > span[style*="background"],
     });
   }
 
+  function bindBossMapDrag(bossId, result) {
+    const root = $('bossMap');
+    if (!root) return;
+    // Click token A then token B to swap (reliable on SVG)
+    if (!root._mrBossBound) {
+      root._mrBossBound = true;
+      root.addEventListener('click', (ev) => {
+        const g = ev.target.closest('.map-token');
+        if (!g || !bossSelectedId) return;
+        if (!(can('editRoster') || canEdit())) return;
+        const slot = g.getAttribute('data-slot');
+        const name = g.getAttribute('data-name') || '';
+        if (!slot) return;
+        if (!root._pick) {
+          root._pick = { slot, name };
+          root.querySelectorAll('.map-token').forEach((t) => t.style.opacity = '0.55');
+          g.style.opacity = '1';
+          g.style.filter = 'drop-shadow(0 0 6px #f4bd5f)';
+          bossLiveMsg = 'Selected ' + (name || slot) + ' — click another slot to swap';
+          if ($('bossLiveStatus')) $('bossLiveStatus').textContent = bossLiveMsg;
+          return;
+        }
+        const from = root._pick;
+        root._pick = null;
+        root.querySelectorAll('.map-token').forEach((t) => {
+          t.style.opacity = '';
+          t.style.filter = '';
+        });
+        if (from.slot === slot) {
+          bossLiveMsg = 'Move cancelled';
+          if ($('bossLiveStatus')) $('bossLiveStatus').textContent = bossLiveMsg;
+          return;
+        }
+        const bid = bossSelectedId;
+        const cur = Object.assign({}, bossSlots[bid] || {});
+        if (result.map && result.map.markers) {
+          result.map.markers.forEach((m) => {
+            if (m.slotId && cur[m.slotId] == null && m.name) cur[m.slotId] = m.name;
+          });
+        }
+        Object.assign(cur, bossSlots[bid] || {});
+        const a = from.name || cur[from.slot] || '';
+        const b = name || cur[slot] || '';
+        cur[slot] = a;
+        cur[from.slot] = b;
+        bossSlots[bid] = cur;
+        saveBossSlots();
+        bossLiveMsg = 'Live · swapped map seats';
+        showBossDetail(bid, { force: true });
+      });
+    }
+  }
+
   function renderComp() {
     if (!window.RaidComp) {
       if ($('compEmpty')) {
@@ -2024,9 +2227,14 @@ a.wh-name > span[style*="background"],
       }
       return;
     }
-    const players = RaidComp.fromAppState(playerInfo, rhEvents);
+    const players = getCompPlayers();
     if (!players.length) {
-      if ($('compEmpty')) $('compEmpty').hidden = false;
+      if ($('compEmpty')) {
+        $('compEmpty').hidden = false;
+        $('compEmpty').textContent = raidSquad.length
+          ? 'No players in the 25 — pick on Roster.'
+          : 'Import RH and pick the 25 on Roster first.';
+      }
       if ($('compGroups')) $('compGroups').innerHTML = '';
       if ($('compCoverage')) $('compCoverage').innerHTML = '';
       if ($('compBlessings')) $('compBlessings').innerHTML = '';
@@ -2069,9 +2277,10 @@ a.wh-name > span[style*="background"],
 
     const canMove = can('editRoster') || canEdit();
     if ($('compDragHint')) {
+      const n = players.length;
       $('compDragHint').textContent = canMove
-        ? 'Drag raiders between groups (admin). Optimize rebuilds auto seats; your moves are saved until Reset.'
-        : 'Login as admin to drag people between groups.';
+        ? `Using raid 25 (${n} players). Drag between groups. Optimize = auto WF stacks.`
+        : `Using raid 25 (${n}). Login as admin to drag people between groups.`;
     }
 
     if ($('compGroups')) {
@@ -2226,6 +2435,7 @@ a.wh-name > span[style*="background"],
     $('ovRaids').textContent = groups.length;
     $('ovItems').textContent = entries.length;
     $('ovRaiders').textContent = players.size;
+    if ($('ovSquad')) $('ovSquad').textContent = (raidSquad && raidSquad.length) || 0;
 
     const recent = entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
     const el = $('ovRecent');
@@ -2368,17 +2578,20 @@ a.wh-name > span[style*="background"],
 
   function renderRoster() {
     const byPlayer = collectRosterPlayers();
-    const rows = Object.keys(byPlayer).map(p => ({
-      player: p,
-      count: byPlayer[p].count,
-      last: byPlayer[p].last,
-      info: byPlayer[p].info || pinfo(p),
-    })).sort((a, b) => {
-      const ra = RANKS.indexOf(a.info.rank || '');
-      const rb = RANKS.indexOf(b.info.rank || '');
-      const oa = ra === -1 ? 99 : ra;
-      const ob = rb === -1 ? 99 : rb;
-      if (oa !== ob) return oa - ob;
+    const rows = Object.keys(byPlayer).map(p => {
+      const info = byPlayer[p].info || pinfo(p);
+      const key = pickPlayerName(info.rhName || info.displayName || p).toLowerCase();
+      return {
+        player: p,
+        key,
+        count: byPlayer[p].count,
+        last: byPlayer[p].last,
+        info,
+        inRaid: isInSquad(key),
+      };
+    }).sort((a, b) => {
+      // In-raid first, then role, then name
+      if (a.inRaid !== b.inRaid) return a.inRaid ? -1 : 1;
       const roleA = rhRoleBucket(a.info.rhRole);
       const roleB = rhRoleBucket(b.info.rhRole);
       if (roleA !== roleB) return roleA.localeCompare(roleB);
@@ -2392,16 +2605,28 @@ a.wh-name > span[style*="background"],
       else if (b === 'heal') heals++;
       else if (b === 'dps') dps++;
     });
+    const inN = raidSquad.length;
     if ($('rosterCount')) $('rosterCount').textContent = rows.length;
+    if ($('rosterSquadN')) $('rosterSquadN').textContent = inN + '/' + RAID_SIZE;
     if ($('rosterTanks')) $('rosterTanks').textContent = tanks;
     if ($('rosterHeal')) $('rosterHeal').textContent = heals;
     if ($('rosterDps')) $('rosterDps').textContent = dps;
+    if ($('ovSquad')) $('ovSquad').textContent = inN;
+    if ($('wfSquadHint')) {
+      $('wfSquadHint').textContent =
+        inN >= RAID_SIZE ? '25 locked in' : (inN ? inN + ' / 25 picked' : 'Raid leader assigns seats');
+    }
     if ($('rosterHint')) {
-      const target = 25;
-      const extra = rows.length > target ? ` · ⚠ ${rows.length - target} over 25` : '';
+      const warn = inN > RAID_SIZE ? ' · over 25' : inN === RAID_SIZE ? ' · ready for Comp' : '';
       $('rosterHint').innerHTML =
-        `Raid roster = Raid-Helper <b>primary signed</b> (${rows.length}/${target})${extra}. ` +
-        `Dual names auto-use the first; admin can pick the other in the RH name column.`;
+        `Signed from RH: <b>${rows.length}</b>. In raid tonight: <b>${inN}/${RAID_SIZE}</b>${warn}. ` +
+        `Names keep both parts (Moon/Luna). Admin can edit. Then open <b>Comp</b> → <b>Bosses</b> → after raid <b>Ledger/Gargul</b>.`;
+    }
+    if ($('rosterApiStatus')) {
+      setRosterStatus(
+        inN ? `${inN}/${RAID_SIZE} in raid · ${rows.length} signed` : `${rows.length} signed · pick 25`,
+        inN >= RAID_SIZE ? 'ok' : ''
+      );
     }
 
     $('rosterEmpty').hidden = rows.length > 0;
@@ -2412,6 +2637,8 @@ a.wh-name > span[style*="background"],
       const cls = info.class || '';
       const nameCls = classCss(cls);
       const rank = info.rank || 'Raider';
+      // Full dual name for display
+      const fullName = info.displayName || info.rhName || r.player;
       const classSpec = cls
         ? `${escapeHtml(cls)}${info.spec ? ' · ' + escapeHtml(info.spec) : ''}`
         : '<span class="unsynced">— no class —</span>';
@@ -2420,38 +2647,27 @@ a.wh-name > span[style*="background"],
         : '<span class="muted">—</span>';
       const ilvl = info.ilvl ? `<span class="num">${escapeHtml(String(info.ilvl))}</span>` : '<span class="muted">—</span>';
       const rankCell = canRoster
-        ? `<select class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="rank" style="padding:4px 6px;font-size:12px;max-width:120px">
+        ? `<select class="input roster-field" data-player="${escapeHtml(r.player)}" data-key="${escapeHtml(r.key)}" data-field="rank" style="padding:4px 6px;font-size:12px;max-width:110px">
             ${RANKS.map(rk => `<option value="${rk}"${rank===rk?' selected':''}>${rk}</option>`).join('')}
            </select>`
         : `<span class="${rankClass(rank)}">${escapeHtml(rank)}</span>`;
 
-      // Dual-name picker for admin
-      const opts = (info.nameOptions && info.nameOptions.length > 1)
-        ? info.nameOptions
-        : nameOpts(info.rhName || '');
-      let nameCell = `<span class="player-name ${nameCls}">${escapeHtml(r.player)}</span>`;
-      let rhNameCell = `<span class="muted" title="Raid-Helper full name">${escapeHtml(info.rhName || '—')}</span>`;
-      if (canRoster && opts.length > 1) {
-        const cur = info.displayName || r.player;
-        rhNameCell = `<select class="input roster-name-pick" data-player="${escapeHtml(r.player)}" data-rhname="${escapeHtml(info.rhName || '')}" data-field="namePick" title="Pick which name to use">
-          ${opts.map(o => `<option value="${escapeHtml(o)}"${o === cur ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}
-        </select>`;
-        nameCell = `<span class="player-name ${nameCls}">${escapeHtml(cur)}</span>`;
-      } else if (canRoster) {
-        nameCell = `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="displayName" value="${escapeHtml(r.player)}" style="max-width:140px;padding:4px 6px;font-size:12px" title="Edit display name" />`;
-      }
+      const nameCell = canRoster
+        ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-key="${escapeHtml(r.key)}" data-field="displayName" value="${escapeHtml(fullName)}" style="min-width:120px;max-width:180px;padding:4px 6px;font-size:12px" title="Edit name (keeps dual names if you want)" />`
+        : `<span class="player-name ${nameCls}" title="${escapeHtml(info.rhName || fullName)}">${escapeHtml(fullName)}</span>`;
 
-      return `<tr>
+      const check = `<input type="checkbox" class="raid-check" data-squad="${escapeHtml(r.key)}" ${r.inRaid ? 'checked' : ''} ${canRoster ? '' : 'disabled'} title="In the 25" />`;
+
+      return `<tr class="${r.inRaid ? 'in-raid' : ''}">
+        <td style="text-align:center">${check}</td>
         <td>${rankCell}</td>
         <td>${nameCell}</td>
-        <td>${rhNameCell}</td>
         <td>${rhRole}</td>
         <td>${classSpec}</td>
         <td>${canRoster
-          ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="ilvl" value="${escapeHtml(info.ilvl||'')}" style="max-width:64px;padding:4px 6px" />`
+          ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-key="${escapeHtml(r.key)}" data-field="ilvl" value="${escapeHtml(info.ilvl||'')}" style="max-width:64px;padding:4px 6px" />`
           : ilvl}</td>
         <td class="num">${r.count}</td>
-        <td></td>
       </tr>`;
     }).join('');
   }
@@ -2589,8 +2805,16 @@ a.wh-name > span[style*="background"],
     saveCompSeats();
     await savePlayerInfo();
     await saveRhEvents();
-    setRhMsg(`Raid roster set to ${n} RH signed (dual names → one) · gear synced.`);
-    if ($('rosterApiStatus')) setRosterStatus(`${n} signed from Raid-Helper`, 'ok');
+    // Fresh RH import: suggest auto-pick 25 if empty
+    if (!raidSquad.length && n) {
+      autoPickRaid25();
+    }
+    setRhMsg(
+      `RH imported ${n} signed. Raid 25: ${raidSquad.length}/${RAID_SIZE}. Adjust ticks on Roster, then Comp → Bosses.`
+    );
+    if ($('rosterApiStatus')) {
+      setRosterStatus(`${n} signed · ${raidSquad.length}/${RAID_SIZE} in raid`, 'ok');
+    }
     await runAutoGearSync({ silent: true });
     onRosterChanged('Raid-Helper import');
     renderRoster();
@@ -3074,68 +3298,52 @@ a.wh-name > span[style*="background"],
 
   $('rosterBody').addEventListener('change', async (ev) => {
     if (!can('editRoster')) return;
-    const pick = ev.target.closest('[data-field="namePick"]');
-    if (pick) {
-      const player = pick.dataset.player;
-      const rhName = pick.dataset.rhname || '';
-      const chosen = pick.value.trim();
-      if (!chosen) return;
-      // Admin override for dual RH names
-      if (rhName) {
-        nameOverrides[rhName] = chosen;
-        nameOverrides[rhName.toLowerCase()] = chosen;
+    // In-raid checkbox
+    const sq = ev.target.closest('[data-squad]');
+    if (sq) {
+      const key = sq.getAttribute('data-squad');
+      const ok = toggleSquad(key, sq.checked);
+      if (!ok) {
+        sq.checked = false;
+        setRosterStatus('Raid full (25). Uncheck someone first.', 'err');
+      } else {
+        onRosterChanged('squad toggle');
+        renderRoster();
       }
-      nameOverrides[player.toLowerCase()] = chosen;
-      await saveNameOverrides();
-      // Re-key playerInfo entry
-      const oldKey = player.toLowerCase();
-      const info = playerInfo[oldKey] || {};
-      const newKey = chosen.toLowerCase();
-      const next = Object.assign({}, info, {
-        displayName: chosen,
-        preferredName: chosen,
-        rhName: info.rhName || rhName,
-      });
-      if (oldKey !== newKey) {
-        delete playerInfo[oldKey];
-      }
-      playerInfo[newKey] = next;
-      await savePlayerInfo();
-      // Update seats if name changed
-      if (compSeats[oldKey] != null && oldKey !== newKey) {
-        compSeats[newKey] = compSeats[oldKey];
-        delete compSeats[oldKey];
-        saveCompSeats();
-      }
-      onRosterChanged('name pick');
-      renderRoster();
       return;
     }
     const el = ev.target.closest('.roster-field');
     if (!el) return;
     const player = el.dataset.player;
     const field = el.dataset.field;
-    const key = player.toLowerCase();
-    if (!playerInfo[key]) playerInfo[key] = { displayName: player };
+    const key = (el.dataset.key || player).toLowerCase();
+    // Find playerInfo entry
+    let pKey = key;
+    if (!playerInfo[pKey]) {
+      const hit = Object.keys(playerInfo).find(
+        (k) =>
+          k === key ||
+          (playerInfo[k].displayName || '').toLowerCase() === player.toLowerCase() ||
+          (playerInfo[k].rhName || '').toLowerCase() === (playerInfo[k].rhName || '').toLowerCase()
+      );
+      pKey = hit || key;
+      if (!playerInfo[pKey]) playerInfo[pKey] = { displayName: player };
+    }
     let val = el.value.trim();
     if (field === 'ilvl') val = val.replace(/[^\d.]/g, '');
-    if (field === 'displayName' && val && val.toLowerCase() !== key) {
-      const info = playerInfo[key];
-      nameOverrides[info.rhName || player] = val;
-      await saveNameOverrides();
-      delete playerInfo[key];
-      playerInfo[val.toLowerCase()] = Object.assign({}, info, { displayName: val, preferredName: val });
-      if (compSeats[key] != null) {
-        compSeats[val.toLowerCase()] = compSeats[key];
-        delete compSeats[key];
-        saveCompSeats();
+    if (field === 'displayName') {
+      // Keep dual names as typed; only change display, not re-key (loot stable)
+      playerInfo[pKey].displayName = val || playerInfo[pKey].displayName;
+      if (playerInfo[pKey].rhName) {
+        nameOverrides[playerInfo[pKey].rhName] = val;
+        await saveNameOverrides();
       }
       await savePlayerInfo();
       onRosterChanged('rename');
       renderRoster();
       return;
     }
-    playerInfo[key][field] = val;
+    playerInfo[pKey][field] = val;
     await savePlayerInfo();
     onRosterChanged('roster edit');
   });
@@ -3317,6 +3525,27 @@ a.wh-name > span[style*="background"],
       applyRhEventToGuild(hydrateStoredRh(rhEvents[0]));
     });
   }
+  if ($('rosterAuto25')) {
+    $('rosterAuto25').addEventListener('click', () => {
+      if (!can('editRoster')) {
+        setRosterStatus('Admin login required to pick the 25.', 'err');
+        return;
+      }
+      const n = autoPickRaid25();
+      setRosterStatus(`Auto-picked ${n}/${RAID_SIZE} for tonight`, 'ok');
+      renderRoster();
+      renderCurrentTab();
+    });
+  }
+  if ($('rosterClear25')) {
+    $('rosterClear25').addEventListener('click', () => {
+      if (!can('editRoster')) return;
+      raidSquad = [];
+      saveRaidSquad();
+      onRosterChanged('clear squad');
+      renderRoster();
+    });
+  }
   if ($('saveRhUrlBtn')) {
     $('saveRhUrlBtn').addEventListener('click', () => {
       try {
@@ -3415,6 +3644,8 @@ a.wh-name > span[style*="background"],
       rhEvents = [];
       nameOverrides = {};
       compSeats = {};
+      raidSquad = [];
+      bossSlots = {};
       meta = { registeredAt: null, isDemo: false };
       lastComp = null;
       lastBossAssign = null;
@@ -3424,6 +3655,8 @@ a.wh-name > span[style*="background"],
       await savePlayerInfo();
       await saveNameOverrides();
       saveCompSeats();
+      saveRaidSquad();
+      saveBossSlots();
       await saveRhEvents();
       await saveMeta();
       onRosterChanged('clear');

@@ -467,10 +467,12 @@
         overrides[s.name] ||
         overrides[String(s.name).toLowerCase()] ||
         overrides[(s.mainName || '').toLowerCase()];
-      const display = pickMainName(s.name, preferred);
-      const key = display.toLowerCase();
-      if (patches[key]) continue;
+      // Show full dual name (Moon/Luna); stable key from main part
       const parts = s.nameParts || nameParts(s.name);
+      const main = pickMainName(s.name, preferred);
+      const display = preferred || s.name || main;
+      const key = main.toLowerCase();
+      if (patches[key]) continue;
       patches[key] = {
         displayName: display,
         rhName: s.name,

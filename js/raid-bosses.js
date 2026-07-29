@@ -692,34 +692,40 @@
       color: '#a335ee',
     });
 
-    function place(list, slots, defColor) {
+    function place(list, slots, defColor, group) {
       (slots || []).forEach((slot, i) => {
-        const name = list[i];
-        if (!name) return;
+        const slotId = group + '-' + i;
+        const name = list[i] || '';
         markers.push({
           type: 'player',
+          slotId,
+          group,
+          index: i,
           x: slot.x,
           y: slot.y,
           tag: slot.tag || 'P',
           color: slot.color || defColor || '#e3a13c',
           name,
-          short: String(name).slice(0, 8),
+          short: name ? String(name).split('/')[0].slice(0, 9) : '·',
+          empty: !name,
         });
       });
     }
 
-    place(mt, layout.slots.mt, '#e35d5d');
-    place(ot, layout.slots.ot, '#e3a13c');
-    place(melee, layout.slots.melee, '#C79C6E');
-    place(heals, layout.slots.heal, '#6fc27a');
-    place(ranged, layout.slots.ranged, '#69CCF0');
-    place(special, layout.slots.special, '#c4a574');
+    place(mt, layout.slots.mt, '#e35d5d', 'mt');
+    place(ot, layout.slots.ot, '#e3a13c', 'ot');
+    place(melee, layout.slots.melee, '#C79C6E', 'melee');
+    place(heals, layout.slots.heal, '#6fc27a', 'heal');
+    place(ranged, layout.slots.ranged, '#69CCF0', 'ranged');
+    place(special, layout.slots.special, '#c4a574', 'special');
 
     // Overflow names as list (not on map)
-    const placed = new Set(markers.filter((m) => m.name).map((m) => m.name.toLowerCase()));
+    const placed = new Set(
+      markers.filter((m) => m.name).map((m) => m.name.toLowerCase())
+    );
     const overflow = []
       .concat(mt, ot, melee, heals, ranged, special)
-      .filter((n, i, a) => a.indexOf(n) === i && !placed.has(n.toLowerCase()));
+      .filter((n, i, a) => n && a.indexOf(n) === i && !placed.has(n.toLowerCase()));
 
     return {
       layout: layoutKey,
@@ -740,38 +746,57 @@
     };
   }
 
-  /** SVG string for embedding in HTML */
+  /** Apply admin slot overrides: { 'mt-0': 'PlayerName', ... } */
+  function applyMapOverrides(map, overrides) {
+    if (!map || !overrides) return map;
+    const ov = overrides || {};
+    // Build pool of names currently on map
+    const bySlot = {};
+    map.markers.forEach((m) => {
+      if (m.slotId) bySlot[m.slotId] = m;
+    });
+    Object.keys(ov).forEach((slotId) => {
+      const m = bySlot[slotId];
+      if (!m) return;
+      const name = ov[slotId];
+      m.name = name || '';
+      m.short = name ? String(name).split('/')[0].slice(0, 9) : '·';
+      m.empty = !name;
+    });
+    return map;
+  }
+
+  /** SVG string for embedding in HTML — Jordee-style sheet map */
   function mapToSvg(map, opts) {
     if (!map) return '';
-    const w = (opts && opts.w) || 640;
-    const h = (opts && opts.h) || 420;
+    const w = (opts && opts.w) || 720;
+    const h = (opts && opts.h) || 480;
+    const interactive = !!(opts && opts.interactive);
     const parts = [];
     parts.push(
       `<svg viewBox="0 0 ${w} ${h}" class="raid-map-svg" role="img" aria-label="Raid position map">`
     );
-    // floor
+    // floor — spreadsheet dark panel
     parts.push(
-      `<rect x="0" y="0" width="${w}" height="${h}" fill="#0f1528" rx="12"/>`,
-      `<rect x="8" y="8" width="${w - 16}" height="${h - 16}" fill="none" stroke="rgba(227,161,60,.25)" stroke-width="1.5" rx="10"/>`
+      `<defs>
+        <pattern id="mapGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+          <path d="M24 0H0V24" fill="none" stroke="rgba(227,161,60,.06)" stroke-width="1"/>
+        </pattern>
+      </defs>`,
+      `<rect x="0" y="0" width="${w}" height="${h}" fill="#12161f" rx="14"/>`,
+      `<rect x="0" y="0" width="${w}" height="${h}" fill="url(#mapGrid)" rx="14"/>`,
+      `<rect x="10" y="10" width="${w - 20}" height="${h - 20}" fill="none" stroke="rgba(227,161,60,.35)" stroke-width="2" rx="12"/>`,
+      `<text x="24" y="32" fill="#f4bd5f" font-size="13" font-weight="700" font-family="Inter,sans-serif">${escapeXml(map.label || 'Raid map')} · ${escapeXml((map.bossName || '').slice(0, 28))}</text>`
     );
-    // grid
-    for (let i = 1; i < 4; i++) {
-      const x = (w * i) / 4;
-      const y = (h * i) / 4;
-      parts.push(
-        `<line x1="${x}" y1="12" x2="${x}" y2="${h - 12}" stroke="rgba(44,53,96,.5)" stroke-dasharray="4 6"/>`,
-        `<line x1="12" y1="${y}" x2="${w - 12}" y2="${y}" stroke="rgba(44,53,96,.5)" stroke-dasharray="4 6"/>`
-      );
-    }
-    // zones
+    // zones (big colored boxes like sheet columns)
     (map.zones || []).forEach((z) => {
       const zx = (z.x / 100) * w;
       const zy = (z.y / 100) * h;
       const zw = (z.w / 100) * w;
       const zh = (z.h / 100) * h;
       parts.push(
-        `<rect x="${zx}" y="${zy}" width="${zw}" height="${zh}" fill="${z.color || 'rgba(227,161,60,.08)'}" stroke="rgba(227,161,60,.2)" rx="8"/>`,
-        `<text x="${zx + 8}" y="${zy + 16}" fill="#9a6a3f" font-size="11" font-family="Inter,sans-serif">${escapeXml(z.label || '')}</text>`
+        `<rect x="${zx}" y="${zy}" width="${zw}" height="${zh}" fill="${z.color || 'rgba(227,161,60,.08)'}" stroke="rgba(227,161,60,.28)" stroke-width="1.5" rx="10"/>`,
+        `<text x="${zx + 10}" y="${zy + 18}" fill="#c4a574" font-size="12" font-weight="700" font-family="Inter,sans-serif">${escapeXml(z.label || '')}</text>`
       );
     });
     // markers
@@ -781,17 +806,24 @@
       if (m.type === 'boss') {
         const r = ((m.r || 7) / 100) * Math.min(w, h);
         parts.push(
-          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${m.color}" opacity="0.9"/>`,
-          `<circle cx="${cx}" cy="${cy}" r="${r + 4}" fill="none" stroke="${m.color}" opacity="0.4" stroke-width="2"/>`,
-          `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="10" font-weight="700" font-family="Inter,sans-serif">BOSS</text>`,
-          `<text x="${cx}" y="${cy + r + 14}" text-anchor="middle" fill="#f4bd5f" font-size="11" font-family="Inter,sans-serif">${escapeXml((m.label || '').slice(0, 18))}</text>`
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${m.color}" opacity="0.95"/>`,
+          `<circle cx="${cx}" cy="${cy}" r="${r + 5}" fill="none" stroke="${m.color}" opacity="0.45" stroke-width="2"/>`,
+          `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="800" font-family="Inter,sans-serif">BOSS</text>`,
+          `<text x="${cx}" y="${cy + r + 16}" text-anchor="middle" fill="#f4bd5f" font-size="12" font-weight="600" font-family="Inter,sans-serif">${escapeXml((m.label || '').slice(0, 20))}</text>`
         );
       } else {
-        const r = 11;
+        const r = 14;
+        const fill = m.empty ? 'rgba(40,44,56,.9)' : m.color || '#e3a13c';
+        const stroke = m.empty ? 'rgba(227,161,60,.35)' : '#0d1224';
+        const gOpen = interactive
+          ? `<g class="map-token${m.empty ? ' empty' : ''}" data-slot="${escapeXml(m.slotId || '')}" data-name="${escapeXml(m.name || '')}" style="cursor:${interactive ? 'grab' : 'default'}">`
+          : '<g>';
         parts.push(
-          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${m.color || '#e3a13c'}" opacity="0.95" stroke="#0d1224" stroke-width="1.5"/>`,
-          `<text x="${cx}" y="${cy + 3.5}" text-anchor="middle" fill="#0d1224" font-size="8" font-weight="700" font-family="Inter,sans-serif">${escapeXml(m.tag || 'P')}</text>`,
-          `<text x="${cx}" y="${cy + r + 11}" text-anchor="middle" fill="#f3ecd9" font-size="9" font-family="Inter,sans-serif">${escapeXml(m.short || m.name || '')}</text>`
+          gOpen,
+          `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" opacity="0.97" stroke="${stroke}" stroke-width="1.8"/>`,
+          `<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${m.empty ? '#6b7280' : '#0d1224'}" font-size="9" font-weight="800" font-family="Inter,sans-serif">${escapeXml(m.tag || 'P')}</text>`,
+          `<text x="${cx}" y="${cy + r + 13}" text-anchor="middle" fill="${m.empty ? '#6b7280' : '#f3ecd9'}" font-size="10" font-weight="600" font-family="Inter,sans-serif">${escapeXml(m.short || '·')}</text>`,
+          `</g>`
         );
       }
     });
@@ -844,10 +876,20 @@
       },
       assignments,
       map,
-      mapSvg: mapToSvg(map),
+      mapSvg: mapToSvg(map, { interactive: true }),
       rosterSize: p.all.length,
       empty: false,
       generatedAt: new Date().toISOString(),
+    };
+  }
+
+  /** Re-render map with optional slot overrides for live admin edits */
+  function mapWithOverrides(bossId, assignments, overrides, interactive) {
+    let map = buildMap(bossId, assignments);
+    map = applyMapOverrides(map, overrides);
+    return {
+      map,
+      mapSvg: mapToSvg(map, { interactive: interactive !== false }),
     };
   }
 
@@ -893,6 +935,8 @@
     pool,
     buildMap,
     mapToSvg,
+    applyMapOverrides,
+    mapWithOverrides,
     MAP_LAYOUTS,
     BOSS_MAP,
   };
