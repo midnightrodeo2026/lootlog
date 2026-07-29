@@ -587,6 +587,30 @@ a.wh-name > span[style*="background"],
   display:inline-block;width:12px;height:12px;border-radius:50%;
   border:1px solid rgba(0,0,0,.3);
 }
+.ov-hero{
+  display:grid;grid-template-columns:1.4fr .9fr;gap:16px;margin:0 0 18px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 18px 16px;border-top:2px solid var(--amber);
+}
+@media(max-width:800px){.ov-hero{grid-template-columns:1fr}}
+.ov-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.ov-title{font-family:var(--font-display);font-size:clamp(20px,3vw,28px);margin:0 0 6px;color:var(--text);font-weight:650}
+.ov-sub{margin:0 0 14px;color:var(--muted);font-size:13.5px;line-height:1.45}
+.ov-actions{display:flex;flex-wrap:wrap;gap:8px}
+.ov-hero-side{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ov-hero-side .stat{margin:0}
+.ov-snap{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;
+}
+.ov-chip{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:12px 14px;border-left:3px solid var(--muted);
+}
+.ov-chip.ok{border-left-color:var(--green)}
+.ov-chip.warn{border-left-color:var(--amber)}
+.ov-chip.bad{border-left-color:#e35d5d}
+.ov-chip b{display:block;font-size:13px;margin-bottom:3px}
+.ov-chip span{font-size:12px;color:var(--muted);line-height:1.4}
 .workflow{
   display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 18px;
 }
@@ -597,6 +621,9 @@ a.wh-name > span[style*="background"],
   padding:10px 12px;cursor:pointer;transition:border-color .12s,background .12s;
 }
 .wf-step:hover{border-color:rgba(227,161,60,.4);background:rgba(227,161,60,.06)}
+.wf-step.done{border-color:rgba(35,165,89,.35)}
+.wf-step.done .wf-n{background:var(--green);color:#fff}
+.wf-step.next{border-color:rgba(227,161,60,.55);box-shadow:0 0 0 1px rgba(227,161,60,.2)}
 .wf-n{
   flex-shrink:0;width:22px;height:22px;border-radius:50%;
   background:linear-gradient(135deg,#e3a13c,#c47a2a);color:#1a1000;
@@ -674,61 +701,47 @@ a.wh-name > span[style*="background"],
 
     <!-- OVERVIEW -->
     <section id="panel-overview" class="panel">
+      <div class="ov-hero" id="ovHero">
+        <div class="ov-hero-main">
+          <div class="ov-kicker" id="ovKicker">Tonight</div>
+          <h2 class="ov-title" id="ovTitle">Loading raid…</h2>
+          <p class="ov-sub" id="ovSub">Smart prep runs automatically for admin.</p>
+          <div class="ov-actions" id="ovActions">
+            <button class="btn btn-amber" id="ovSmartBtn" type="button" data-admin-only>⚡ Smart prep (auto all)</button>
+            <button class="btn btn-ghost" id="ovNextBtn" type="button">Continue →</button>
+            <a class="btn btn-ghost" href="event.html" style="text-decoration:none">📋 Board</a>
+          </div>
+          <p class="status" id="ovSmartStatus" style="margin:10px 0 0;text-align:left"></p>
+        </div>
+        <div class="ov-hero-side">
+          <div class="stat"><div class="stat-n" id="ovSquad">0</div><div class="stat-l">Raid 25</div></div>
+          <div class="stat"><div class="stat-n" id="ovSigned">0</div><div class="stat-l">RH signed</div></div>
+          <div class="stat"><div class="stat-n" id="ovItems">0</div><div class="stat-l">Loot items</div></div>
+          <div class="stat"><div class="stat-n" id="ovRaids">0</div><div class="stat-l">Loot nights</div></div>
+        </div>
+      </div>
+
       <div class="workflow" id="raidWorkflow">
-        <div class="wf-step" data-goto="raids"><span class="wf-n">1</span><div><b>Signups</b><small>Raid-Helper import</small></div></div>
-        <div class="wf-step" data-goto="roster"><span class="wf-n">2</span><div><b>Raid 25</b><small id="wfSquadHint">Pick who is in</small></div></div>
-        <div class="wf-step" data-goto="comp"><span class="wf-n">3</span><div><b>Comp</b><small>Groups + buffs</small></div></div>
-        <div class="wf-step" data-goto="bosses"><span class="wf-n">4</span><div><b>Bosses</b><small>Maps + assigns</small></div></div>
-        <div class="wf-step" data-goto="ledger"><span class="wf-n">5</span><div><b>Loot</b><small>Gargul after raid</small></div></div>
+        <div class="wf-step" data-goto="raids" data-step="raids"><span class="wf-n">1</span><div><b>Signups</b><small id="wf1">—</small></div></div>
+        <div class="wf-step" data-goto="roster" data-step="roster"><span class="wf-n">2</span><div><b>Raid 25</b><small id="wf2">—</small></div></div>
+        <div class="wf-step" data-goto="comp" data-step="comp"><span class="wf-n">3</span><div><b>Comp</b><small id="wf3">—</small></div></div>
+        <div class="wf-step" data-goto="bosses" data-step="bosses"><span class="wf-n">4</span><div><b>Bosses</b><small id="wf4">—</small></div></div>
+        <div class="wf-step" data-goto="ledger" data-step="ledger"><span class="wf-n">5</span><div><b>Loot</b><small id="wf5">—</small></div></div>
       </div>
-      <div class="stats">
-        <div class="stat"><div class="stat-n" id="ovRaids">0</div><div class="stat-l">Raids Logged</div></div>
-        <div class="stat"><div class="stat-n" id="ovItems">0</div><div class="stat-l">Total Items</div></div>
-        <div class="stat"><div class="stat-n" id="ovRaiders">0</div><div class="stat-l">Unique Raiders</div></div>
-        <div class="stat"><div class="stat-n" id="ovSquad">0</div><div class="stat-l">Raid 25</div></div>
-      </div>
-      <div class="cards">
-        <button class="card" type="button" data-goto="raids">
-          <div class="card-ico">1</div>
-          <div class="card-t">Signups</div>
-          <div class="card-d">Import Raid-Helper event · view signed roster.</div>
-        </button>
-        <button class="card" type="button" data-goto="roster">
-          <div class="card-ico">2</div>
-          <div class="card-t">Raid 25</div>
-          <div class="card-d">Tick who is in the 25 (admin).</div>
-        </button>
-        <button class="card" type="button" data-goto="comp">
-          <div class="card-ico">3</div>
-          <div class="card-t">Comp</div>
-          <div class="card-d">WF / buff groups from the 25.</div>
-        </button>
-        <button class="card" type="button" data-goto="bosses">
-          <div class="card-ico">4</div>
-          <div class="card-t">Bosses</div>
-          <div class="card-d">BT + Hyjal maps &amp; strategy.</div>
-        </button>
-        <button class="card" type="button" data-goto="ledger">
-          <div class="card-ico">5</div>
-          <div class="card-t">Loot</div>
-          <div class="card-d">Paste Gargul when the night is done.</div>
-        </button>
-        <button class="card" type="button" data-goto="items">
-          <div class="card-ico">📊</div>
-          <div class="card-t">Items</div>
-          <div class="card-d">All-time drop stats &amp; recipients.</div>
-        </button>
-      </div>
-      <div class="notice" id="ovViewOnly" hidden>👁 <b>View only.</b> Log in as <b>Admin</b> to manage roster, RH, comp, bosses, and loot.</div>
-      <div class="share-row" id="ovManageRow">
-        <a class="btn btn-ghost" href="event.html" style="text-decoration:none">📋 Signup board</a>
-        <button class="btn btn-ghost" id="copyLinkBtn" type="button">🔗 Copy guild link</button>
-        <button class="btn btn-ghost" id="exportAllBtn" type="button">⬇ Export backup</button>
-        <button class="btn btn-ghost" id="importAllBtn" type="button">⬆ Import backup</button>
-        <button class="btn btn-ghost" id="clearDataBtn" type="button">🗑 Clear all data</button>
+
+      <div class="notice" id="ovViewOnly" hidden>👁 <b>View only.</b> Admin unlocks Smart prep, roster, and loot edits.</div>
+
+      <div class="section-title" style="margin-top:8px">// Live snapshot</div>
+      <div id="ovSnap" class="ov-snap"></div>
+
+      <div class="share-row" id="ovManageRow" style="margin-top:18px">
+        <button class="btn btn-ghost" id="copyLinkBtn" type="button">🔗 Copy link</button>
+        <button class="btn btn-ghost" id="exportAllBtn" type="button" data-admin-only>⬇ Export</button>
+        <button class="btn btn-ghost" id="importAllBtn" type="button" data-admin-only>⬆ Import</button>
+        <button class="btn btn-ghost" id="clearDataBtn" type="button" data-admin-only>🗑 Clear</button>
         <input type="file" id="importFile" accept="application/json,.json" hidden />
       </div>
-      <div class="section-title" style="margin-top:28px">// Recent brands</div>
+      <div class="section-title" style="margin-top:22px">// Recent loot</div>
       <div id="ovRecent" class="ledger"></div>
     </section>
 
@@ -1976,12 +1989,40 @@ a.wh-name > span[style*="background"],
     if (currentTab === 'overview') renderOverview();
     else if (currentTab === 'ledger') renderLedger();
     else if (currentTab === 'roster') {
+      // Auto-pick 25 if empty but we have signed people (admin)
+      if (canEdit() && !raidSquad.length && Object.keys(collectRosterPlayers()).length) {
+        try { autoPickRaid25(); } catch (_) {}
+      }
       runAutoGearSync({ silent: true }).then(() => renderRoster()).catch(() => renderRoster());
     }
     else if (currentTab === 'items') renderItems();
-    else if (currentTab === 'raids') renderRaids();
-    else if (currentTab === 'comp') renderComp();
-    else if (currentTab === 'bosses') renderBosses();
+    else if (currentTab === 'raids') {
+      renderRaids();
+      // Quietly ensure default URL is filled
+      const cfg = rhConfig();
+      if ($('rhEventUrl') && !$('rhEventUrl').value && cfg.raidHelperEventUrl) {
+        $('rhEventUrl').value = cfg.raidHelperEventUrl;
+      }
+    }
+    else if (currentTab === 'comp') {
+      // Auto-optimize seats if none
+      if (canEdit() && (!compSeats || !Object.keys(compSeats).length)) {
+        try {
+          const players = getCompPlayers();
+          if (players.length && window.RaidComp) {
+            const r = RaidComp.analyze(players);
+            if (RaidComp.seatsFromGroups) {
+              compSeats = RaidComp.seatsFromGroups(r.groups);
+              saveCompSeats();
+            }
+          }
+        } catch (_) {}
+      }
+      renderComp();
+    }
+    else if (currentTab === 'bosses') {
+      renderBosses();
+    }
     updateGuildHeader();
   }
 
@@ -2471,20 +2512,298 @@ a.wh-name > span[style*="background"],
     return Object.keys(byDay).sort((a, b) => b.localeCompare(a)).map(k => byDay[k]);
   }
 
+  /* ---- Smart raid status / auto prep ---- */
+  function getRaidStatus() {
+    const signed = Object.keys(collectRosterPlayers() || {}).length;
+    const squadN = (raidSquad && raidSquad.length) || 0;
+    const players = getCompPlayers();
+    const hasRh = !!(rhEvents && rhEvents[0]);
+    const ev = rhEvents && rhEvents[0];
+    let compReady = false;
+    let bossReady = false;
+    try {
+      if (window.RaidComp && players.length) {
+        const r = RaidComp.analyze(players);
+        compReady = !!(r.groups && r.groups.some((g) => g.members && g.members.length));
+      }
+      if (window.RaidBosses && players.length) {
+        bossReady = !!(lastBossAll || players.length >= 5);
+      }
+    } catch (_) {}
+    const lootNights = raidGroups().length;
+    const steps = {
+      raids: hasRh || signed > 0,
+      roster: squadN > 0 && (signed < RAID_SIZE ? squadN >= signed : squadN >= RAID_SIZE),
+      comp: compReady && squadN > 0,
+      bosses: bossReady && squadN > 0,
+      ledger: entries.length > 0,
+    };
+    let next = 'ledger';
+    if (!steps.raids) next = 'raids';
+    else if (!steps.roster) next = 'roster';
+    else if (!steps.comp) next = 'comp';
+    else if (!steps.bosses) next = 'bosses';
+    else next = 'ledger';
+
+    return {
+      signed,
+      squadN,
+      hasRh,
+      ev,
+      steps,
+      next,
+      lootNights,
+      players: players.length,
+      title: (ev && ev.title) || 'No raid loaded',
+      when: ev
+        ? [ev.dayKey || ev.date, ev.time, ev.leader ? 'Lead ' + ev.leader : '']
+            .filter(Boolean)
+            .join(' · ')
+        : 'Import Raid-Helper or run Smart prep',
+    };
+  }
+
+  /**
+   * One-shot smart night prep (admin):
+   * RH refresh → roster rebuild → auto-pick 25 → gear sync → comp optimize → boss place
+   */
+  async function runSmartPrep(opts) {
+    const silent = opts && opts.silent;
+    const st = $('ovSmartStatus');
+    const set = (t, err) => {
+      if (st) {
+        st.textContent = t || '';
+        st.className = 'status' + (err ? ' err' : ' ok');
+      }
+      if (!silent && t) $('footerMsg').textContent = t;
+    };
+    if (!canEdit()) {
+      set('Admin login required for Smart prep.', true);
+      return null;
+    }
+    try {
+      set('Smart prep · loading Raid-Helper…');
+      const cfg = rhConfig();
+      let ev = null;
+      // 1) Prefer API list / default URL
+      try {
+        if (RaidHelper.listGuildEvents && (cfg.raidHelperApiKey || cfg.raidHelperCalendarKey)) {
+          const list = await RaidHelper.listGuildEvents(cfg);
+          if (list && list.next && list.next.id) {
+            ev = await RaidHelper.fetchEvent(list.next.id);
+          }
+        }
+      } catch (_) {}
+      if (!ev) {
+        const url =
+          ($('rhEventUrl') && $('rhEventUrl').value.trim()) ||
+          cfg.raidHelperEventUrl ||
+          '';
+        if (url && window.RaidHelper) {
+          try {
+            ev = await RaidHelper.fetchEvent(url);
+          } catch (_) {}
+        }
+      }
+      if (!ev && rhEvents[0]) {
+        ev = hydrateStoredRh(rhEvents[0]);
+      }
+      if (ev && ev.id) {
+        set('Smart prep · applying roster…');
+        // apply without switchTab spam
+        const n = rebuildRosterFromRh(ev);
+        const stored = {
+          id: ev.id,
+          url: ev.url || RaidHelper.eventPageUrl(ev.id),
+          title: ev.title,
+          date: ev.date,
+          time: ev.time,
+          dayKey: ev.dayKey,
+          whenIso: ev.whenIso,
+          leader: ev.leader,
+          server: ev.server,
+          channel: ev.channel,
+          primary: ev.primary,
+          absence: ev.absence,
+          tentative: ev.tentative,
+          byRole: ev.byRole,
+          list: (ev.list || []).map((s) => ({
+            name: s.name,
+            class: s.class,
+            spec: s.spec,
+            role: s.role,
+            status: s.status,
+            isAbsence: !!s.isAbsence,
+            isSoft: !!s.isSoft,
+            isPrimary: !!s.isPrimary,
+            isTentative: !!s.isTentative,
+            isLate: !!s.isLate,
+            isBench: !!s.isBench,
+          })),
+          importedAt: new Date().toISOString(),
+        };
+        rhEvents = [stored].concat(rhEvents.filter((e) => e.id !== stored.id));
+        await savePlayerInfo();
+        await saveRhEvents();
+        if ($('rhEventUrl')) $('rhEventUrl').value = stored.url;
+        try {
+          Accounts.updateSettings({ raidHelperEventUrl: stored.url });
+        } catch (_) {}
+        set('Smart prep · ' + n + ' signed · picking 25…');
+      } else {
+        set('Smart prep · no RH event — using existing roster…');
+      }
+
+      // 2) Auto 25 if empty or stale vs signed
+      const signed = Object.keys(collectRosterPlayers()).length;
+      if (!raidSquad.length || raidSquad.length > signed || raidSquad.length < Math.min(RAID_SIZE, signed)) {
+        autoPickRaid25();
+      }
+
+      // 3) Gear
+      set('Smart prep · gear sync…');
+      try {
+        await runAutoGearSync({ silent: true });
+      } catch (_) {}
+
+      // 4) Comp optimize
+      set('Smart prep · optimizing groups…');
+      const players = getCompPlayers();
+      if (window.RaidComp && players.length) {
+        let result = RaidComp.analyze(players);
+        if (RaidComp.seatsFromGroups) {
+          compSeats = RaidComp.seatsFromGroups(result.groups);
+          saveCompSeats();
+        }
+        lastComp = result;
+      }
+
+      // 5) Bosses
+      set('Smart prep · placing bosses…');
+      if (window.RaidBosses && players.length) {
+        lastBossRosterFp = '';
+        lastBossAll = RaidBosses.assignAll(players);
+        bossLiveMsg = 'Smart prep · auto-placed ' + players.length;
+      }
+
+      onRosterChanged('smart prep');
+      const st2 = getRaidStatus();
+      set(
+        'Ready · ' +
+          st2.squadN +
+          '/' +
+          RAID_SIZE +
+          ' in raid · ' +
+          (st2.title || 'raid') +
+          ' · open Comp / Bosses'
+      );
+      if (currentTab === 'overview') renderOverview();
+      return st2;
+    } catch (e) {
+      set(e.message || String(e), true);
+      return null;
+    }
+  }
+
   /* ---- Renders ---- */
   function renderOverview() {
     applyAccessGate();
-    const groups = raidGroups();
-    const players = new Set(entries.map(e => e.player));
-    $('ovRaids').textContent = groups.length;
-    $('ovItems').textContent = entries.length;
-    $('ovRaiders').textContent = players.size;
-    if ($('ovSquad')) $('ovSquad').textContent = (raidSquad && raidSquad.length) || 0;
+    const st = getRaidStatus();
+    if ($('ovRaids')) $('ovRaids').textContent = st.lootNights;
+    if ($('ovItems')) $('ovItems').textContent = entries.length;
+    if ($('ovSquad')) $('ovSquad').textContent = st.squadN + '/' + RAID_SIZE;
+    if ($('ovSigned')) $('ovSigned').textContent = st.signed;
+    if ($('ovTitle')) $('ovTitle').textContent = st.title;
+    if ($('ovSub')) {
+      $('ovSub').textContent = st.when + (canEdit()
+        ? ' · Smart prep fills roster, 25, comp & bosses for you.'
+        : ' · View only — admin runs Smart prep.');
+    }
+    if ($('ovKicker')) {
+      $('ovKicker').textContent = st.steps.roster && st.steps.comp ? 'Raid ready' : 'Tonight';
+    }
 
-    const recent = entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8);
+    // Workflow chips
+    const labels = {
+      raids: st.steps.raids ? st.signed + ' signed' : 'Import RH',
+      roster: st.steps.roster ? st.squadN + '/' + RAID_SIZE : 'Pick 25',
+      comp: st.steps.comp ? 'Groups set' : 'Optimize',
+      bosses: st.steps.bosses ? 'Mapped' : 'Place',
+      ledger: st.steps.ledger ? entries.length + ' items' : 'Gargul later',
+    };
+    const ids = { raids: 'wf1', roster: 'wf2', comp: 'wf3', bosses: 'wf4', ledger: 'wf5' };
+    Object.keys(ids).forEach((k) => {
+      const el = $(ids[k]);
+      if (el) el.textContent = labels[k];
+    });
+    document.querySelectorAll('#raidWorkflow .wf-step').forEach((el) => {
+      const k = el.getAttribute('data-step');
+      el.classList.toggle('done', !!(st.steps[k]));
+      el.classList.toggle('next', st.next === k);
+    });
+    if ($('wfSquadHint')) {
+      $('wfSquadHint').textContent = st.squadN
+        ? st.squadN + ' / ' + RAID_SIZE
+        : 'Auto on Smart prep';
+    }
+
+    // Snapshot cards
+    if ($('ovSnap')) {
+      const chips = [
+        {
+          cls: st.steps.raids ? 'ok' : 'warn',
+          t: 'Signups',
+          d: st.hasRh
+            ? escapeHtml(st.title) + ' · ' + st.signed + ' primary'
+            : 'No RH import yet',
+        },
+        {
+          cls: st.squadN >= RAID_SIZE ? 'ok' : st.squadN ? 'warn' : 'bad',
+          t: 'Raid 25',
+          d: st.squadN
+            ? st.squadN + ' locked in for groups & bosses'
+            : 'Will auto-pick on Smart prep',
+        },
+        {
+          cls: st.steps.comp ? 'ok' : 'warn',
+          t: 'Composition',
+          d: st.steps.comp
+            ? 'Buff groups ready (WF / casters)'
+            : 'Opens with auto optimize',
+        },
+        {
+          cls: st.steps.bosses ? 'ok' : 'warn',
+          t: 'Boss maps',
+          d: st.steps.bosses
+            ? 'BT + Hyjal auto-assigned'
+            : 'Places when 25 is ready',
+        },
+      ];
+      $('ovSnap').innerHTML = chips
+        .map(
+          (c) =>
+            `<div class="ov-chip ${c.cls}"><b>${c.t}</b><span>${c.d}</span></div>`
+        )
+        .join('');
+    }
+
+    // Next button target
+    if ($('ovNextBtn')) {
+      const names = {
+        raids: 'Open Signups',
+        roster: 'Open Raid 25',
+        comp: 'Open Comp',
+        bosses: 'Open Bosses',
+        ledger: 'Open Loot',
+      };
+      $('ovNextBtn').textContent = (names[st.next] || 'Continue') + ' →';
+      $('ovNextBtn').onclick = () => switchTab(st.next);
+    }
+
+    const recent = entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
     const el = $('ovRecent');
     if (!recent.length) {
-      el.innerHTML = `<div class="empty">Nothing branded yet. Open <b>Ledger</b> and paste a Gargul export.</div>`;
+      el.innerHTML = `<div class="empty">No loot yet. After the raid open <b>5 · Loot</b> and paste Gargul.</div>`;
     } else {
       el.innerHTML = recent.map(e => `
         <div class="lcard">
@@ -2853,20 +3172,35 @@ a.wh-name > span[style*="background"],
     saveCompSeats();
     await savePlayerInfo();
     await saveRhEvents();
-    // Fresh RH import: suggest auto-pick 25 if empty
-    if (!raidSquad.length && n) {
-      autoPickRaid25();
-    }
+    // Always re-pick 25 smartly after RH import (admin)
+    if (n) autoPickRaid25();
+    await runAutoGearSync({ silent: true });
+    // Auto comp + bosses
+    try {
+      const players = getCompPlayers();
+      if (window.RaidComp && players.length) {
+        const r = RaidComp.analyze(players);
+        if (RaidComp.seatsFromGroups) {
+          compSeats = RaidComp.seatsFromGroups(r.groups);
+          saveCompSeats();
+        }
+        lastComp = r;
+      }
+      if (window.RaidBosses && players.length) {
+        lastBossAll = RaidBosses.assignAll(players);
+        lastBossRosterFp = rosterFingerprint();
+      }
+    } catch (_) {}
     setRhMsg(
-      `RH imported ${n} signed. Raid 25: ${raidSquad.length}/${RAID_SIZE}. Adjust ticks on Roster, then Comp → Bosses.`
+      `Auto · ${n} signed · ${raidSquad.length}/${RAID_SIZE} in raid · comp & bosses ready`
     );
     if ($('rosterApiStatus')) {
-      setRosterStatus(`${n} signed · ${raidSquad.length}/${RAID_SIZE} in raid`, 'ok');
+      setRosterStatus(`${n} signed · ${raidSquad.length}/${RAID_SIZE} ready`, 'ok');
     }
-    await runAutoGearSync({ silent: true });
     onRosterChanged('Raid-Helper import');
     renderRoster();
     renderRaids();
+    // Stay useful: jump to Raid 25 so lead can tweak, then Comp/Bosses already filled
     switchTab('roster');
   }
 
@@ -3232,8 +3566,9 @@ a.wh-name > span[style*="background"],
       await Accounts.login('admin', pass, !!($('authRemember') && $('authRemember').checked));
       closeAuthModal();
       applyAccessGate();
+      $('footerMsg').textContent = 'Admin unlocked — running Smart prep…';
+      await runSmartPrep({ silent: false });
       renderCurrentTab();
-      $('footerMsg').textContent = 'Admin unlocked — you can edit loot & settings.';
     } catch (err) {
       $('authErr').textContent = err.message || String(err);
     }
@@ -3945,9 +4280,21 @@ a.wh-name > span[style*="background"],
     }
   }
 
+  if ($('ovSmartBtn')) {
+    $('ovSmartBtn').addEventListener('click', async () => {
+      if (!requireAdmin()) return;
+      $('ovSmartBtn').disabled = true;
+      try {
+        await runSmartPrep({ silent: false });
+      } finally {
+        $('ovSmartBtn').disabled = false;
+      }
+    });
+  }
+
   /* ---- Init ---- */
   (async function init() {
-    $('footerMsg').textContent = 'loading ledger…';
+    $('footerMsg').textContent = 'loading…';
     await Accounts.migrateLegacyAuth();
 
     const gs = guildSettings();
@@ -4001,18 +4348,42 @@ a.wh-name > span[style*="background"],
     applyAccessGate();
     updateGuildHeader();
 
+    // Auto-pick 25 if we already have RH signed and no squad
+    if (canEdit() && !raidSquad.length && Object.keys(playerInfo || {}).length) {
+      try { autoPickRaid25(); } catch (_) {}
+    }
+
     if (location.hash) applyHash();
     else renderCurrentTab();
 
-    if (entries.length && window.WowApi) {
-      enrichItems(entries).then(() => renderCurrentTab()).catch(() => {});
+    if (entries.length) {
+      enrichItems(entries).then(() => {
+        if (currentTab === 'overview' || currentTab === 'ledger' || currentTab === 'items')
+          renderCurrentTab();
+      }).catch(() => {});
     }
 
-    const s = session();
-    const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
-    $('footerMsg').textContent = s
-      ? `${gname} · World of Warcraft Guild Manager · Admin · ${entries.length} items`
-      : `${gname} · World of Warcraft Guild Manager · guest · Admin to edit`;
+    // Admin: quiet smart refresh (RH → 25 → comp → bosses) without spam
+    if (canEdit()) {
+      runSmartPrep({ silent: true })
+        .then(() => {
+          if (currentTab === 'overview') renderOverview();
+          const st = getRaidStatus();
+          $('footerMsg').textContent =
+            (guildSettings().guildName || 'Midnight Rodeo') +
+            ' · ready · ' +
+            st.squadN +
+            '/' +
+            RAID_SIZE +
+            ' · ' +
+            (st.title || 'raid');
+        })
+        .catch(() => {});
+    } else {
+      const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
+      $('footerMsg').textContent =
+        gname + ' · view only · Admin for Smart prep';
+    }
   })();
 
   window.addEventListener('hashchange', applyHash);
