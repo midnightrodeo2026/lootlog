@@ -3,231 +3,465 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Midnight Rodeo · Tuesday 25 man</title>
-<meta name="description" content="Midnight Rodeo TBC signup board — Discord-ready, guild only." />
+<title>Midnight Rodeo · Raid signups</title>
+<meta name="description" content="Midnight Rodeo raid signup board — live from Raid-Helper, Discord-ready." />
+<meta name="theme-color" content="#1a1b1e" />
+<meta property="og:title" content="Midnight Rodeo · Raid signups" />
+<meta property="og:description" content="Live raid roster board for Midnight Rodeo." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <script src="config.js"></script>
 <script src="js/signup-board.js"></script>
 <style>
 :root{
-  --bg:#1e1f22;
+  --bg:#0e0f12;
+  --bg2:#16171a;
   --card:#2b2d31;
-  --card2:#313338;
-  --line:#1e1f22;
-  --text:#dbdee1;
-  --muted:#949ba4;
+  --elev:#313338;
+  --soft:#383a40;
+  --text:#f2f3f5;
+  --muted:#b5bac1;
+  --dim:#949ba4;
   --blurple:#5865f2;
   --green:#23a559;
   --red:#f23f43;
   --amber:#e3a13c;
+  --amber2:#f4bd5f;
+  --border:rgba(255,255,255,.07);
+  --shadow:0 20px 56px rgba(0,0,0,.5);
+  --accent:#c23b3b;
 }
 *{box-sizing:border-box}
 html,body{
-  margin:0;padding:0;background:var(--bg);color:var(--text);
-  font-family:Inter,system-ui,sans-serif;
+  margin:0;padding:0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -15%, rgba(227,161,60,.14), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgba(88,101,242,.06), transparent 45%),
+    var(--bg);
+  color:var(--text);
+  font-family:Inter,system-ui,-apple-system,sans-serif;
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
 }
 a{color:#00a8fc;text-decoration:none}
 a:hover{text-decoration:underline}
-.page{max-width:520px;margin:0 auto;padding:20px 14px 48px}
+
+.page{max-width:680px;margin:0 auto;padding:16px 14px 64px}
+
+/* Top bar */
 .topbar{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
   margin-bottom:14px;flex-wrap:wrap;
 }
-.brand{font-weight:700;font-size:14px;color:var(--muted)}
-.brand b{color:var(--amber)}
+.brand{
+  display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:var(--muted);
+}
+.brand-mark{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(145deg,#2a1710,#1b2245);
+  border:1px solid rgba(227,161,60,.45);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 18px rgba(227,161,60,.18);
+}
+.brand-mark svg{width:20px;height:20px}
+.brand b{color:var(--amber2)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .btn{
-  border:0;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;
-  cursor:pointer;font-family:inherit;
+  border:0;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:filter .12s, transform .1s, background .12s, opacity .12s;
+  display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit;
+  line-height:1.2;
 }
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:wait}
 .btn-primary{background:var(--blurple);color:#fff}
-.btn-ghost{background:var(--card2);color:var(--text)}
-.btn-amber{background:var(--amber);color:#1a1000}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:var(--elev);color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--soft)}
+.btn-amber{background:linear-gradient(135deg,#e3a13c,#c47a2a);color:#1a1000}
+.btn-amber:hover{filter:brightness(1.06)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{filter:brightness(1.08)}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
 
-/* Discord-like embed card */
-.embed{
-  background:var(--card);
-  border-radius:8px;
-  border-left:4px solid #c23b3b;
-  padding:16px 16px 14px;
-  box-shadow:0 8px 24px rgba(0,0,0,.35);
-}
-.embed-app{
-  display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--muted);
-}
-.embed-app .dot{
-  width:22px;height:22px;border-radius:50%;
-  background:linear-gradient(135deg,#e3a13c,#6b4726);
-}
-.embed-app .name{color:#fff;font-weight:600}
-.embed-app .badge{
-  background:var(--blurple);color:#fff;font-size:9px;font-weight:700;
-  padding:1px 5px;border-radius:3px;letter-spacing:.04em;
-}
-
-/* Letter tiles title */
-.tiles{
-  display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:4px 0 14px;
-}
-.tile{
-  min-width:28px;height:34px;padding:0 6px;
-  background:#1e1f22;border:1px solid #3f4147;border-radius:4px;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:16px;letter-spacing:.04em;color:#f2f3f5;
-  box-shadow:inset 0 -2px 0 #111;
-}
-.tile.gap{background:transparent;border:0;box-shadow:none;min-width:10px}
-
-.meta-row{
-  display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;
-  font-size:13px;margin-bottom:10px;color:var(--text);
-}
-.chip{
-  display:inline-flex;align-items:center;gap:5px;
-  background:#1e1f22;border-radius:4px;padding:3px 8px;font-size:12.5px;
-}
-.chip .ic{opacity:.85}
-.leader{font-weight:600}
-
-.role-counts{
-  display:flex;flex-wrap:wrap;gap:10px 16px;margin:10px 0 14px;font-size:13px;font-weight:600;
-}
-.role-counts span{display:inline-flex;align-items:center;gap:5px}
-
-/* Class columns */
-.classes{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:14px 12px;
-  margin-bottom:14px;
-}
-@media(max-width:480px){.classes{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.class-col h4{
-  margin:0 0 6px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;
-}
-.class-col h4 .count{opacity:.75;font-weight:600}
-.person{
-  display:flex;align-items:center;gap:6px;font-size:13px;margin:3px 0;
-  min-width:0;
-}
-.person .pos{
-  flex-shrink:0;min-width:18px;height:18px;border-radius:50%;
-  background:#1e1f22;color:var(--muted);font-size:10px;font-weight:700;
-  display:inline-flex;align-items:center;justify-content:center;
-}
-.person .nm{
-  font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.person .spec{color:var(--muted);font-size:11px;margin-left:2px}
-
-.footer-lines{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:6px}
-.footer-lines strong{color:var(--text);font-weight:600}
-.links{margin-top:12px;font-size:13px}
-.links a{margin-right:10px}
-.gif-box{
-  margin-top:12px;border-radius:8px;overflow:hidden;max-width:280px;
-  background:#111;border:1px solid #3f4147;
-}
-.gif-box img{display:block;width:100%;height:auto;max-height:160px;object-fit:cover}
-
+/* Status */
 .status{
-  font-size:12px;color:var(--muted);margin:10px 0;text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:12.5px;color:var(--dim);margin:0 0 12px;min-height:22px;
+}
+.status .pulse{
+  width:8px;height:8px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 0 0 rgba(35,165,89,.5);
+  animation:pulse 1.6s ease infinite;flex-shrink:0;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 0 0 rgba(35,165,89,.45)}
+  70%{box-shadow:0 0 0 8px rgba(35,165,89,0)}
+  100%{box-shadow:0 0 0 0 rgba(35,165,89,0)}
 }
 .status.ok{color:var(--green)}
 .status.err{color:var(--red)}
+.status.err .pulse{background:var(--red);animation:none}
+.status.warn{color:var(--amber2)}
 
-/* Local signup */
-.signup-box{
-  margin-top:16px;background:var(--card2);border-radius:8px;padding:12px;
+/* Embed card */
+.embed{
+  position:relative;
+  background:linear-gradient(180deg,#2f3136 0%, var(--card) 38%);
+  border-radius:14px;
+  border:1px solid var(--border);
+  border-left:4px solid var(--accent);
+  padding:18px 18px 16px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  transition:opacity .2s;
 }
-.signup-box h3{margin:0 0 8px;font-size:13px;color:var(--amber)}
+.embed.updating{opacity:.72}
+.embed::before{
+  content:'';position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(227,161,60,.3),transparent);
+}
+
+.embed-app{
+  display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:12px;color:var(--dim);
+}
+.embed-app .avatar{
+  width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(135deg,#e3a13c,#6b4726);
+  border:1px solid rgba(243,236,217,.15);
+  flex-shrink:0;
+}
+.embed-app .name{color:#fff;font-weight:700;font-size:13px}
+.embed-app .badge{
+  background:var(--blurple);color:#fff;font-size:9px;font-weight:800;
+  padding:2px 5px;border-radius:3px;letter-spacing:.05em;line-height:1.2;
+}
+.embed-app .when{margin-left:auto;font-size:11px;color:var(--dim);white-space:nowrap}
+
+/* Letter tiles */
+.tiles{
+  display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:2px 0 16px;
+}
+.tile{
+  min-width:30px;height:36px;padding:0 7px;
+  background:linear-gradient(180deg,#3a3c42,#1e1f22);
+  border:1px solid #4e5058;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;letter-spacing:.06em;color:#f2f3f5;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 2px 0 #0d0e10;
+}
+.tile.gap{background:transparent;border:0;box-shadow:none;min-width:8px;height:36px}
+
+.leader-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;font-weight:600;
+}
+.leader-row .flag{font-size:15px}
+
+.meta-row{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;
+}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(0,0,0,.28);border:1px solid var(--border);
+  border-radius:8px;padding:5px 10px;font-size:12.5px;font-weight:500;color:var(--text);
+}
+.chip .ic{opacity:.9;font-size:13px}
+.chip strong{font-weight:700;color:var(--amber2)}
+.chip.cd-live{border-color:rgba(35,165,89,.45);color:var(--green)}
+.chip.cd-near,.chip.cd-imminent{border-color:rgba(227,161,60,.4);color:var(--amber2)}
+.chip.cd-past{opacity:.7}
+
+/* Progress toward 25 */
+.progress-wrap{margin:0 0 14px}
+.progress-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:12px;color:var(--dim);margin-bottom:6px;
+}
+.progress-head strong{color:var(--text);font-size:13px}
+.progress-bar{
+  height:8px;border-radius:99px;background:rgba(0,0,0,.35);
+  border:1px solid var(--border);overflow:hidden;
+}
+.progress-fill{
+  height:100%;border-radius:99px;
+  background:linear-gradient(90deg,#c47a2a,var(--amber2));
+  transition:width .4s ease;
+  box-shadow:0 0 12px rgba(227,161,60,.35);
+}
+.progress-fill.full{
+  background:linear-gradient(90deg,#1a7a40,var(--green));
+  box-shadow:0 0 12px rgba(35,165,89,.35);
+}
+
+/* Role counts */
+.role-counts{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px;
+}
+@media(max-width:420px){.role-counts{grid-template-columns:repeat(2,1fr)}}
+.role-pill{
+  background:rgba(0,0,0,.22);border:1px solid var(--border);border-radius:10px;
+  padding:10px 6px 8px;text-align:center;font-size:12px;font-weight:700;
+}
+.role-pill .n{
+  display:block;font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:2px;
+  font-variant-numeric:tabular-nums;
+}
+.role-pill.melee .n{color:#e35d5d}
+.role-pill.ranged .n{color:#69CCF0}
+.role-pill.heal .n{color:#6fc27a}
+.role-pill.tank .n{color:#C79C6E}
+.role-pill .l{
+  color:var(--dim);font-weight:600;font-size:11px;
+  text-transform:uppercase;letter-spacing:.04em;
+  display:inline-flex;align-items:center;gap:4px;justify-content:center;
+}
+
+/* Classes */
+.classes{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+@media(max-width:560px){.classes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:360px){.classes{grid-template-columns:1fr}}
+.class-col{
+  min-width:0;
+  padding:10px 10px 8px;
+  background:rgba(0,0,0,.2);
+  border:1px solid var(--border);
+  border-radius:10px;
+}
+.class-col h4{
+  margin:0 0 8px;font-size:12.5px;font-weight:800;
+  display:flex;align-items:center;gap:6px;letter-spacing:.01em;
+}
+.class-col h4 .dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  box-shadow:0 0 0 2px rgba(0,0,0,.25);
+}
+.class-col h4 .count{
+  margin-left:auto;opacity:.75;font-weight:700;font-size:11px;
+  background:rgba(0,0,0,.3);padding:2px 7px;border-radius:99px;
+  font-variant-numeric:tabular-nums;
+}
+.person{
+  display:flex;align-items:flex-start;gap:7px;font-size:12.5px;margin:3px 0;
+  min-width:0;padding:3px 4px;border-radius:6px;
+  transition:background .1s;
+}
+.person:hover{background:rgba(255,255,255,.04)}
+.person .pos{
+  flex-shrink:0;min-width:20px;height:20px;border-radius:50%;
+  background:#1a1b1e;border:1px solid var(--border);
+  color:var(--dim);font-size:10px;font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center;
+  margin-top:1px;font-variant-numeric:tabular-nums;
+}
+.person .info{min-width:0;flex:1}
+.person .nm{
+  font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-.01em;display:block;
+  text-shadow:0 0 8px rgba(0,0,0,.55);
+}
+.person .sp{
+  display:block;font-size:10.5px;color:var(--dim);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;
+}
+.person .loc{
+  flex-shrink:0;font-size:9px;font-weight:800;letter-spacing:.04em;
+  color:var(--amber2);background:rgba(227,161,60,.12);
+  border:1px solid rgba(227,161,60,.3);border-radius:4px;
+  padding:1px 4px;margin-top:2px;
+}
+.person .rm{
+  flex-shrink:0;border:0;background:transparent;color:var(--dim);
+  cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;border-radius:4px;
+  opacity:0;transition:opacity .12s,color .12s;
+}
+.person:hover .rm{opacity:1}
+.person .rm:hover{color:var(--red);background:rgba(242,63,67,.12)}
+
+.empty-classes{
+  grid-column:1/-1;text-align:center;padding:20px 12px;
+  color:var(--dim);font-size:13px;
+}
+
+/* Footer */
+.footer-block{
+  margin-top:2px;padding-top:12px;border-top:1px solid var(--border);
+  font-size:12.5px;color:var(--muted);line-height:1.55;
+}
+.footer-block .line{margin:6px 0}
+.footer-block strong{color:var(--text);font-weight:650}
+.server-line{margin-top:8px;color:var(--dim);font-size:12px}
+
+.links{
+  display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;
+}
+.links a{
+  font-size:12.5px;font-weight:600;color:var(--text);
+  background:rgba(0,0,0,.25);border:1px solid var(--border);
+  padding:6px 12px;border-radius:99px;text-decoration:none;
+}
+.links a:hover{border-color:rgba(227,161,60,.35);color:var(--amber2)}
+.links a.cta{
+  background:rgba(88,101,242,.2);border-color:rgba(88,101,242,.45);color:#c5cbff;
+}
+.links a.cta:hover{border-color:var(--blurple);color:#fff}
+
+.gif-box{
+  margin-top:14px;border-radius:10px;overflow:hidden;max-width:100%;
+  background:#0d0e10;border:1px solid var(--border);
+}
+.gif-box img{display:block;width:100%;height:auto;max-height:180px;object-fit:cover}
+
+/* Local signup (collapsed by default) */
+.signup-box{
+  margin-top:14px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+.signup-box summary{
+  list-style:none;cursor:pointer;padding:12px 16px;
+  font-size:13px;font-weight:700;color:var(--amber2);
+  display:flex;align-items:center;gap:8px;user-select:none;
+}
+.signup-box summary::-webkit-details-marker{display:none}
+.signup-box summary::after{
+  content:'▸';margin-left:auto;color:var(--dim);font-size:12px;transition:transform .15s;
+}
+.signup-box[open] summary::after{transform:rotate(90deg)}
+.signup-box .body{padding:0 16px 14px}
 .signup-box .row{display:flex;flex-wrap:wrap;gap:8px}
 .signup-box input,.signup-box select{
-  background:#1e1f22;border:1px solid #3f4147;color:var(--text);
-  border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;
+  background:var(--bg2);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:9px 11px;font-size:13px;font-family:inherit;
 }
-.signup-box input{flex:1;min-width:120px}
+.signup-box input{flex:1;min-width:130px}
+.signup-box input:focus,.signup-box select:focus{
+  outline:none;border-color:rgba(227,161,60,.45);
+  box-shadow:0 0 0 3px rgba(227,161,60,.12);
+}
+.hint{font-size:11.5px;color:var(--dim);margin:10px 0 0;line-height:1.5}
 
-.hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45}
+/* Skeleton */
+.skeleton{
+  height:480px;border-radius:14px;
+  background:linear-gradient(90deg,var(--card) 25%,var(--elev) 50%,var(--card) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.2s ease infinite;
+  border-left:4px solid var(--accent);
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+@media(max-width:400px){
+  .page{padding:12px 10px 48px}
+  .embed{padding:14px 12px}
+  .tile{min-width:26px;height:32px;font-size:13px}
+}
 </style>
 </head>
 <body>
 <div class="page">
   <div class="topbar">
-    <div class="brand">Midnight <b>Rodeo</b> · TBC board</div>
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none"><path d="M18 40 L32 14 L46 40 Z" stroke="#f4bd5f" stroke-width="3" fill="rgba(227,161,60,.2)" stroke-linejoin="round"/><circle cx="32" cy="44" r="3.5" fill="#e3a13c"/></svg>
+      </div>
+      <span>Midnight <b>Rodeo</b></span>
+    </div>
     <div class="actions">
-      <button class="btn btn-ghost" type="button" id="btnRefresh">↻ Refresh</button>
-      <button class="btn btn-primary" type="button" id="btnCopy">📋 Copy for Discord</button>
-      <a class="btn btn-amber" href="index.html" style="display:inline-block;text-decoration:none">Open ledger</a>
+      <button class="btn btn-ghost" type="button" id="btnRefresh" title="Refresh now">↻ Refresh</button>
+      <button class="btn btn-primary" type="button" id="btnCopy">Copy Discord</button>
+      <a class="btn btn-amber" href="index.html">Ledger</a>
     </div>
   </div>
 
-  <div class="status" id="status">Loading event…</div>
+  <div class="status" id="status"><span class="pulse"></span> Loading event…</div>
 
-  <div class="embed" id="embed">
+  <div id="skeleton" class="skeleton" aria-hidden="true"></div>
+
+  <div class="embed" id="embed" hidden>
     <div class="embed-app">
-      <div class="dot"></div>
+      <div class="avatar" aria-hidden="true"></div>
       <span class="name">Midnight Rodeo</span>
       <span class="badge">APP</span>
-      <span id="embedTime"></span>
+      <span class="when" id="embedTime"></span>
     </div>
 
-    <div class="tiles" id="tiles"></div>
+    <div class="tiles" id="tiles" aria-label="Event title"></div>
 
-    <div class="meta-row">
-      <span class="leader" id="leader">—</span>
+    <div class="leader-row">
+      <span class="flag" aria-hidden="true">🚩</span>
+      <span id="leader">—</span>
     </div>
-    <div class="meta-row">
+    <div class="meta-row" id="metaRow">
       <span class="chip"><span class="ic">📅</span> <span id="dateEl">—</span></span>
       <span class="chip"><span class="ic">🕐</span> <span id="timeEl">—</span></span>
-      <span class="chip"><span class="ic">👥</span> <span id="countEl">—</span></span>
+      <span class="chip" id="cdChip" hidden><span class="ic">⏱</span> <span id="cdEl">—</span></span>
+      <span class="chip"><span class="ic">👥</span> <strong id="countEl">—</strong> signed</span>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-head">
+        <strong id="progressLabel">0 / 25 signed</strong>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
     </div>
 
     <div class="role-counts" id="roleCounts"></div>
     <div class="classes" id="classes"></div>
 
-    <div class="footer-lines" id="footerLines"></div>
+    <div class="footer-block" id="footerLines"></div>
 
     <div class="links">
-      <a href="index.html#comp" id="linkComp">Comp</a>
-      <a href="index.html#bosses" id="linkBosses">Bosses</a>
-      <a href="index.html#raids" id="linkRaids">Raids</a>
-      <a href="#" id="linkRh" target="_blank" rel="noopener">RH source</a>
+      <a href="#" class="cta" id="linkRh" target="_blank" rel="noopener">Sign up on Raid-Helper</a>
+      <a href="index.html#comp">Comp</a>
+      <a href="index.html#bosses">Bosses</a>
+      <a href="index.html#raids">Raids</a>
+      <a href="index.html#roster">Roster</a>
     </div>
 
     <div class="gif-box" id="gifBox" hidden>
-      <img id="gifImg" alt="event" />
+      <img id="gifImg" alt="Event banner" />
     </div>
   </div>
 
-  <div class="signup-box">
-    <h3>Quick local signup (this browser)</h3>
-    <div class="row">
-      <input id="suName" placeholder="Character name" />
-      <select id="suRole">
-        <option>Tanks</option>
-        <option>Melee</option>
-        <option selected>Ranged</option>
-        <option>Healers</option>
-        <option>Tentative</option>
-        <option>Absence</option>
-      </select>
-      <select id="suClass">
-        <option>Warrior</option><option>Paladin</option><option>Hunter</option>
-        <option>Rogue</option><option>Priest</option><option>Shaman</option>
-        <option>Mage</option><option>Warlock</option><option>Druid</option>
-      </select>
-      <button class="btn btn-amber" type="button" id="btnSignup">Sign up</button>
+  <details class="signup-box" id="localBox">
+    <summary>Local note signup (this browser only)</summary>
+    <div class="body">
+      <div class="row">
+        <input id="suName" placeholder="Character name" autocomplete="off" maxlength="40" />
+        <select id="suRole">
+          <option>Tanks</option>
+          <option>Melee</option>
+          <option selected>Ranged</option>
+          <option>Healers</option>
+          <option>Tentative</option>
+          <option>Absence</option>
+        </select>
+        <select id="suClass">
+          <option>Warrior</option><option>Paladin</option><option>Hunter</option>
+          <option>Rogue</option><option>Priest</option><option>Shaman</option>
+          <option>Mage</option><option>Warlock</option><option>Druid</option>
+          <option>Tank</option>
+        </select>
+        <button class="btn btn-amber btn-sm" type="button" id="btnSignup">Add</button>
+      </div>
+      <p class="hint">
+        Main list is <b>live from Raid-Helper</b> (auto-refresh every minute).
+        Members should sign up in RH for class/spec. Share this page URL in Discord to view the roster.
+      </p>
     </div>
-    <p class="hint">
-      Live list mirrors your Raid-Helper event so Discord can use <b>this</b> link instead of raid-helper.xyz.
-      Local signups stay on this device (for offline / extras). Officers: refresh to pull latest RH signups.
-    </p>
-  </div>
+  </details>
 </div>
 
 <script>
@@ -238,77 +472,10 @@ a:hover{text-decoration:underline}
   const eventRef = params.get('event') || params.get('id') || defaultUrl || SignupBoard.DEFAULT_EVENT_ID;
 
   let model = null;
+  let loading = false;
+  let lastSyncAt = 0;
 
   function el(id) { return document.getElementById(id); }
-
-  function render(m) {
-    model = m;
-    const st = el('status');
-    if (m.error && !m.counts.signed) {
-      st.textContent = 'Offline / error: ' + m.error;
-      st.className = 'status err';
-    } else {
-      st.textContent = m.live
-        ? 'Live from guild event · auto-synced · ' + new Date().toLocaleTimeString()
-        : 'Cached / local board';
-      st.className = 'status ok';
-    }
-
-    // tiles
-    const tiles = el('tiles');
-    tiles.innerHTML = (m.letterTiles || []).map((ch) =>
-      ch == null ? '<div class="tile gap"></div>' : `<div class="tile">${ch}</div>`
-    ).join('');
-
-    el('leader').textContent = '🚩 ' + (m.leader || '—');
-    el('dateEl').textContent = m.datePretty || m.date || '—';
-    el('timeEl').textContent = m.time || '—';
-    el('countEl').textContent = m.counts.signed + (m.counts.tentative ? ' (+' + m.counts.tentative + ')' : '');
-    el('embedTime').textContent = new Date().toLocaleString();
-
-    const rc = el('roleCounts');
-    rc.innerHTML = `
-      <span style="color:#e35d5d">⚔ ${m.counts.melee} Melee</span>
-      <span style="color:#69CCF0">◎ ${m.counts.ranged} Ranged</span>
-      <span style="color:#6fc27a">✚ ${m.counts.healers} Healers</span>
-      <span style="color:#C79C6E">🛡 ${m.counts.tanks} Tank</span>
-    `;
-
-    const classes = el('classes');
-    classes.innerHTML = (m.classCols || []).map((col) => {
-      const people = col.people.map((p) => `
-        <div class="person" title="${p.spec || ''}">
-          <span class="pos">${p.position || '·'}</span>
-          <span class="nm" style="color:${col.color}">${escapeHtml(p.name)}</span>
-        </div>`).join('');
-      return `<div class="class-col">
-        <h4 style="color:${col.color}">${escapeHtml(col.class)} <span class="count">(${col.people.length})</span></h4>
-        ${people}
-      </div>`;
-    }).join('');
-
-    const foot = [];
-    if (m.tentative && m.tentative.length) {
-      foot.push(
-        `<div>🕐 <strong>Tentative (${m.tentative.length}):</strong> ${m.tentative.map((p) => escapeHtml(p.name)).join(', ')}</div>`
-      );
-    }
-    if (m.absence && m.absence.length) {
-      foot.push(
-        `<div>⌀ <strong>Absence (${m.absence.length}):</strong> ${m.absence.map((p) => escapeHtml(p.name)).join(', ')}</div>`
-      );
-    }
-    foot.push(`<div style="margin-top:6px">${escapeHtml(m.server || '')} · #${escapeHtml(m.channel || '')}</div>`);
-    el('footerLines').innerHTML = foot.join('');
-
-    el('linkRh').href = m.rhUrl || '#';
-    if (m.image) {
-      el('gifBox').hidden = false;
-      el('gifImg').src = m.image;
-    } else {
-      el('gifBox').hidden = true;
-    }
-  }
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -316,26 +483,198 @@ a:hover{text-decoration:underline}
     );
   }
 
-  async function refresh() {
-    el('status').textContent = 'Refreshing…';
-    el('status').className = 'status';
-    try {
-      const m = await SignupBoard.loadBoard(eventRef);
-      render(m);
-    } catch (e) {
-      el('status').textContent = e.message || String(e);
-      el('status').className = 'status err';
+  function setStatus(text, kind) {
+    const st = el('status');
+    const showPulse = kind === 'ok' || kind === '';
+    st.innerHTML = (showPulse ? '<span class="pulse"></span> ' : '') + escapeHtml(text);
+    st.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function syncedLabel() {
+    if (!lastSyncAt) return '';
+    const sec = Math.round((Date.now() - lastSyncAt) / 1000);
+    if (sec < 5) return 'just now';
+    if (sec < 60) return sec + 's ago';
+    return Math.floor(sec / 60) + 'm ago';
+  }
+
+  function render(m) {
+    model = m;
+    el('skeleton').hidden = true;
+    el('embed').hidden = false;
+    el('embed').classList.remove('updating');
+
+    if (m.error && !m.counts.signed) {
+      setStatus('Could not load: ' + m.error, 'err');
+    } else if (m.error) {
+      setStatus('Partial · ' + m.error, 'warn');
+    } else {
+      setStatus('Live · synced ' + syncedLabel(), 'ok');
+    }
+
+    document.title = (m.title || 'Raid') + ' · Midnight Rodeo';
+    if (m.accent) {
+      document.documentElement.style.setProperty('--accent', m.accent);
+    }
+
+    el('tiles').innerHTML = (m.letterTiles || []).map((ch) =>
+      ch == null ? '<div class="tile gap"></div>' : '<div class="tile">' + escapeHtml(ch) + '</div>'
+    ).join('');
+
+    el('leader').textContent = m.leader || '—';
+    el('dateEl').textContent = m.datePretty || m.date || '—';
+    el('timeEl').textContent = m.time || '—';
+    el('countEl').textContent =
+      m.counts.signed + (m.counts.tentative ? ' (+' + m.counts.tentative + ' tent)' : '');
+
+    // Countdown
+    const cd = m.countdown;
+    const cdChip = el('cdChip');
+    if (cd && cd.label) {
+      cdChip.hidden = false;
+      el('cdEl').textContent = cd.label;
+      cdChip.className = 'chip cd-' + (cd.kind || 'soon');
+    } else {
+      cdChip.hidden = true;
+    }
+
+    el('embedTime').textContent = new Date().toLocaleString(undefined, {
+      month: 'numeric', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
+
+    // Progress
+    const target = m.target || 25;
+    const signed = m.counts.signed;
+    const pct = Math.min(100, Math.round((signed / target) * 100));
+    el('progressLabel').textContent = signed + ' / ' + target + ' signed';
+    el('progressPct').textContent = pct + '%';
+    el('progressFill').style.width = pct + '%';
+    el('progressFill').classList.toggle('full', signed >= target);
+    el('progressBar').setAttribute('aria-valuenow', String(pct));
+
+    el('roleCounts').innerHTML = `
+      <div class="role-pill melee"><span class="n">${m.counts.melee}</span><span class="l">⚔ Melee</span></div>
+      <div class="role-pill ranged"><span class="n">${m.counts.ranged}</span><span class="l">◎ Ranged</span></div>
+      <div class="role-pill heal"><span class="n">${m.counts.healers}</span><span class="l">✚ Healers</span></div>
+      <div class="role-pill tank"><span class="n">${m.counts.tanks}</span><span class="l">🛡 Tanks</span></div>
+    `;
+
+    if (!m.classCols || !m.classCols.length) {
+      el('classes').innerHTML = '<div class="empty-classes">No signups yet — be the first on Raid-Helper.</div>';
+    } else {
+      el('classes').innerHTML = m.classCols.map((col) => {
+        const people = col.people.map((p) => {
+          const localBadge = p.local ? '<span class="loc">LOCAL</span>' : '';
+          const rm = p.local
+            ? '<button type="button" class="rm" data-rm="' + escapeHtml(p.name) + '" title="Remove local">×</button>'
+            : '';
+          const spec = p.spec
+            ? '<span class="sp">' + escapeHtml(p.spec) + (p.role ? ' · ' + escapeHtml(p.role) : '') + '</span>'
+            : (p.role ? '<span class="sp">' + escapeHtml(p.role) + '</span>' : '');
+          return `
+            <div class="person" title="${escapeHtml((p.spec || '') + ' ' + (p.role || ''))}">
+              <span class="pos">${p.position || '·'}</span>
+              <div class="info">
+                <span class="nm" style="color:${col.color}">${escapeHtml(p.name)}</span>
+                ${spec}
+              </div>
+              ${localBadge}${rm}
+            </div>`;
+        }).join('');
+        return `<div class="class-col">
+          <h4 style="color:${col.color}">
+            <span class="dot" style="background:${col.color}"></span>
+            ${escapeHtml(col.class)}
+            <span class="count">${col.people.length}</span>
+          </h4>
+          ${people}
+        </div>`;
+      }).join('');
+    }
+
+    // Footer: late / bench / tentative / absence
+    const foot = [];
+    if (m.late && m.late.length) {
+      foot.push(
+        `<div class="line">⏰ <strong>Late (${m.late.length}):</strong> ${
+          m.late.map((p) => escapeHtml(p.name)).join(', ')
+        }</div>`
+      );
+    }
+    if (m.bench && m.bench.length) {
+      foot.push(
+        `<div class="line">🪑 <strong>Bench (${m.bench.length}):</strong> ${
+          m.bench.map((p) => escapeHtml(p.name)).join(', ')
+        }</div>`
+      );
+    }
+    if (m.tentative && m.tentative.length) {
+      foot.push(
+        `<div class="line">🕐 <strong>Tentative (${m.tentative.length}):</strong> ${
+          m.tentative.map((p) => escapeHtml(p.name)).join(', ')
+        }</div>`
+      );
+    }
+    if (m.absence && m.absence.length) {
+      foot.push(
+        `<div class="line">⌀ <strong>Absence (${m.absence.length}):</strong> ${
+          m.absence.map((p) => escapeHtml(p.name)).join(', ')
+        }</div>`
+      );
+    }
+    foot.push(
+      `<div class="server-line">${escapeHtml(m.server || '')}${
+        m.channel ? ' · #' + escapeHtml(m.channel) : ''
+      }</div>`
+    );
+    el('footerLines').innerHTML = foot.join('');
+
+    el('linkRh').href = m.rhUrl || '#';
+    if (m.image) {
+      el('gifBox').hidden = false;
+      if (el('gifImg').src !== m.image) el('gifImg').src = m.image;
+    } else {
+      el('gifBox').hidden = true;
     }
   }
 
-  el('btnRefresh').onclick = refresh;
+  async function refresh(opts) {
+    const silent = opts && opts.silent;
+    if (loading) return;
+    loading = true;
+    el('btnRefresh').disabled = true;
+    if (!silent) {
+      if (model) el('embed').classList.add('updating');
+      else setStatus('Loading event…', '');
+    }
+    try {
+      const m = await SignupBoard.loadBoard(eventRef);
+      lastSyncAt = Date.now();
+      // Recompute countdown fresh on each tick
+      m.countdown = SignupBoard.formatCountdown(m.unixtime);
+      render(m);
+    } catch (e) {
+      el('skeleton').hidden = true;
+      if (!model) el('embed').hidden = false;
+      el('embed').classList.remove('updating');
+      setStatus(e.message || String(e), 'err');
+    } finally {
+      loading = false;
+      el('btnRefresh').disabled = false;
+    }
+  }
+
+  el('btnRefresh').onclick = () => refresh();
   el('btnCopy').onclick = async () => {
     if (!model) return;
     const text = SignupBoard.toDiscordText(model);
     try {
       await navigator.clipboard.writeText(text);
-      el('status').textContent = 'Copied Discord text — paste in your channel.';
-      el('status').className = 'status ok';
+      setStatus('Copied — paste into Discord', 'ok');
+      setTimeout(() => {
+        if (model && model.live) setStatus('Live · synced ' + syncedLabel(), 'ok');
+      }, 2200);
     } catch {
       prompt('Copy:', text);
     }
@@ -343,7 +682,7 @@ a:hover{text-decoration:underline}
 
   el('btnSignup').onclick = async () => {
     const name = el('suName').value.trim();
-    if (!name) { alert('Enter a name'); return; }
+    if (!name) { el('suName').focus(); return; }
     const id = model ? model.eventId : SignupBoard.extractId(eventRef);
     SignupBoard.addLocalSignup(id, {
       name,
@@ -355,9 +694,37 @@ a:hover{text-decoration:underline}
     await refresh();
   };
 
-  // Auto-refresh every 60s so Discord link stays current
+  el('suName').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') el('btnSignup').click();
+  });
+
+  el('classes').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-rm]');
+    if (!btn || !model) return;
+    SignupBoard.removeLocalSignup(model.eventId, btn.getAttribute('data-rm'));
+    await refresh();
+  });
+
+  // Keep "synced Xs ago" fresh
+  setInterval(() => {
+    if (model && model.live && !loading) {
+      setStatus('Live · synced ' + syncedLabel(), 'ok');
+      // soft countdown update without network
+      if (model.unixtime) {
+        const cd = SignupBoard.formatCountdown(model.unixtime);
+        model.countdown = cd;
+        const cdChip = el('cdChip');
+        if (cd && cd.label) {
+          cdChip.hidden = false;
+          el('cdEl').textContent = cd.label;
+          cdChip.className = 'chip cd-' + (cd.kind || 'soon');
+        }
+      }
+    }
+  }, 15000);
+
   refresh();
-  setInterval(refresh, 60000);
+  setInterval(() => refresh({ silent: true }), 60000);
 })();
 </script>
 </body>
