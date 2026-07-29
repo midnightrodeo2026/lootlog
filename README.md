@@ -2,8 +2,9 @@
 
 Modern guild loot council tool for **TBC Classic** aesthetics: Gargul imports, raid view logs, item distribution, and Blizzard Classic gear sync.
 
-**Live work copy:** https://github.com/vorlof69/lootlog  
-**Target org repo:** https://github.com/midnightrodeo2026/lootlog
+**Repo:** https://github.com/vorlof69/lootlog  
+**Live site (GitHub Pages):** https://vorlof69.github.io/lootlog/  
+**Target guild repo (optional):** https://github.com/midnightrodeo2026/lootlog
 
 ## Features
 
@@ -83,19 +84,59 @@ Roster → enter realm → **Test API** → **Gear sync** / **Gear sync all**.
 
 > Armory uses **current Classic** namespaces (`profile-classic-*`). Loot icons still use **Wowhead TBC**.
 
+## GitHub Pages (free hosting)
+
+This app is static HTML/JS — ideal for free GitHub Pages. No build step.
+
+### Already enabled for `vorlof69/lootlog`
+
+- **URL:** https://vorlof69.github.io/lootlog/  
+- **Source:** `main` branch, `/ (root)`  
+- Push to `main` and the site redeploys in ~1 minute  
+
+### Enable on another repo (e.g. midnightrodeo2026)
+
+1. Push code to that GitHub repo  
+2. **Settings → Pages**  
+3. Source: **Deploy from a branch**  
+4. Branch: `main`, folder: `/ (root)` → Save  
+5. Site: `https://<username>.github.io/lootlog/`
+
+### What works on Pages
+
+| Feature | Works? |
+|---------|--------|
+| Full UI, Gargul import, raid view logs | Yes |
+| Accounts / Settings (passwords) | Yes — **per browser** |
+| Wowhead TBC icons & names | Yes |
+| Blizzard gear sync | Yes, if Worker URL is in `config.js` |
+
+### Important for guild use
+
+- GitHub Pages only **hosts the files**. It does **not** give you a shared database.  
+- Loot + accounts live in each officer’s **localStorage**.  
+- Use **Overview → Export backup JSON** and **Import** to share data, or add Supabase later for live multi-user sync.  
+- When you deploy the Blizzard proxy, set CORS to allow:
+
+```toml
+CORS_ORIGINS = "https://vorlof69.github.io,https://midnightrodeo2026.github.io"
+```
+
 ## Data & sharing
 
 - Default storage: **localStorage** (per browser).  
 - **Export backup JSON** / **Import backup** on Overview for guild handoff.  
-- For true multi-officer live sync, add Supabase/Firebase next (recommended).
+- For true multi-officer live sync, add Supabase free tier next.
 
 ## Project layout
 
 ```
-index.html              # App
+index.html              # App (GitHub Pages entry)
+.nojekyll               # Skip Jekyll processing on Pages
 config.js               # Proxy URL + realm
+js/accounts.js          # Multi-account auth
 js/wow-api.js           # Blizzard + Wowhead helpers
-api/blizzard-proxy/     # Cloudflare Worker
+api/blizzard-proxy/     # Cloudflare Worker (optional)
 ```
 
 ## Recommended next upgrades
