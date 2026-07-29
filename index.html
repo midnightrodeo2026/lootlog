@@ -579,8 +579,8 @@ a.wh-name > span[style*="background"],
 
     <div class="authbar" id="authBar">
       <span class="session-chip hidden" id="sessionChip"></span>
-      <button class="lock-btn" id="lockBtn" type="button">🔐 Account Login</button>
-      <button class="lock-btn on hidden" id="logoutBtn" type="button">Log out</button>
+      <button class="lock-btn" id="lockBtn" type="button">🔐 Admin</button>
+      <button class="lock-btn on hidden" id="logoutBtn" type="button">Lock</button>
     </div>
 
     <!-- Login required gate -->
@@ -630,41 +630,39 @@ a.wh-name > span[style*="background"],
 
     <!-- LEDGER -->
     <section id="panel-ledger" class="panel" hidden>
-      <div class="notice" id="viewOnlyNotice" hidden>👁 <b>View only.</b> Lootmaster login unlocks Gargul paste, edits, and deletes.</div>
+      <div class="notice" id="viewOnlyNotice" hidden>👁 <b>View only.</b> Admin login to edit.</div>
       <div id="editControls">
         <div class="pen">
           <div class="pen-head">
             <div class="pen-title">Paste Gargul export</div>
-            <div class="pen-hint">TBC Gargul: <code>date,player,itemId</code> · header CSV · Detailed JSON</div>
+            <div class="pen-hint"><code>date,player,itemId</code> or Detailed JSON</div>
           </div>
-          <textarea class="input" id="mrPaste" placeholder="2026-03-20,Aerindel,28729&#10;2026-03-20,Thorvak,28714&#10;2026-03-20,Lunara,28734&#10;&#10;…or /gl export Detailed JSON (TBC item IDs)"></textarea>
-          <button class="btn btn-ghost" id="mrSampleBtn" type="button" style="margin-top:8px">Load TBC sample</button>
+          <textarea class="input" id="mrPaste" placeholder="2026-03-20,Player,28729"></textarea>
           <div class="row">
-            <button class="btn btn-amber" id="mrBrandBtn" type="button">🔥 Brand it</button>
+            <button class="btn btn-amber" id="mrBrandBtn" type="button">Brand it</button>
             <button class="btn btn-ghost" id="mrClearPaste" type="button">Clear</button>
-            <button class="btn btn-ghost" id="mrEnrichBtn" type="button">✦ Resolve item names</button>
+            <button class="btn btn-ghost" id="mrEnrichBtn" type="button">Resolve items</button>
             <span class="msg" id="mrMsg"></span>
           </div>
           <details class="manual">
-            <summary>+ add one entry by hand</summary>
+            <summary>+ add one by hand</summary>
             <div class="manual-grid">
               <input class="input" id="manPlayer" placeholder="Player" />
               <input class="input" id="manItem" placeholder="Item name" />
               <input class="input" id="manItemId" placeholder="Item ID" />
               <select class="input" id="manRoll">
                 <option value="">Reason</option>
-                <option>BiS</option><option>Upgrade</option><option>Side grade</option>
-                <option>Off-spec</option><option>Attendance</option><option>Council call</option>
-                <option>DE</option>
+                <option>BiS</option><option>Upgrade</option><option>Off-spec</option>
+                <option>Council call</option><option>DE</option>
               </select>
               <button class="btn btn-amber" id="manAddBtn" type="button">Add</button>
             </div>
             <div class="manual-grid2">
               <select class="input" id="manQuality">
                 <option value="">Quality</option>
-                <option>Uncommon</option><option>Rare</option><option>Epic</option><option>Legendary</option>
+                <option>Rare</option><option>Epic</option><option>Legendary</option>
               </select>
-              <input class="input" id="manDisenchant" placeholder="Disenchants into (optional)" />
+              <input class="input" id="manDisenchant" placeholder="Disenchants into" />
             </div>
           </details>
         </div>
@@ -684,19 +682,19 @@ a.wh-name > span[style*="background"],
 
     <!-- ROSTER -->
     <section id="panel-roster" class="panel" hidden>
-      <div class="section-title">// Guild & raid roster (TBC)</div>
+      <div class="section-title">// Roster</div>
       <div class="controls">
         <input class="input" id="rosterRealm" placeholder="Realm" />
-        <select class="input" id="rosterGame" style="max-width:170px" title="TBC Classic only">
-          <option value="classic">TBC Classic only</option>
+        <select class="input" id="rosterGame" hidden>
+          <option value="classic" selected>classic</option>
         </select>
-        <button class="btn btn-orange" id="rosterLookupAll" type="button">Gear sync all</button>
-        <button class="btn btn-ghost" id="rosterTestApi" type="button">Test API</button>
-        <button class="btn btn-ghost" id="rosterFromRh" type="button">↻ From last RH import</button>
+        <button class="btn btn-amber" id="rosterFromRh" type="button">↻ From Raid-Helper</button>
+        <button class="btn btn-ghost" id="rosterLookupAll" type="button">Gear sync</button>
+        <button class="btn btn-ghost" id="rosterTestApi" type="button" hidden>Test API</button>
         <span class="status" id="rosterApiStatus"></span>
       </div>
       <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
-        <div class="stat"><div class="stat-n" id="rosterCount">0</div><div class="stat-l">On roster</div></div>
+        <div class="stat"><div class="stat-n" id="rosterCount">0</div><div class="stat-l">Roster</div></div>
         <div class="stat"><div class="stat-n" id="rosterTanks">0</div><div class="stat-l">Tanks</div></div>
         <div class="stat"><div class="stat-n" id="rosterHeal">0</div><div class="stat-l">Healers</div></div>
         <div class="stat"><div class="stat-n" id="rosterDps">0</div><div class="stat-l">DPS</div></div>
@@ -705,31 +703,29 @@ a.wh-name > span[style*="background"],
         <table class="tbl">
           <thead>
             <tr>
-              <th>Rank</th><th>Player</th><th>RH role</th><th>Class / Spec</th><th>iLvl</th>
-              <th>Items</th><th>Last active</th><th>Gear sync</th><th></th>
+              <th>Rank</th><th>Player</th><th>Role</th><th>Class / Spec</th><th>iLvl</th>
+              <th>Items</th><th>Last</th><th></th>
             </tr>
           </thead>
           <tbody id="rosterBody"></tbody>
         </table>
       </div>
-      <div class="empty" id="rosterEmpty" hidden>No raiders yet — import a Raid-Helper event or brand loot.</div>
-      <p class="share-hint" style="margin-top:14px">Pull Discord signups from <b>Raids → Raid-Helper</b>. Optional Blizzard gear sync needs <code>config.js</code> + proxy.</p>
+      <div class="empty" id="rosterEmpty" hidden>No raiders yet — import from Raids.</div>
     </section>
 
     <!-- ITEMS -->
     <section id="panel-items" class="panel" hidden>
-      <div class="section-title">// Item distribution</div>
+      <div class="section-title">// Items</div>
       <div class="stats">
-        <div class="stat"><div class="stat-n" id="itUnique">0</div><div class="stat-l">Unique items</div></div>
-        <div class="stat"><div class="stat-n" id="itTotal">0</div><div class="stat-l">Total drops</div></div>
-        <div class="stat"><div class="stat-n" id="itMost">0</div><div class="stat-l">Most dropped</div></div>
+        <div class="stat"><div class="stat-n" id="itUnique">0</div><div class="stat-l">Unique</div></div>
+        <div class="stat"><div class="stat-n" id="itTotal">0</div><div class="stat-l">Drops</div></div>
+        <div class="stat"><div class="stat-n" id="itMost">0</div><div class="stat-l">Most</div></div>
       </div>
       <div class="toolbar">
-        <input class="input" id="itemsFilter" placeholder="Filter items…" />
-        <select class="input" id="itemsSort" style="max-width:160px">
+        <input class="input" id="itemsFilter" placeholder="Filter…" />
+        <select class="input" id="itemsSort" style="max-width:140px">
           <option value="drops">Most drops</option>
-          <option value="name">Name A–Z</option>
-          <option value="ilvl">iLvl high</option>
+          <option value="name">Name</option>
         </select>
       </div>
       <div class="table-wrap">
@@ -743,49 +739,40 @@ a.wh-name > span[style*="background"],
 
     <!-- RAIDS -->
     <section id="panel-raids" class="panel" hidden>
-      <div class="section-title">// Raids · Raid-Helper + loot</div>
-
-      <div class="pen" style="margin-bottom:18px">
+      <div class="section-title">// Raids</div>
+      <div class="pen" style="margin-bottom:16px">
         <div class="pen-head">
-          <div class="pen-title">Import Raid-Helper event</div>
-          <div class="pen-hint">Discord signups → raid roster (TBC guild manager)</div>
+          <div class="pen-title">Raid-Helper</div>
+          <div class="pen-hint">Import Discord signups</div>
         </div>
         <div class="row" style="margin-top:0">
-          <input class="input" id="rhEventUrl" placeholder="https://raid-helper.xyz/event/…" style="flex:1;min-width:220px;max-width:none" />
-          <button class="btn btn-amber" id="rhImportBtn" type="button">Import signups</button>
-          <button class="btn btn-ghost" id="rhOpenBtn" type="button">Open RH</button>
-          <a class="btn btn-orange" href="event.html" style="text-decoration:none">Our Discord board</a>
+          <input class="input" id="rhEventUrl" placeholder="https://raid-helper.xyz/event/…" style="flex:1;min-width:200px;max-width:none" />
+          <button class="btn btn-amber" id="rhImportBtn" type="button">Import</button>
+          <a class="btn btn-ghost" href="event.html" style="text-decoration:none">Board</a>
+          <button class="btn btn-ghost" id="rhOpenBtn" type="button">RH ↗</button>
         </div>
         <span class="msg" id="rhMsg" style="display:block;margin-top:8px"></span>
-        <div id="rhPreview" class="hidden" style="margin-top:14px"></div>
+        <div id="rhPreview" class="hidden" style="margin-top:12px"></div>
       </div>
-
       <div class="stats">
-        <div class="stat"><div class="stat-n" id="raRaids">0</div><div class="stat-l">Raids logged</div></div>
-        <div class="stat"><div class="stat-n" id="raItems">0</div><div class="stat-l">Total items</div></div>
-        <div class="stat"><div class="stat-n" id="raLargest">0</div><div class="stat-l">Largest roster</div></div>
+        <div class="stat"><div class="stat-n" id="raRaids">0</div><div class="stat-l">Events</div></div>
+        <div class="stat"><div class="stat-n" id="raItems">0</div><div class="stat-l">Loot</div></div>
+        <div class="stat"><div class="stat-n" id="raLargest">0</div><div class="stat-l">Largest</div></div>
       </div>
-
-      <div class="section-title">// Raid-Helper events</div>
-      <div id="rhEventsList" class="raid-list" style="margin-bottom:22px"></div>
-      <div class="empty" id="rhEventsEmpty" hidden>No Raid-Helper imports yet. Paste an event link above.</div>
-
-      <div class="section-title">// Loot by raid night</div>
+      <div class="section-title">// Imported events</div>
+      <div id="rhEventsList" class="raid-list" style="margin-bottom:18px"></div>
+      <div class="empty" id="rhEventsEmpty" hidden>No imports yet.</div>
+      <div class="section-title">// Loot nights</div>
       <div id="raidsList" class="raid-list"></div>
-      <div class="empty" id="raidsEmpty" hidden>No loot nights yet — brand Gargul on Ledger.</div>
+      <div class="empty" id="raidsEmpty" hidden>No loot nights yet.</div>
     </section>
 
-    <!-- COMP / BUFFS -->
+    <!-- COMP -->
     <section id="panel-comp" class="panel" hidden>
-      <div class="section-title">// TBC raid comp · buffs · max DPS</div>
-      <p class="share-hint" style="margin-bottom:16px">
-        Auto-groups 25-man for Windfury, Trueshot, caster stack, and assigns
-        <b>Paladin Greater Blessings</b> (Might, Kings, Wisdom, Salvation, Sanctuary, Light).
-        Uses your Roster + latest Raid-Helper import.
-      </p>
-      <div class="row" style="justify-content:center;margin-bottom:18px">
-        <button class="btn btn-amber" id="compRunBtn" type="button">⚡ Optimize groups & blessings</button>
-        <button class="btn btn-ghost" id="compCopyBtn" type="button">📋 Copy for Discord</button>
+      <div class="section-title">// Comp</div>
+      <div class="row" style="justify-content:center;margin-bottom:14px">
+        <button class="btn btn-amber" id="compRunBtn" type="button">Optimize</button>
+        <button class="btn btn-ghost" id="compCopyBtn" type="button">Copy Discord</button>
       </div>
       <div class="stats" style="grid-template-columns:repeat(5,1fr)">
         <div class="stat"><div class="stat-n" id="compTotal">0</div><div class="stat-l">Raiders</div></div>
@@ -795,135 +782,96 @@ a.wh-name > span[style*="background"],
         <div class="stat"><div class="stat-n" id="compRanged">0</div><div class="stat-l">Ranged</div></div>
       </div>
       <div id="compTips" class="notice" style="display:none"></div>
-      <div class="section-title">// Groups (buff optimized)</div>
+      <div class="section-title">// Groups</div>
       <div id="compGroups" class="comp-groups"></div>
-      <div class="section-title">// Paladin blessings</div>
+      <div class="section-title">// Blessings</div>
       <div id="compBlessings" class="raid-list"></div>
       <div class="section-title">// Utility</div>
       <div id="compUtility" class="raid-list"></div>
-      <div class="empty" id="compEmpty" hidden>No roster yet — load demo or import Raid-Helper first.</div>
+      <div class="empty" id="compEmpty" hidden>Import a roster first.</div>
     </section>
 
-    <!-- BOSSES BT / HYJAL -->
+    <!-- BOSSES -->
     <section id="panel-bosses" class="panel" hidden>
-      <div class="section-title">// Black Temple · Mount Hyjal · auto assigns</div>
-      <p class="share-hint" style="margin-bottom:14px">
-        Simple interactive sheet (like Excel raid sheets). Picks tanks, heals, kicks, kiters from your
-        <b>Roster / Raid-Helper</b> automatically. TBC Classic only.
-      </p>
-      <div class="row" style="justify-content:center;margin-bottom:14px">
-        <button class="btn btn-amber" data-raid-pick="hyjal" type="button" id="bossRaidHyjal">Mount Hyjal</button>
+      <div class="section-title">// Bosses</div>
+      <div class="row" style="justify-content:center;margin-bottom:12px">
+        <button class="btn btn-amber" data-raid-pick="hyjal" type="button" id="bossRaidHyjal">Hyjal</button>
         <button class="btn btn-orange" data-raid-pick="bt" type="button" id="bossRaidBt">Black Temple</button>
-        <button class="btn btn-ghost" id="bossAutoAll" type="button">⚡ Re-place everyone now</button>
-        <button class="btn btn-ghost" id="bossCopyBtn" type="button">📋 Copy boss for Discord</button>
+        <button class="btn btn-ghost" id="bossAutoAll" type="button">Re-place all</button>
+        <button class="btn btn-ghost" id="bossCopyBtn" type="button">Copy Discord</button>
       </div>
-      <p class="status ok" id="bossLiveStatus" style="text-align:center;margin:0 0 12px">Live · auto-places when roster changes</p>
+      <p class="status ok" id="bossLiveStatus" style="text-align:center;margin:0 0 12px">Live · auto-place</p>
       <div class="stats" style="grid-template-columns:repeat(4,1fr)">
-        <div class="stat"><div class="stat-n" id="bossRosterN">0</div><div class="stat-l">In roster</div></div>
+        <div class="stat"><div class="stat-n" id="bossRosterN">0</div><div class="stat-l">Roster</div></div>
         <div class="stat"><div class="stat-n" id="bossTankN">0</div><div class="stat-l">Tanks</div></div>
         <div class="stat"><div class="stat-n" id="bossHealN">0</div><div class="stat-l">Healers</div></div>
         <div class="stat"><div class="stat-n" id="bossDpsN">0</div><div class="stat-l">DPS</div></div>
       </div>
       <div id="bossList" class="boss-list"></div>
-      <div id="bossDetail" class="pen" style="margin-top:16px" hidden>
+      <div id="bossDetail" class="pen" style="margin-top:14px" hidden>
         <div class="pen-head">
           <div class="pen-title" id="bossDetailTitle">Boss</div>
           <div class="pen-hint" id="bossDetailRaid"></div>
         </div>
-        <div class="section-title" style="text-align:left;margin:8px 0">// Position map</div>
+        <div class="section-title" style="text-align:left;margin:8px 0">// Map</div>
         <div id="bossMapWrap" class="boss-map-wrap">
           <div id="bossMap" class="boss-map"></div>
           <div id="bossMapLegend" class="boss-map-legend"></div>
           <div id="bossMapOverflow" class="muted" style="font-size:12px;margin-top:8px"></div>
         </div>
-        <div class="section-title" style="text-align:left;margin:16px 0 8px">// Strategy</div>
+        <div class="section-title" style="text-align:left;margin:14px 0 8px">// Strategy</div>
         <ul id="bossStrat" class="boss-strat"></ul>
-        <div class="section-title" style="text-align:left;margin:12px 0 8px">// Auto assignments</div>
+        <div class="section-title" style="text-align:left;margin:12px 0 8px">// Assignments</div>
         <div id="bossAssign" class="raid-list"></div>
       </div>
-      <div class="empty" id="bossEmpty" hidden>Load GM demo or import Raid-Helper so we can place people.</div>
+      <div class="empty" id="bossEmpty" hidden>Import a roster first.</div>
     </section>
 
-    <!-- SETTINGS -->
+    <!-- SETTINGS (simplified) -->
     <section id="panel-settings" class="panel" hidden>
       <div class="section-title">// Settings</div>
-
-      <div id="settingsLocked" class="notice hidden">
-        🔐 Log in with the <b>admin password</b> to change guild settings and edit loot.
-      </div>
-
-      <div class="settings-grid">
-        <div class="settings-card" id="cardGuild">
-          <h3>Guild</h3>
-          <div class="field">
-            <label for="setGuildName">Guild name</label>
-            <input class="input" id="setGuildName" placeholder="Midnight Rodeo" />
-          </div>
-          <div class="field">
-            <label for="setRealm">Default realm</label>
-            <input class="input" id="setRealm" placeholder="Realm name" />
-          </div>
-          <div class="field">
-            <label for="setGame">Expansion</label>
-            <select class="input" id="setGame" disabled title="World of Warcraft Guild Manager">
-              <option value="classic" selected>World of Warcraft · TBC Classic</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="setRegion">Region</label>
-            <select class="input" id="setRegion">
-              <option value="us">US</option>
-              <option value="eu">EU</option>
-              <option value="kr">KR</option>
-              <option value="tw">TW</option>
-            </select>
-          </div>
-          <button class="btn btn-amber" id="saveGuildBtn" type="button">Save guild settings</button>
-          <span class="msg" id="guildSaveMsg" style="margin-left:8px"></span>
+      <div id="settingsLocked" class="notice hidden">🔐 Admin login required to save.</div>
+      <div class="settings-card" id="cardGuild" style="max-width:520px;margin:0 auto">
+        <h3>Guild</h3>
+        <div class="field">
+          <label for="setGuildName">Name</label>
+          <input class="input" id="setGuildName" placeholder="Midnight Rodeo" />
         </div>
-
-        <div class="settings-card" id="cardAccess">
-          <h3>Access rules</h3>
-          <label class="check"><input type="checkbox" id="setRequireLogin" /> Require login to open the ledger</label>
-          <label class="check"><input type="checkbox" id="setPublicView" /> Public can view when login not required</label>
-          <label class="check"><input type="checkbox" id="setOfficerRoster" /> Officers can edit roster fields</label>
-          <label class="check"><input type="checkbox" id="setOfficerSync" /> Officers can gear-sync</label>
-          <label class="check"><input type="checkbox" id="setViewerExport" /> Viewers can export CSV / backup</label>
-          <button class="btn btn-amber" id="saveAccessBtn" type="button" style="margin-top:8px">Save access rules</button>
-          <span class="msg" id="accessSaveMsg" style="margin-left:8px"></span>
-          <p class="share-hint" style="text-align:left;margin-top:12px;max-width:none">
-            Roles: <b>Admin</b> (everything) · <b>Lootmaster</b> (brand/edit loot) · <b>Officer</b> (roster/sync) · <b>Viewer</b> (read).
-          </p>
+        <div class="field">
+          <label for="setRealm">Realm</label>
+          <input class="input" id="setRealm" placeholder="Realm" />
         </div>
-      </div>
-
-      <div class="settings-card" id="cardAuth" style="margin-bottom:18px">
-        <h3>Admin access</h3>
-        <p class="share-hint" style="text-align:left;max-width:none;margin:0">
-          <b>No multi-accounts.</b> One admin password (encrypted hash in the app) unlocks editing.
-          Guests can view the guild demo, roster, bosses, and loot. Share the password only with trusted officers.
+        <div class="field">
+          <label for="setRhUrl">Raid-Helper event URL</label>
+          <input class="input" id="setRhUrl" placeholder="https://raid-helper.xyz/event/…" />
+        </div>
+        <div class="field">
+          <label for="setRegion">Region</label>
+          <select class="input" id="setRegion">
+            <option value="us">US</option>
+            <option value="eu">EU</option>
+          </select>
+        </div>
+        <!-- hidden compat fields -->
+        <select class="input" id="setGame" hidden><option value="classic" selected>classic</option></select>
+        <input type="checkbox" id="setRequireLogin" hidden />
+        <input type="checkbox" id="setPublicView" checked hidden />
+        <input type="checkbox" id="setOfficerRoster" checked hidden />
+        <input type="checkbox" id="setOfficerSync" checked hidden />
+        <input type="checkbox" id="setViewerExport" checked hidden />
+        <div class="row">
+          <button class="btn btn-amber" id="saveGuildBtn" type="button">Save</button>
+          <button class="btn btn-ghost" id="saveRhUrlBtn" type="button">Save RH only</button>
+          <button class="btn btn-ghost" id="saveAccessBtn" type="button" hidden>Save access</button>
+          <span class="msg" id="guildSaveMsg"></span>
+          <span class="msg" id="rhSaveMsg"></span>
+          <span class="msg" id="accessSaveMsg" hidden></span>
+        </div>
+        <p class="share-hint" style="text-align:left;margin-top:14px;max-width:none">
+          Admin password unlocks edits. Guests can view.
+          Optional gear sync uses <code>config.js</code> · <span id="settingsApiStatus" class="status">—</span>
         </p>
-      </div>
-
-      <div class="settings-grid">
-        <div class="settings-card" id="cardApi">
-          <h3>Integrations</h3>
-          <p class="share-hint" style="text-align:left;max-width:none;margin:0 0 10px">
-            <b>World of Warcraft Guild Manager</b> for Midnight Rodeo (TBC Classic data via Wowhead TBC).<br/>
-            Gear sync: <code>config.js</code> → <code>blizzardProxyUrl</code>.
-          </p>
-          <div class="field">
-            <label for="setRhUrl">Default Raid-Helper event URL</label>
-            <input class="input" id="setRhUrl" placeholder="https://raid-helper.xyz/event/…" />
-          </div>
-          <button class="btn btn-amber" id="saveRhUrlBtn" type="button">Save RH link</button>
-          <span class="msg" id="rhSaveMsg" style="margin-left:8px"></span>
-          <div class="field" style="margin-top:14px">
-            <label>Blizzard proxy status</label>
-            <div class="status" id="settingsApiStatus">Checking…</div>
-          </div>
-          <button class="btn btn-ghost" id="settingsTestApi" type="button">Test API</button>
-        </div>
+        <button class="btn btn-ghost" id="settingsTestApi" type="button" style="margin-top:8px">Test Blizzard proxy</button>
       </div>
     </section>
 
@@ -1546,34 +1494,29 @@ a.wh-name > span[style*="background"],
     if ($('setRealm')) $('setRealm').value = gs.realm || cfg.defaultRealm || '';
     if ($('setGame')) $('setGame').value = 'classic';
     if ($('setRegion')) $('setRegion').value = gs.region || 'us';
-    if ($('setRequireLogin')) $('setRequireLogin').checked = !!gs.requireLogin;
-    if ($('setPublicView')) $('setPublicView').checked = gs.publicCanView !== false;
-    if ($('setOfficerRoster')) $('setOfficerRoster').checked = gs.officersCanEditRoster !== false;
-    if ($('setOfficerSync')) $('setOfficerSync').checked = gs.officersCanGearSync !== false;
-    if ($('setViewerExport')) $('setViewerExport').checked = gs.viewersCanExport !== false;
     if ($('setRhUrl')) $('setRhUrl').value = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
+    // defaults for hidden compat checkboxes
+    if ($('setPublicView')) $('setPublicView').checked = true;
+    if ($('setOfficerRoster')) $('setOfficerRoster').checked = true;
+    if ($('setOfficerSync')) $('setOfficerSync').checked = true;
+    if ($('setViewerExport')) $('setViewerExport').checked = true;
 
     const admin = can('manageSettings');
-    ['setGuildName','setRealm','setGame','setRegion','setRequireLogin','setPublicView','setOfficerRoster','setOfficerSync','setViewerExport','saveGuildBtn','saveAccessBtn','saveRhUrlBtn','setRhUrl'].forEach(id => {
+    ['setGuildName','setRealm','setRegion','setRhUrl','saveGuildBtn','saveRhUrlBtn'].forEach(id => {
       const el = $(id);
       if (el) el.disabled = !admin;
     });
-    if ($('cardGuild')) $('cardGuild').style.opacity = admin ? '1' : '.55';
-    if ($('cardAccess')) $('cardAccess').style.opacity = admin ? '1' : '.55';
-    if ($('cardApi')) $('cardApi').style.opacity = admin ? '1' : '.85';
+    if ($('cardGuild')) $('cardGuild').style.opacity = admin ? '1' : '.7';
     if ($('settingsLocked')) $('settingsLocked').classList.toggle('hidden', !!session());
   }
 
   function renderSettings() {
     fillSettingsForm();
     if (window.WowApi && $('settingsApiStatus')) {
-      if (WowApi.isConfigured()) {
-        $('settingsApiStatus').textContent = 'Proxy URL set in config.js';
-        $('settingsApiStatus').className = 'status ok';
-      } else {
-        $('settingsApiStatus').textContent = 'No blizzardProxyUrl in config.js';
-        $('settingsApiStatus').className = 'status';
-      }
+      $('settingsApiStatus').textContent = WowApi.isConfigured()
+        ? 'proxy ready'
+        : 'proxy off';
+      $('settingsApiStatus').className = 'status ' + (WowApi.isConfigured() ? 'ok' : '');
     }
   }
 
@@ -2071,13 +2014,10 @@ a.wh-name > span[style*="background"],
         ? `<span class="tag">${escapeHtml(info.rhRole)}</span>`
         : '<span class="muted">—</span>';
       const ilvl = info.ilvl ? `<span class="num">${escapeHtml(String(info.ilvl))}</span>` : '<span class="muted">—</span>';
-      const sync = info.lastGearSync
-        ? `<span class="sync-ok">✓ ${fmtDateTime(info.lastGearSync)}</span>`
-        : (info.lastRhImport ? `<span class="sync-ok" title="From Raid-Helper">RH</span>` : `<span class="sync-miss">—</span>`);
       const busy = lookupBusy.has(r.player.toLowerCase());
       const canRoster = can('editRoster');
       const rankCell = canRoster
-        ? `<select class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="rank" style="padding:4px 6px;font-size:12px;max-width:130px">
+        ? `<select class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="rank" style="padding:4px 6px;font-size:12px;max-width:120px">
             ${RANKS.map(rk => `<option value="${rk}"${rank===rk?' selected':''}>${rk}</option>`).join('')}
            </select>`
         : `<span class="${rankClass(rank)}">${escapeHtml(rank)}</span>`;
@@ -2088,12 +2028,11 @@ a.wh-name > span[style*="background"],
         <td>${rhRole}</td>
         <td>${classSpec}</td>
         <td>${canRoster
-          ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="ilvl" value="${escapeHtml(info.ilvl||'')}" style="max-width:70px;padding:4px 6px" />`
+          ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="ilvl" value="${escapeHtml(info.ilvl||'')}" style="max-width:64px;padding:4px 6px" />`
           : ilvl}</td>
         <td class="num">${r.count}</td>
-        <td class="muted">${r.last ? dayKey(r.last) : '—'}</td>
-        <td>${sync}</td>
-        <td><button type="button" class="lookup-btn" data-lookup="${escapeHtml(r.player)}" ${busy?'disabled':''}>${busy?'…':(apiReady?'Sync':'Setup')}</button></td>
+        <td class="muted">${r.last ? dayKey(r.last) : (info.lastRhImport ? 'RH' : '—')}</td>
+        <td>${apiReady ? `<button type="button" class="lookup-btn" data-lookup="${escapeHtml(r.player)}" ${busy?'disabled':''}>${busy?'…':'Sync'}</button>` : ''}</td>
       </tr>`;
     }).join('');
   }
@@ -2976,12 +2915,13 @@ a.wh-name > span[style*="background"],
         const gs = Accounts.updateSettings({
           guildName: $('setGuildName').value.trim() || 'Midnight Rodeo',
           realm: $('setRealm').value.trim(),
-          game: $('setGame').value,
-          region: $('setRegion').value,
+          game: 'classic',
+          region: ($('setRegion') && $('setRegion').value) || 'us',
+          raidHelperEventUrl: ($('setRhUrl') && $('setRhUrl').value.trim()) || '',
         });
         if ($('rosterRealm') && gs.realm) $('rosterRealm').value = gs.realm;
-        if ($('rosterGame') && gs.game) $('rosterGame').value = gs.game;
-        if (window.WowApi) WowApi.setUiPrefs({ realm: gs.realm, game: gs.game });
+        if ($('rhEventUrl') && gs.raidHelperEventUrl) $('rhEventUrl').value = gs.raidHelperEventUrl;
+        if (window.WowApi) WowApi.setUiPrefs({ realm: gs.realm, game: 'classic' });
         updateGuildHeader();
         setSaveMsg('guildSaveMsg', 'Saved.', false);
       } catch (e) {
