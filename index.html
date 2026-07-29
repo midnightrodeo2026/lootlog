@@ -864,7 +864,7 @@ a.wh-name > span[style*="background"],
       <div class="section-title">// Settings</div>
 
       <div id="settingsLocked" class="notice hidden">
-        🔐 Log in as <b>Admin</b> to manage guild settings and accounts. Anyone can change their own password when logged in.
+        🔐 Log in with the <b>admin password</b> to change guild settings and edit loot.
       </div>
 
       <div class="settings-grid">
@@ -912,53 +912,15 @@ a.wh-name > span[style*="background"],
         </div>
       </div>
 
-      <div class="settings-card" id="cardAccounts" style="margin-bottom:18px">
-        <h3>Accounts</h3>
-        <div class="toolbar" style="margin-bottom:12px">
-          <input class="input" id="newUserName" placeholder="Username" style="max-width:140px" />
-          <input class="input" id="newUserDisplay" placeholder="Display name" style="max-width:140px" />
-          <input class="input" id="newUserPass" type="password" placeholder="Password" style="max-width:140px" autocomplete="new-password" />
-          <select class="input" id="newUserRole" style="max-width:140px">
-            <option value="viewer">Viewer</option>
-            <option value="officer">Officer</option>
-            <option value="lootmaster">Lootmaster</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button class="btn btn-orange" id="createUserBtn" type="button">+ Create account</button>
-          <span class="msg" id="createUserMsg"></span>
-        </div>
-        <div class="table-wrap">
-          <table class="tbl">
-            <thead>
-              <tr>
-                <th>Username</th><th>Display</th><th>Role</th><th>Last login</th><th>Status</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="usersBody"></tbody>
-          </table>
-        </div>
-        <div class="empty" id="usersEmpty" hidden>No accounts yet — complete first-time setup.</div>
+      <div class="settings-card" id="cardAuth" style="margin-bottom:18px">
+        <h3>Admin access</h3>
+        <p class="share-hint" style="text-align:left;max-width:none;margin:0">
+          <b>No multi-accounts.</b> One admin password (encrypted hash in the app) unlocks editing.
+          Guests can view the guild demo, roster, bosses, and loot. Share the password only with trusted officers.
+        </p>
       </div>
 
       <div class="settings-grid">
-        <div class="settings-card" id="cardPassword">
-          <h3>Change my password</h3>
-          <div class="field">
-            <label for="curPass">Current password</label>
-            <input class="input" id="curPass" type="password" autocomplete="current-password" />
-          </div>
-          <div class="field">
-            <label for="newPass">New password</label>
-            <input class="input" id="newPass" type="password" autocomplete="new-password" />
-          </div>
-          <div class="field">
-            <label for="newPass2">Confirm new password</label>
-            <input class="input" id="newPass2" type="password" autocomplete="new-password" />
-          </div>
-          <button class="btn btn-amber" id="changePassBtn" type="button">Update password</button>
-          <span class="msg" id="passMsg" style="margin-left:8px"></span>
-        </div>
-
         <div class="settings-card" id="cardApi">
           <h3>Integrations · TBC Classic only</h3>
           <p class="share-hint" style="text-align:left;max-width:none;margin:0 0 10px">
@@ -977,9 +939,6 @@ a.wh-name > span[style*="background"],
             <div class="status" id="settingsApiStatus">Checking…</div>
           </div>
           <button class="btn btn-ghost" id="settingsTestApi" type="button">Test API</button>
-          <button class="btn btn-ghost" id="exportAccountsBtn" type="button">⬇ Export accounts backup</button>
-          <input type="file" id="importAccountsFile" accept="application/json,.json" hidden />
-          <button class="btn btn-ghost" id="importAccountsBtn" type="button">⬆ Import accounts</button>
         </div>
       </div>
     </section>
@@ -993,57 +952,24 @@ a.wh-name > span[style*="background"],
   </div>
 </div>
 
-<!-- Auth / setup modal -->
+<!-- Admin password modal -->
 <div class="backdrop hidden" id="authBackdrop">
   <div class="modal modal-sm">
-    <div class="modal-title" id="authTitle">Account login</div>
-    <p class="modal-sub" id="authHint"></p>
-    <input class="input" id="authUser" placeholder="Username" autocomplete="username" style="margin:10px 0 8px" />
-    <input class="input" type="password" id="authPass" placeholder="Password" autocomplete="current-password" style="margin-bottom:8px" />
-    <input class="input" type="password" id="authPass2" placeholder="Confirm password" autocomplete="new-password" hidden style="margin-bottom:8px" />
-    <input class="input" id="authDisplay" placeholder="Display name (optional)" hidden style="margin-bottom:8px" />
+    <div class="modal-title" id="authTitle">Admin login</div>
+    <p class="modal-sub" id="authHint">Enter the guild admin password to edit loot, roster, and settings.</p>
+    <input class="input" id="authUser" placeholder="Username (optional)" autocomplete="username" hidden />
+    <input class="input" type="password" id="authPass" placeholder="Admin password" autocomplete="current-password" style="margin:10px 0 8px" />
+    <input class="input" type="password" id="authPass2" hidden />
+    <input class="input" id="authDisplay" hidden />
     <label class="check" id="authRememberRow" style="justify-content:flex-start;margin:4px 0 8px">
       <input type="checkbox" id="authRemember" checked /> Remember me on this device
     </label>
     <div class="err-line" id="authErr"></div>
     <div class="row">
-      <button class="btn btn-amber" id="authSubmit" type="button">Log in</button>
+      <button class="btn btn-amber" id="authSubmit" type="button">Unlock</button>
       <button class="btn btn-ghost" id="authCancel" type="button">Cancel</button>
     </div>
-    <p class="disclaimer">Passwords are salted + SHA-256 hashed in this browser. This is not bank-grade server auth — anyone with DevTools on a shared PC could still inspect data. Use strong passwords and only create accounts for trusted officers.</p>
-  </div>
-</div>
-
-<!-- Edit user modal -->
-<div class="backdrop hidden" id="userEditBackdrop">
-  <div class="modal modal-sm">
-    <div class="modal-title">Edit account</div>
-    <p class="modal-sub" id="userEditSub"></p>
-    <input type="hidden" id="userEditId" />
-    <div class="field" style="margin:10px 0">
-      <label for="userEditDisplay">Display name</label>
-      <input class="input" id="userEditDisplay" />
-    </div>
-    <div class="field" style="margin-bottom:10px">
-      <label for="userEditRole">Role</label>
-      <select class="input" id="userEditRole">
-        <option value="viewer">Viewer</option>
-        <option value="officer">Officer</option>
-        <option value="lootmaster">Lootmaster</option>
-        <option value="admin">Admin</option>
-      </select>
-    </div>
-    <div class="field" style="margin-bottom:10px">
-      <label for="userEditPass">New password (leave blank to keep)</label>
-      <input class="input" id="userEditPass" type="password" autocomplete="new-password" />
-    </div>
-    <label class="check"><input type="checkbox" id="userEditActive" checked /> Account active</label>
-    <div class="err-line" id="userEditErr"></div>
-    <div class="row">
-      <button class="btn btn-amber" id="userEditSave" type="button">Save</button>
-      <button class="btn btn-ghost" id="userEditCancel" type="button">Cancel</button>
-      <button class="btn btn-ghost" id="userEditDelete" type="button" style="color:var(--red)">Delete</button>
-    </div>
+    <p class="disclaimer">Password is stored as a salted SHA-256 hash in the app (not plain text). Guests can view; only admin can edit.</p>
   </div>
 </div>
 
@@ -1378,7 +1304,7 @@ a.wh-name > span[style*="background"],
     } else {
       chip.classList.add('hidden');
       lockBtn.classList.remove('hidden');
-      lockBtn.textContent = Accounts && Accounts.isSetupNeeded() ? '⚡ First-time setup' : '🔐 Account Login';
+      lockBtn.textContent = '🔐 Admin Login';
       logoutBtn.classList.add('hidden');
     }
 
@@ -1387,8 +1313,7 @@ a.wh-name > span[style*="background"],
     if ($('viewOnlyNotice')) {
       $('viewOnlyNotice').hidden = unlocked || gated;
       if (!unlocked && !gated) {
-        const role = s ? Accounts.roleLabel(s.role) : 'Guest';
-        $('viewOnlyNotice').innerHTML = `👁 <b>View only</b> (${escapeHtml(role)}). Lootmaster or Admin can brand and edit loot.`;
+        $('viewOnlyNotice').innerHTML = `👁 <b>View only.</b> Log in with the <b>admin password</b> to brand loot and edit.`;
       }
     }
     if ($('editControls')) $('editControls').hidden = !unlocked;
@@ -1623,25 +1548,17 @@ a.wh-name > span[style*="background"],
     return n;
   }
 
-  /* ---- Auth (multi-account) ---- */
+  /* ---- Auth (single admin password) ---- */
   function openAuthModal(mode) {
-    authMode = mode;
-    const setup = mode === 'setup';
-    $('authTitle').textContent = setup ? 'Create admin account' : 'Account login';
-    $('authHint').textContent = setup
-      ? 'First-time setup: create the guild Admin account. You can add officers and lootmasters later in Settings.'
-      : 'Sign in with your guild account.';
-    $('authUser').value = '';
+    authMode = 'login';
+    $('authTitle').textContent = 'Admin login';
+    $('authHint').textContent = 'Enter the guild admin password to edit loot, roster, and settings.';
+    if ($('authUser')) $('authUser').value = 'admin';
     $('authPass').value = '';
-    $('authPass2').value = '';
-    $('authDisplay').value = '';
-    $('authPass2').hidden = !setup;
-    $('authDisplay').hidden = !setup;
-    $('authRememberRow').style.display = setup ? 'none' : 'flex';
     $('authErr').textContent = '';
-    $('authSubmit').textContent = setup ? 'Create admin' : 'Log in';
+    $('authSubmit').textContent = 'Unlock';
     $('authBackdrop').classList.remove('hidden');
-    $('authUser').focus();
+    $('authPass').focus();
   }
   function closeAuthModal() { $('authBackdrop').classList.add('hidden'); }
 
@@ -1650,7 +1567,7 @@ a.wh-name > span[style*="background"],
     const cfg = window.LOOTLOG_CONFIG || {};
     if ($('setGuildName')) $('setGuildName').value = gs.guildName || cfg.guildName || '';
     if ($('setRealm')) $('setRealm').value = gs.realm || cfg.defaultRealm || '';
-    if ($('setGame')) $('setGame').value = gs.game || 'classic';
+    if ($('setGame')) $('setGame').value = 'classic';
     if ($('setRegion')) $('setRegion').value = gs.region || 'us';
     if ($('setRequireLogin')) $('setRequireLogin').checked = !!gs.requireLogin;
     if ($('setPublicView')) $('setPublicView').checked = gs.publicCanView !== false;
@@ -1660,49 +1577,19 @@ a.wh-name > span[style*="background"],
     if ($('setRhUrl')) $('setRhUrl').value = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
 
     const admin = can('manageSettings');
-    ['setGuildName','setRealm','setGame','setRegion','setRequireLogin','setPublicView','setOfficerRoster','setOfficerSync','setViewerExport','saveGuildBtn','saveAccessBtn','createUserBtn','newUserName','newUserDisplay','newUserPass','newUserRole','exportAccountsBtn','importAccountsBtn'].forEach(id => {
+    ['setGuildName','setRealm','setGame','setRegion','setRequireLogin','setPublicView','setOfficerRoster','setOfficerSync','setViewerExport','saveGuildBtn','saveAccessBtn','saveRhUrlBtn','setRhUrl'].forEach(id => {
       const el = $(id);
-      if (el) el.disabled = !admin && !['exportAccountsBtn'].includes(id);
+      if (el) el.disabled = !admin;
     });
-    // create user fields admin only
-    const lockAdmin = !admin;
-    if ($('cardAccounts')) $('cardAccounts').style.opacity = admin ? '1' : '.55';
     if ($('cardGuild')) $('cardGuild').style.opacity = admin ? '1' : '.55';
     if ($('cardAccess')) $('cardAccess').style.opacity = admin ? '1' : '.55';
+    if ($('cardApi')) $('cardApi').style.opacity = admin ? '1' : '.85';
     if ($('settingsLocked')) $('settingsLocked').classList.toggle('hidden', !!session());
-
-    // password change only when logged in
-    const logged = !!session();
-    ['curPass','newPass','newPass2','changePassBtn'].forEach(id => {
-      if ($(id)) $(id).disabled = !logged;
-    });
-
-    renderUsersTable();
-  }
-
-  function renderUsersTable() {
-    if (!$('usersBody')) return;
-    if (!window.Accounts) return;
-    const users = Accounts.listUsers();
-    $('usersEmpty').hidden = users.length > 0;
-    const admin = can('manageUsers');
-    $('usersBody').innerHTML = users.map(u => `
-      <tr>
-        <td><code>${escapeHtml(u.username)}</code></td>
-        <td>${escapeHtml(u.displayName)}</td>
-        <td><span class="role-pill ${escapeHtml(u.role)}">${escapeHtml(Accounts.roleLabel(u.role))}</span></td>
-        <td class="muted">${u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : '—'}</td>
-        <td>${u.active ? '<span class="sync-ok">Active</span>' : '<span class="sync-miss">Disabled</span>'}</td>
-        <td class="user-row-actions">
-          ${admin ? `<button type="button" class="lookup-btn" data-edit-user="${escapeHtml(u.id)}">Edit</button>` : '—'}
-        </td>
-      </tr>`).join('');
   }
 
   function renderSettings() {
     fillSettingsForm();
-    // API status
-    if (window.WowApi) {
+    if (window.WowApi && $('settingsApiStatus')) {
       if (WowApi.isConfigured()) {
         $('settingsApiStatus').textContent = 'Proxy URL set in config.js';
         $('settingsApiStatus').className = 'status ok';
@@ -2575,11 +2462,11 @@ a.wh-name > span[style*="background"],
   });
 
   $('lockBtn').addEventListener('click', () => {
-    openAuthModal(Accounts.isSetupNeeded() ? 'setup' : 'login');
+    openAuthModal('login');
   });
   if ($('gateLoginBtn')) {
     $('gateLoginBtn').addEventListener('click', () => {
-      openAuthModal(Accounts.isSetupNeeded() ? 'setup' : 'login');
+      openAuthModal('login');
     });
   }
   if ($('logoutBtn')) {
@@ -2587,48 +2474,31 @@ a.wh-name > span[style*="background"],
       Accounts.logout();
       applyAccessGate();
       renderCurrentTab();
-      $('footerMsg').textContent = 'Logged out.';
+      $('footerMsg').textContent = 'Admin locked.';
     });
   }
   $('authCancel').addEventListener('click', closeAuthModal);
   $('authBackdrop').addEventListener('click', (ev) => { if (ev.target.id === 'authBackdrop') closeAuthModal(); });
   $('authSubmit').addEventListener('click', async () => {
-    const user = ($('authUser').value || '').trim();
     const pass = $('authPass').value;
-    const pass2 = $('authPass2').value;
-    const display = ($('authDisplay').value || '').trim();
     $('authErr').textContent = '';
     try {
-      if (authMode === 'setup') {
-        if (!user) { $('authErr').textContent = 'Enter a username.'; return; }
-        if (!pass) { $('authErr').textContent = 'Enter a password.'; return; }
-        if (pass !== pass2) { $('authErr').textContent = "Passwords don't match."; return; }
-        await Accounts.createFirstAdmin({ username: user, password: pass, displayName: display || user });
-        closeAuthModal();
-        applyAccessGate();
-        renderCurrentTab();
-        $('footerMsg').textContent = 'Admin account created. Open Settings to add officers.';
-      } else {
-        if (!user || !pass) { $('authErr').textContent = 'Enter username and password.'; return; }
-        await Accounts.login(user, pass, !!$('authRemember').checked);
-        closeAuthModal();
-        applyAccessGate();
-        renderCurrentTab();
-        const s = session();
-        $('footerMsg').textContent = `Signed in as ${s.displayName} (${Accounts.roleLabel(s.role)})`;
-      }
+      if (!pass) { $('authErr').textContent = 'Enter the admin password.'; return; }
+      await Accounts.login('admin', pass, !!($('authRemember') && $('authRemember').checked));
+      closeAuthModal();
+      applyAccessGate();
+      renderCurrentTab();
+      $('footerMsg').textContent = 'Admin unlocked — you can edit loot & settings.';
     } catch (err) {
       $('authErr').textContent = err.message || String(err);
     }
   });
-  ['authUser','authPass','authPass2','authDisplay'].forEach(id => {
-    const el = $(id);
-    if (!el) return;
-    el.addEventListener('keydown', (ev) => {
+  if ($('authPass')) {
+    $('authPass').addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') $('authSubmit').click();
       if (ev.key === 'Escape') closeAuthModal();
     });
-  });
+  }
 
   $('mrBrandBtn').addEventListener('click', async () => {
     if (!canEdit()) return;
@@ -2767,6 +2637,7 @@ a.wh-name > span[style*="background"],
       setRosterStatus(err.message || String(err), 'err');
     } finally {
       lookupBusy.delete(player.toLowerCase());
+      onRosterChanged('gear sync');
       renderRoster();
     }
   });
@@ -2790,6 +2661,7 @@ a.wh-name > span[style*="background"],
       await new Promise(r => setTimeout(r, 280));
     }
     $('rosterLookupAll').disabled = false;
+    onRosterChanged('gear sync all');
     renderRoster();
     setRosterStatus(`Done: ${ok} synced, ${fail} missed on ${realm}.`, fail && !ok ? 'err' : 'ok');
   });
@@ -2951,6 +2823,7 @@ a.wh-name > span[style*="background"],
         lastComp = RaidComp.analyze(RaidComp.fromAppState(playerInfo, rhEvents));
       } catch (_) {}
     }
+    onRosterChanged('GM demo');
     if (forGm) {
       switchTab('overview');
       fillGmPitch();
@@ -3068,11 +2941,13 @@ a.wh-name > span[style*="background"],
         return;
       }
       try {
-        lastBossAll = RaidBosses.assignAll(players);
-        const n = (lastBossAll.bt || []).length + (lastBossAll.hyjal || []).length;
-        $('footerMsg').textContent = `Auto-assigned ${n} bosses (BT + Hyjal) from roster.`;
-        renderBosses();
-        if (bossSelectedId) showBossDetail(bossSelectedId);
+        lastBossRosterFp = ''; // force full re-place
+        onRosterChanged('manual re-place');
+        const n = lastBossAll
+          ? (lastBossAll.bt || []).length + (lastBossAll.hyjal || []).length
+          : 0;
+        $('footerMsg').textContent = `Re-placed everyone on ${n} bosses · ${players.length} raiders.`;
+        switchTab('bosses');
       } catch (e) {
         alert(e.message || String(e));
       }
@@ -3182,97 +3057,6 @@ a.wh-name > span[style*="background"],
       }
     });
   }
-  if ($('createUserBtn')) {
-    $('createUserBtn').addEventListener('click', async () => {
-      try {
-        await Accounts.createUser({
-          username: $('newUserName').value,
-          displayName: $('newUserDisplay').value,
-          password: $('newUserPass').value,
-          role: $('newUserRole').value,
-        });
-        $('newUserName').value = '';
-        $('newUserDisplay').value = '';
-        $('newUserPass').value = '';
-        setSaveMsg('createUserMsg', 'Account created.', false);
-        renderUsersTable();
-      } catch (e) {
-        setSaveMsg('createUserMsg', e.message, true);
-      }
-    });
-  }
-  if ($('usersBody')) {
-    $('usersBody').addEventListener('click', (ev) => {
-      const btn = ev.target.closest('[data-edit-user]');
-      if (!btn) return;
-      const id = btn.dataset.editUser;
-      const u = Accounts.listUsers().find(x => x.id === id);
-      if (!u) return;
-      $('userEditId').value = u.id;
-      $('userEditSub').textContent = '@' + u.username;
-      $('userEditDisplay').value = u.displayName || '';
-      $('userEditRole').value = u.role;
-      $('userEditPass').value = '';
-      $('userEditActive').checked = u.active !== false;
-      $('userEditErr').textContent = '';
-      $('userEditBackdrop').classList.remove('hidden');
-    });
-  }
-  if ($('userEditCancel')) {
-    $('userEditCancel').addEventListener('click', () => $('userEditBackdrop').classList.add('hidden'));
-  }
-  if ($('userEditBackdrop')) {
-    $('userEditBackdrop').addEventListener('click', (ev) => {
-      if (ev.target.id === 'userEditBackdrop') $('userEditBackdrop').classList.add('hidden');
-    });
-  }
-  if ($('userEditSave')) {
-    $('userEditSave').addEventListener('click', async () => {
-      try {
-        const patch = {
-          displayName: $('userEditDisplay').value,
-          role: $('userEditRole').value,
-          active: !!$('userEditActive').checked,
-        };
-        if ($('userEditPass').value) patch.password = $('userEditPass').value;
-        await Accounts.updateUser($('userEditId').value, patch);
-        $('userEditBackdrop').classList.add('hidden');
-        renderUsersTable();
-        applyAccessGate();
-      } catch (e) {
-        $('userEditErr').textContent = e.message || String(e);
-      }
-    });
-  }
-  if ($('userEditDelete')) {
-    $('userEditDelete').addEventListener('click', async () => {
-      if (!confirm('Delete this account permanently?')) return;
-      try {
-        await Accounts.deleteUser($('userEditId').value);
-        $('userEditBackdrop').classList.add('hidden');
-        renderUsersTable();
-      } catch (e) {
-        $('userEditErr').textContent = e.message || String(e);
-      }
-    });
-  }
-  if ($('changePassBtn')) {
-    $('changePassBtn').addEventListener('click', async () => {
-      try {
-        if ($('newPass').value !== $('newPass2').value) {
-          setSaveMsg('passMsg', "New passwords don't match.", true);
-          return;
-        }
-        await Accounts.changeOwnPassword($('curPass').value, $('newPass').value);
-        $('curPass').value = '';
-        $('newPass').value = '';
-        $('newPass2').value = '';
-        setSaveMsg('passMsg', 'Password updated.', false);
-      } catch (e) {
-        setSaveMsg('passMsg', e.message, true);
-      }
-    });
-  }
   if ($('settingsTestApi')) {
     $('settingsTestApi').addEventListener('click', async () => {
       if (!window.WowApi || !WowApi.isConfigured()) {
@@ -3294,41 +3078,6 @@ a.wh-name > span[style*="background"],
       }
     });
   }
-  if ($('exportAccountsBtn')) {
-    $('exportAccountsBtn').addEventListener('click', () => {
-      try {
-        const data = Accounts.exportAccountsBundle();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = 'midnight-rodeo-accounts.json';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (e) {
-        alert(e.message || String(e));
-      }
-    });
-  }
-  if ($('importAccountsBtn')) {
-    $('importAccountsBtn').addEventListener('click', () => $('importAccountsFile').click());
-  }
-  if ($('importAccountsFile')) {
-    $('importAccountsFile').addEventListener('change', async () => {
-      const file = $('importAccountsFile').files && $('importAccountsFile').files[0];
-      if (!file) return;
-      try {
-        const data = JSON.parse(await file.text());
-        Accounts.importAccountsBundle(data, { merge: true });
-        renderSettings();
-        applyAccessGate();
-        alert('Accounts imported (merged).');
-      } catch (e) {
-        alert(e.message || 'Import failed');
-      }
-      $('importAccountsFile').value = '';
-    });
-  }
-
   function applyHash() {
     const h = (location.hash || '').replace(/^#/, '');
     if (h.startsWith('raid/')) {
@@ -3353,7 +3102,7 @@ a.wh-name > span[style*="background"],
       if ($('rosterRealm') && realm) $('rosterRealm').value = realm;
       if ($('rosterGame')) $('rosterGame').value = game;
       if (window.WowApi.isConfigured()) setRosterStatus('Proxy configured — Test API or Gear sync.');
-      else setRosterStatus('TBC guild manager · optional gear sync via config.js');
+      else setRosterStatus('TBC guild manager · admin password to edit');
     }
 
     // Prefill Raid-Helper URL
@@ -3361,8 +3110,7 @@ a.wh-name > span[style*="background"],
     if ($('rhEventUrl') && rhUrl) $('rhEventUrl').value = rhUrl;
     if ($('setRhUrl') && rhUrl) $('setRhUrl').value = rhUrl;
 
-    // Banner: TBC guild manager
-    // Always TBC Classic — no other expansions
+    // Always TBC Classic
     if ($('rosterGame')) $('rosterGame').value = 'classic';
     if ($('setGame')) $('setGame').value = 'classic';
     if ($('guildRealmLabel') && !gs.realm && !cfg.defaultRealm) {
@@ -3372,23 +3120,13 @@ a.wh-name > span[style*="background"],
     await loadAll();
     fillGmPitch();
 
-    // Auto-load full GM demo if ledger is empty (great for first show)
+    // Auto-load full GM demo if ledger is empty
     if ((!entries || !entries.length) && window.DemoData) {
       await applyDemoData({ silent: true, forGm: true });
     }
 
     applyAccessGate();
     updateGuildHeader();
-
-    // First visit: prompt setup if no accounts (optional for viewing demo)
-    if (Accounts.isSetupNeeded()) {
-      // Don't block GM viewing — soft prompt after a moment
-      setTimeout(() => {
-        if (Accounts.isSetupNeeded() && !session()) {
-          // leave as guest view; they can set admin when ready
-        }
-      }, 500);
-    }
 
     if (location.hash) applyHash();
     else renderCurrentTab();
@@ -3400,8 +3138,8 @@ a.wh-name > span[style*="background"],
     const s = session();
     const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
     $('footerMsg').textContent = s
-      ? `${gname} · TBC Classic only · ${s.displayName} · ${entries.length} loot · ${rhEvents.length} RH event(s)`
-      : `${gname} · TBC Classic only · ${entries.length} loot · guest · Load full GM demo above`;
+      ? `${gname} · TBC Classic only · Admin · ${entries.length} loot · ${rhEvents.length} RH event(s)`
+      : `${gname} · TBC Classic only · guest (view) · Admin password to edit`;
   })();
 
   window.addEventListener('hashchange', applyHash);
