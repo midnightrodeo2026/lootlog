@@ -1539,7 +1539,10 @@ a.wh-name > span[style*="background"],
     applyAccessGate();
     if (currentTab === 'overview') renderOverview();
     else if (currentTab === 'ledger') renderLedger();
-    else if (currentTab === 'roster') renderRoster();
+    else if (currentTab === 'roster') {
+      // Auto gear sync when opening roster (RH class/spec + loot iLvl)
+      runAutoGearSync({ silent: true }).then(() => renderRoster()).catch(() => renderRoster());
+    }
     else if (currentTab === 'items') renderItems();
     else if (currentTab === 'raids') renderRaids();
     else if (currentTab === 'comp') renderComp();
@@ -2557,6 +2560,7 @@ a.wh-name > span[style*="background"],
     setMsg(added ? `Branded ${added} item${added===1?'':'s'}. Resolving names…` : 'Nothing new.');
     $('mrPaste').value = '';
     await enrichItems(parsed);
+    await runAutoGearSync({ silent: true });
     renderLedger();
     updateGuildHeader();
   });
@@ -2664,23 +2668,16 @@ a.wh-name > span[style*="background"],
   $('rosterBody').addEventListener('click', async (ev) => {
     const btn = ev.target.closest('[data-lookup]');
     if (!btn) return;
-    if (!can('gearSync')) {
-      setRosterStatus('Your role cannot gear-sync.', 'err');
-      return;
-    }
     const player = btn.dataset.lookup;
-    if (!window.WowApi || !window.WowApi.isConfigured()) {
-      setRosterStatus('Add blizzardProxyUrl in config.js', 'err');
-      return;
-    }
-    const { realm } = getRosterRealmGame();
-    if (!realm) { setRosterStatus('Enter realm first.', 'err'); return; }
     lookupBusy.add(player.toLowerCase());
     renderRoster();
     setRosterStatus(`Syncing ${player}…`);
     try {
       const ch = await lookupOne(player);
-      setRosterStatus(`${ch.name}: ${ch.class || '?'}${ch.spec ? ' · '+ch.spec : ''}${ch.ilvl ? ' · '+ch.ilvl : ''}`, 'ok');
+      setRosterStatus(
+        `${player}: ${ch.class || '?'}${ch.spec ? ' · ' + ch.spec : ''}${ch.ilvl ? ' · i' + ch.ilvl : ''} · ${ch.source || 'auto'}`,
+        'ok'
+      );
     } catch (err) {
       setRosterStatus(err.message || String(err), 'err');
     } finally {
@@ -2689,41 +2686,34 @@ a.wh-name > span[style*="background"],
       renderRoster();
     }
   });
-  $('rosterLookupAll').addEventListener('click', async () => {
-    if (!can('gearSync')) { setRosterStatus('Your role cannot gear-sync.', 'err'); return; }
-    if (!window.WowApi || !window.WowApi.isConfigured()) {
-      setRosterStatus('Configure config.js first.', 'err'); return;
-    }
-    const { realm } = getRosterRealmGame();
-    if (!realm) { setRosterStatus('Enter realm first.', 'err'); return; }
-    const names = [...new Set(entries.map(e => e.player).filter(Boolean))];
-    let ok = 0, fail = 0;
-    $('rosterLookupAll').disabled = true;
-    for (let i = 0; i < names.length; i++) {
-      const p = names[i];
-      lookupBusy.add(p.toLowerCase());
-      renderRoster();
-      try { await lookupOne(p); ok++; } catch { fail++; }
-      lookupBusy.delete(p.toLowerCase());
-      setRosterStatus(`${i+1}/${names.length} · ${ok} ok · ${fail} miss`);
-      await new Promise(r => setTimeout(r, 280));
-    }
-    $('rosterLookupAll').disabled = false;
-    onRosterChanged('gear sync all');
-    renderRoster();
-    setRosterStatus(`Done: ${ok} synced, ${fail} missed on ${realm}.`, fail && !ok ? 'err' : 'ok');
-  });
-  $('rosterTestApi').addEventListener('click', async () => {
-    if (!window.WowApi) { setRosterStatus('WowApi missing', 'err'); return; }
-    if (!window.WowApi.isConfigured()) { setRosterStatus('Set blizzardProxyUrl in config.js', 'err'); return; }
-    setRosterStatus('Testing…');
-    const h = await window.WowApi.health();
-    if (h.ok && h.hasCredentials) setRosterStatus(`API ok · ${h.region || 'us'}`, 'ok');
-    else if (h.ok) setRosterStatus('Proxy up but secrets missing', 'err');
-    else setRosterStatus(h.error || 'Unreachable', 'err');
-  });
+  if ($('rosterLookupAll')) {
+    $('rosterLookupAll').addEventListener('click', async () => {
+      $('rosterLookupAll').disabled = true;
+      setRosterStatus('Auto gear sync…');
+      try {
+        await runAutoGearSync({ silent: false });
+      } finally {
+        $('rosterLookupAll').disabled = false;
+        renderRoster();
+      }
+    });
+  }
+  if ($('rosterTestApi')) {
+    $('rosterTestApi').addEventListener('click', async () => {
+      if (!window.WowApi || !WowApi.isConfigured()) {
+        setRosterStatus('No Blizzard proxy — using RH + loot auto sync', 'ok');
+        return;
+      }
+      setRosterStatus('Testing…');
+      const h = await WowApi.health();
+      if (h.ok && h.hasCredentials) setRosterStatus(`API ok · ${h.region || 'us'}`, 'ok');
+      else if (h.ok) setRosterStatus('Proxy up but secrets missing', 'err');
+      else setRosterStatus(h.error || 'Unreachable', 'err');
+    });
+  }
   ['rosterRealm','rosterGame'].forEach(id => {
-    $(id).addEventListener('change', () => { getRosterRealmGame(); updateGuildHeader(); });
+    const el = $(id);
+    if (el) el.addEventListener('change', () => { getRosterRealmGame(); updateGuildHeader(); });
   });
 
   if ($('itemsFilter')) $('itemsFilter').addEventListener('input', renderItems);
