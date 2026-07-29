@@ -8,6 +8,7 @@
 <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true, iconSize: 'medium'};</script>
 <script src="https://wow.zamimg.com/js/tooltips.js"></script>
 <script src="config.js"></script>
+<script src="js/accounts.js"></script>
 <script src="js/wow-api.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -295,6 +296,42 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 .share-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:20px 0 8px}
 .share-hint{text-align:center;color:var(--muted);font-size:13px;max-width:480px;margin:0 auto 8px;line-height:1.5}
 
+/* Settings */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:720px){.settings-grid{grid-template-columns:1fr}}
+.settings-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 16px 14px;
+}
+.settings-card h3{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--orange);margin:0 0 12px;
+}
+.settings-card label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+.settings-card .field{margin-bottom:10px}
+.settings-card .check{
+  display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);margin:8px 0;cursor:pointer;
+}
+.settings-card .check input{width:auto;accent-color:var(--amber)}
+.role-pill{
+  display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);
+}
+.role-pill.admin{color:var(--amber2);border-color:rgba(232,168,58,.4)}
+.role-pill.lootmaster{color:var(--orange);border-color:rgba(255,122,47,.4)}
+.role-pill.officer{color:#b388ff;border-color:rgba(179,136,255,.35)}
+.user-row-actions{display:flex;gap:6px;flex-wrap:wrap}
+.session-chip{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+}
+.session-chip b{color:var(--amber2);font-weight:600}
+.gate{
+  max-width:420px;margin:40px auto;background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:28px 22px;text-align:center;
+}
+.gate h2{font-family:'Fraunces',serif;margin:0 0 8px}
+.gate p{color:var(--muted);font-size:14px;line-height:1.5;margin:0 0 16px}
+
 .manual{margin-top:12px}
 .manual summary{cursor:pointer;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px}
 .manual-grid{display:grid;grid-template-columns:1fr 1fr 120px 140px auto;gap:8px;margin-top:10px}
@@ -324,17 +361,29 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
       </div>
     </header>
 
-    <nav class="tabs" role="tablist">
+    <nav class="tabs" role="tablist" id="mainTabs">
       <button class="tab active" data-tab="overview" type="button">Overview</button>
       <button class="tab" data-tab="ledger" type="button">Ledger</button>
       <button class="tab" data-tab="roster" type="button">Roster</button>
       <button class="tab" data-tab="items" type="button">Items</button>
       <button class="tab" data-tab="raids" type="button">Raids</button>
+      <button class="tab" data-tab="settings" type="button">Settings</button>
     </nav>
 
-    <div class="authbar">
-      <button class="lock-btn" id="lockBtn" type="button">🔒 Lootmaster Login</button>
+    <div class="authbar" id="authBar">
+      <span class="session-chip hidden" id="sessionChip"></span>
+      <button class="lock-btn" id="lockBtn" type="button">🔐 Account Login</button>
+      <button class="lock-btn on hidden" id="logoutBtn" type="button">Log out</button>
     </div>
+
+    <!-- Login required gate -->
+    <div class="gate hidden" id="loginGate">
+      <h2>Members only</h2>
+      <p>This guild ledger requires an account. Ask an admin for a username and password.</p>
+      <button class="btn btn-amber" id="gateLoginBtn" type="button">Log in</button>
+    </div>
+
+    <div id="appMain">
 
     <!-- OVERVIEW -->
     <section id="panel-overview" class="panel">
@@ -489,23 +538,182 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
       <div class="empty" id="raidsEmpty" hidden>No raid nights yet.</div>
     </section>
 
+    <!-- SETTINGS -->
+    <section id="panel-settings" class="panel" hidden>
+      <div class="section-title">// Settings</div>
+
+      <div id="settingsLocked" class="notice hidden">
+        🔐 Log in as <b>Admin</b> to manage guild settings and accounts. Anyone can change their own password when logged in.
+      </div>
+
+      <div class="settings-grid">
+        <div class="settings-card" id="cardGuild">
+          <h3>Guild</h3>
+          <div class="field">
+            <label for="setGuildName">Guild name</label>
+            <input class="input" id="setGuildName" placeholder="Midnight Rodeo" />
+          </div>
+          <div class="field">
+            <label for="setRealm">Default realm</label>
+            <input class="input" id="setRealm" placeholder="Realm name" />
+          </div>
+          <div class="field">
+            <label for="setGame">Classic game</label>
+            <select class="input" id="setGame">
+              <option value="classic">Classic (progression)</option>
+              <option value="classic1x">Classic Era (1.x)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="setRegion">Region</label>
+            <select class="input" id="setRegion">
+              <option value="us">US</option>
+              <option value="eu">EU</option>
+              <option value="kr">KR</option>
+              <option value="tw">TW</option>
+            </select>
+          </div>
+          <button class="btn btn-amber" id="saveGuildBtn" type="button">Save guild settings</button>
+          <span class="msg" id="guildSaveMsg" style="margin-left:8px"></span>
+        </div>
+
+        <div class="settings-card" id="cardAccess">
+          <h3>Access rules</h3>
+          <label class="check"><input type="checkbox" id="setRequireLogin" /> Require login to open the ledger</label>
+          <label class="check"><input type="checkbox" id="setPublicView" /> Public can view when login not required</label>
+          <label class="check"><input type="checkbox" id="setOfficerRoster" /> Officers can edit roster fields</label>
+          <label class="check"><input type="checkbox" id="setOfficerSync" /> Officers can gear-sync</label>
+          <label class="check"><input type="checkbox" id="setViewerExport" /> Viewers can export CSV / backup</label>
+          <button class="btn btn-amber" id="saveAccessBtn" type="button" style="margin-top:8px">Save access rules</button>
+          <span class="msg" id="accessSaveMsg" style="margin-left:8px"></span>
+          <p class="share-hint" style="text-align:left;margin-top:12px;max-width:none">
+            Roles: <b>Admin</b> (everything) · <b>Lootmaster</b> (brand/edit loot) · <b>Officer</b> (roster/sync) · <b>Viewer</b> (read).
+          </p>
+        </div>
+      </div>
+
+      <div class="settings-card" id="cardAccounts" style="margin-bottom:18px">
+        <h3>Accounts</h3>
+        <div class="toolbar" style="margin-bottom:12px">
+          <input class="input" id="newUserName" placeholder="Username" style="max-width:140px" />
+          <input class="input" id="newUserDisplay" placeholder="Display name" style="max-width:140px" />
+          <input class="input" id="newUserPass" type="password" placeholder="Password" style="max-width:140px" autocomplete="new-password" />
+          <select class="input" id="newUserRole" style="max-width:140px">
+            <option value="viewer">Viewer</option>
+            <option value="officer">Officer</option>
+            <option value="lootmaster">Lootmaster</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="btn btn-orange" id="createUserBtn" type="button">+ Create account</button>
+          <span class="msg" id="createUserMsg"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Username</th><th>Display</th><th>Role</th><th>Last login</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="usersEmpty" hidden>No accounts yet — complete first-time setup.</div>
+      </div>
+
+      <div class="settings-grid">
+        <div class="settings-card" id="cardPassword">
+          <h3>Change my password</h3>
+          <div class="field">
+            <label for="curPass">Current password</label>
+            <input class="input" id="curPass" type="password" autocomplete="current-password" />
+          </div>
+          <div class="field">
+            <label for="newPass">New password</label>
+            <input class="input" id="newPass" type="password" autocomplete="new-password" />
+          </div>
+          <div class="field">
+            <label for="newPass2">Confirm new password</label>
+            <input class="input" id="newPass2" type="password" autocomplete="new-password" />
+          </div>
+          <button class="btn btn-amber" id="changePassBtn" type="button">Update password</button>
+          <span class="msg" id="passMsg" style="margin-left:8px"></span>
+        </div>
+
+        <div class="settings-card" id="cardApi">
+          <h3>Blizzard API</h3>
+          <p class="share-hint" style="text-align:left;max-width:none;margin:0 0 10px">
+            Character gear sync uses <code>config.js</code> → <code>blizzardProxyUrl</code>.
+            Deploy <code>api/blizzard-proxy</code> with Battle.net client id/secret.
+          </p>
+          <div class="field">
+            <label>Proxy status</label>
+            <div class="status" id="settingsApiStatus">Checking…</div>
+          </div>
+          <button class="btn btn-ghost" id="settingsTestApi" type="button">Test API</button>
+          <button class="btn btn-ghost" id="exportAccountsBtn" type="button">⬇ Export accounts backup</button>
+          <input type="file" id="importAccountsFile" accept="application/json,.json" hidden />
+          <button class="btn btn-ghost" id="importAccountsBtn" type="button">⬆ Import accounts</button>
+        </div>
+      </div>
+    </section>
+
+    </div><!-- #appMain -->
+
     <footer class="footer" id="footerMsg">loading…</footer>
   </div>
 </div>
 
-<!-- Auth modal -->
+<!-- Auth / setup modal -->
 <div class="backdrop hidden" id="authBackdrop">
   <div class="modal modal-sm">
-    <div class="modal-title" id="authTitle">Lootmaster Login</div>
+    <div class="modal-title" id="authTitle">Account login</div>
     <p class="modal-sub" id="authHint"></p>
-    <input class="input" type="password" id="authPass" placeholder="Password" autocomplete="off" style="margin:10px 0 8px" />
-    <input class="input" type="password" id="authPass2" placeholder="Confirm password" autocomplete="off" hidden style="margin-bottom:8px" />
+    <input class="input" id="authUser" placeholder="Username" autocomplete="username" style="margin:10px 0 8px" />
+    <input class="input" type="password" id="authPass" placeholder="Password" autocomplete="current-password" style="margin-bottom:8px" />
+    <input class="input" type="password" id="authPass2" placeholder="Confirm password" autocomplete="new-password" hidden style="margin-bottom:8px" />
+    <input class="input" id="authDisplay" placeholder="Display name (optional)" hidden style="margin-bottom:8px" />
+    <label class="check" id="authRememberRow" style="justify-content:flex-start;margin:4px 0 8px">
+      <input type="checkbox" id="authRemember" checked /> Remember me on this device
+    </label>
     <div class="err-line" id="authErr"></div>
     <div class="row">
       <button class="btn btn-amber" id="authSubmit" type="button">Log in</button>
       <button class="btn btn-ghost" id="authCancel" type="button">Cancel</button>
     </div>
-    <p class="disclaimer">UI convenience only — not real server security. Anyone with the password (or page access) can edit local data.</p>
+    <p class="disclaimer">Passwords are salted + SHA-256 hashed in this browser. This is not bank-grade server auth — anyone with DevTools on a shared PC could still inspect data. Use strong passwords and only create accounts for trusted officers.</p>
+  </div>
+</div>
+
+<!-- Edit user modal -->
+<div class="backdrop hidden" id="userEditBackdrop">
+  <div class="modal modal-sm">
+    <div class="modal-title">Edit account</div>
+    <p class="modal-sub" id="userEditSub"></p>
+    <input type="hidden" id="userEditId" />
+    <div class="field" style="margin:10px 0">
+      <label for="userEditDisplay">Display name</label>
+      <input class="input" id="userEditDisplay" />
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label for="userEditRole">Role</label>
+      <select class="input" id="userEditRole">
+        <option value="viewer">Viewer</option>
+        <option value="officer">Officer</option>
+        <option value="lootmaster">Lootmaster</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:10px">
+      <label for="userEditPass">New password (leave blank to keep)</label>
+      <input class="input" id="userEditPass" type="password" autocomplete="new-password" />
+    </div>
+    <label class="check"><input type="checkbox" id="userEditActive" checked /> Account active</label>
+    <div class="err-line" id="userEditErr"></div>
+    <div class="row">
+      <button class="btn btn-amber" id="userEditSave" type="button">Save</button>
+      <button class="btn btn-ghost" id="userEditCancel" type="button">Cancel</button>
+      <button class="btn btn-ghost" id="userEditDelete" type="button" style="color:var(--red)">Delete</button>
+    </div>
   </div>
 </div>
 
@@ -568,7 +776,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
 <script>
 (function () {
   const STORAGE_KEY = 'midnight-rodeo-loot-log';
-  const AUTH_KEY = 'midnight-rodeo-lootmaster-auth';
   const PLAYER_INFO_KEY = 'midnight-rodeo-player-info';
   const META_KEY = 'midnight-rodeo-meta';
 
@@ -580,14 +787,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   let meta = { registeredAt: null };
   let freshIds = new Set();
   let currentTab = 'overview';
-  let isUnlocked = false;
-  let authMode = 'login';
+  let authMode = 'login'; // 'login' | 'setup'
   let dcEditingId = null;
   let lookupBusy = new Set();
   let viewLogKey = null;
   let itemsSort = 'drops';
 
   const $ = (id) => document.getElementById(id);
+
+  function session() {
+    return window.Accounts ? window.Accounts.getSession() : null;
+  }
+  function canEdit() {
+    return !!(window.Accounts && window.Accounts.can('editLoot'));
+  }
+  function can(action) {
+    return !!(window.Accounts && window.Accounts.can(action));
+  }
+  function guildSettings() {
+    return window.Accounts ? window.Accounts.getSettings() : {};
+  }
 
   const store = {
     async get(key) {
@@ -742,14 +961,67 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   }
 
   function updateGuildHeader() {
+    const gs = guildSettings();
     const cfg = window.WowApi ? window.WowApi.getConfig() : {};
-    const realm = ($('rosterRealm') && $('rosterRealm').value) || cfg.defaultRealm || 'TBC Classic';
+    const realm = ($('rosterRealm') && $('rosterRealm').value) || gs.realm || cfg.defaultRealm || 'TBC Classic';
+    const name = gs.guildName || 'Midnight Rodeo';
+    const h1 = document.querySelector('.banner h1');
+    if (h1) {
+      // "Midnight Rodeo" styling: first word amber2, rest white — keep simple full name
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        h1.innerHTML = escapeHtml(parts[0]) + ' <span>' + escapeHtml(parts.slice(1).join(' ')) + '</span>';
+      } else {
+        h1.innerHTML = escapeHtml(name);
+      }
+    }
+    document.title = name + ' — Loot Ledger';
     $('guildRealmLabel').textContent = String(realm).toUpperCase();
-    if (meta.registeredAt) {
-      $('guildRegisteredLabel').textContent = 'REGISTERED: ' + dayKey(meta.registeredAt);
+    const reg = gs.registeredAt || meta.registeredAt;
+    if (reg) {
+      $('guildRegisteredLabel').textContent = 'REGISTERED: ' + dayKey(reg);
     } else {
       $('guildRegisteredLabel').textContent = 'LEDGER READY';
     }
+  }
+
+  function applyAccessGate() {
+    const gs = guildSettings();
+    const s = session();
+    const needLogin = !!gs.requireLogin && !s;
+    const blockPublic = gs.publicCanView === false && !s;
+    const gated = needLogin || blockPublic;
+
+    $('loginGate').classList.toggle('hidden', !gated);
+    $('appMain').classList.toggle('hidden', gated);
+    $('mainTabs').classList.toggle('hidden', gated);
+
+    // session chip
+    const chip = $('sessionChip');
+    const lockBtn = $('lockBtn');
+    const logoutBtn = $('logoutBtn');
+    if (s) {
+      chip.classList.remove('hidden');
+      chip.innerHTML = `<b>${escapeHtml(s.displayName || s.username)}</b> · ${escapeHtml(Accounts.roleLabel(s.role))}`;
+      lockBtn.classList.add('hidden');
+      logoutBtn.classList.remove('hidden');
+    } else {
+      chip.classList.add('hidden');
+      lockBtn.classList.remove('hidden');
+      lockBtn.textContent = Accounts && Accounts.isSetupNeeded() ? '⚡ First-time setup' : '🔐 Account Login';
+      logoutBtn.classList.add('hidden');
+    }
+
+    // edit surfaces
+    const unlocked = canEdit();
+    if ($('viewOnlyNotice')) {
+      $('viewOnlyNotice').hidden = unlocked || gated;
+      if (!unlocked && !gated) {
+        const role = s ? Accounts.roleLabel(s.role) : 'Guest';
+        $('viewOnlyNotice').innerHTML = `👁 <b>View only</b> (${escapeHtml(role)}). Lootmaster or Admin can brand and edit loot.`;
+      }
+    }
+    if ($('editControls')) $('editControls').hidden = !unlocked;
   }
 
   /* ---- Gargul parsing ---- */
@@ -929,78 +1201,115 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
     return n;
   }
 
-  /* ---- Auth ---- */
-  function simpleHash(str) {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    return (h >>> 0).toString(16);
-  }
-  async function loadAuthRecord() {
-    try {
-      const res = await store.get(AUTH_KEY);
-      return res && res.value ? JSON.parse(res.value) : null;
-    } catch { return null; }
-  }
-  async function saveAuthRecord(hash) {
-    try { await store.set(AUTH_KEY, JSON.stringify({ hash })); } catch {}
-  }
-  async function loadPersonalUnlock() {
-    try {
-      const res = await store.get('unlocked');
-      return !!(res && res.value === 'true');
-    } catch { return false; }
-  }
-  async function savePersonalUnlock(val) {
-    try { await store.set('unlocked', val ? 'true' : 'false'); } catch {}
-  }
-  function updateLockUI() {
-    const btn = $('lockBtn');
-    if (isUnlocked) {
-      btn.textContent = '🔓 Lootmaster · click to lock';
-      btn.classList.add('on');
-    } else {
-      btn.textContent = '🔒 Lootmaster Login';
-      btn.classList.remove('on');
-    }
-    $('viewOnlyNotice').hidden = isUnlocked;
-    $('editControls').hidden = !isUnlocked;
-  }
+  /* ---- Auth (multi-account) ---- */
   function openAuthModal(mode) {
     authMode = mode;
-    $('authTitle').textContent = mode === 'setup' ? 'Set lootmaster password' : 'Lootmaster login';
-    $('authHint').textContent = mode === 'setup'
-      ? 'Create a password for editing this ledger in this browser.'
-      : 'Enter the lootmaster password to unlock edits.';
+    const setup = mode === 'setup';
+    $('authTitle').textContent = setup ? 'Create admin account' : 'Account login';
+    $('authHint').textContent = setup
+      ? 'First-time setup: create the guild Admin account. You can add officers and lootmasters later in Settings.'
+      : 'Sign in with your guild account.';
+    $('authUser').value = '';
     $('authPass').value = '';
     $('authPass2').value = '';
-    $('authPass2').hidden = mode !== 'setup';
+    $('authDisplay').value = '';
+    $('authPass2').hidden = !setup;
+    $('authDisplay').hidden = !setup;
+    $('authRememberRow').style.display = setup ? 'none' : 'flex';
     $('authErr').textContent = '';
-    $('authSubmit').textContent = mode === 'setup' ? 'Set password' : 'Log in';
+    $('authSubmit').textContent = setup ? 'Create admin' : 'Log in';
     $('authBackdrop').classList.remove('hidden');
-    $('authPass').focus();
+    $('authUser').focus();
   }
   function closeAuthModal() { $('authBackdrop').classList.add('hidden'); }
+
+  function fillSettingsForm() {
+    const gs = guildSettings();
+    if ($('setGuildName')) $('setGuildName').value = gs.guildName || '';
+    if ($('setRealm')) $('setRealm').value = gs.realm || '';
+    if ($('setGame')) $('setGame').value = gs.game || 'classic';
+    if ($('setRegion')) $('setRegion').value = gs.region || 'us';
+    if ($('setRequireLogin')) $('setRequireLogin').checked = !!gs.requireLogin;
+    if ($('setPublicView')) $('setPublicView').checked = gs.publicCanView !== false;
+    if ($('setOfficerRoster')) $('setOfficerRoster').checked = gs.officersCanEditRoster !== false;
+    if ($('setOfficerSync')) $('setOfficerSync').checked = gs.officersCanGearSync !== false;
+    if ($('setViewerExport')) $('setViewerExport').checked = gs.viewersCanExport !== false;
+
+    const admin = can('manageSettings');
+    ['setGuildName','setRealm','setGame','setRegion','setRequireLogin','setPublicView','setOfficerRoster','setOfficerSync','setViewerExport','saveGuildBtn','saveAccessBtn','createUserBtn','newUserName','newUserDisplay','newUserPass','newUserRole','exportAccountsBtn','importAccountsBtn'].forEach(id => {
+      const el = $(id);
+      if (el) el.disabled = !admin && !['exportAccountsBtn'].includes(id);
+    });
+    // create user fields admin only
+    const lockAdmin = !admin;
+    if ($('cardAccounts')) $('cardAccounts').style.opacity = admin ? '1' : '.55';
+    if ($('cardGuild')) $('cardGuild').style.opacity = admin ? '1' : '.55';
+    if ($('cardAccess')) $('cardAccess').style.opacity = admin ? '1' : '.55';
+    if ($('settingsLocked')) $('settingsLocked').classList.toggle('hidden', !!session());
+
+    // password change only when logged in
+    const logged = !!session();
+    ['curPass','newPass','newPass2','changePassBtn'].forEach(id => {
+      if ($(id)) $(id).disabled = !logged;
+    });
+
+    renderUsersTable();
+  }
+
+  function renderUsersTable() {
+    if (!$('usersBody')) return;
+    if (!window.Accounts) return;
+    const users = Accounts.listUsers();
+    $('usersEmpty').hidden = users.length > 0;
+    const admin = can('manageUsers');
+    $('usersBody').innerHTML = users.map(u => `
+      <tr>
+        <td><code>${escapeHtml(u.username)}</code></td>
+        <td>${escapeHtml(u.displayName)}</td>
+        <td><span class="role-pill ${escapeHtml(u.role)}">${escapeHtml(Accounts.roleLabel(u.role))}</span></td>
+        <td class="muted">${u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : '—'}</td>
+        <td>${u.active ? '<span class="sync-ok">Active</span>' : '<span class="sync-miss">Disabled</span>'}</td>
+        <td class="user-row-actions">
+          ${admin ? `<button type="button" class="lookup-btn" data-edit-user="${escapeHtml(u.id)}">Edit</button>` : '—'}
+        </td>
+      </tr>`).join('');
+  }
+
+  function renderSettings() {
+    fillSettingsForm();
+    // API status
+    if (window.WowApi) {
+      if (WowApi.isConfigured()) {
+        $('settingsApiStatus').textContent = 'Proxy URL set in config.js';
+        $('settingsApiStatus').className = 'status ok';
+      } else {
+        $('settingsApiStatus').textContent = 'No blizzardProxyUrl in config.js';
+        $('settingsApiStatus').className = 'status';
+      }
+    }
+  }
 
   /* ---- Tabs ---- */
   function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    ['overview','ledger','roster','items','raids'].forEach(t => {
+    ['overview','ledger','roster','items','raids','settings'].forEach(t => {
       const el = $('panel-' + t);
       if (el) el.hidden = t !== tab;
     });
     renderCurrentTab();
-    if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
+    if (!String(location.hash).startsWith('#raid/') && location.hash !== '#' + tab) {
+      history.replaceState(null, '', '#' + tab);
+    }
   }
   function renderCurrentTab() {
+    applyAccessGate();
     if (currentTab === 'overview') renderOverview();
     else if (currentTab === 'ledger') renderLedger();
     else if (currentTab === 'roster') renderRoster();
     else if (currentTab === 'items') renderItems();
     else if (currentTab === 'raids') renderRaids();
+    else if (currentTab === 'settings') renderSettings();
     updateGuildHeader();
   }
 
@@ -1087,8 +1396,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
           </div>
           <div class="meta">
             <span>${fmtDate(e.date)}</span>
-            ${isUnlocked ? `<button class="icon-btn" data-dc="${e.id}" title="Disenchant">♻</button>` : ''}
-            ${isUnlocked ? `<button class="icon-btn" data-del="${e.id}" title="Remove">✕</button>` : ''}
+            ${canEdit() ? `<button class="icon-btn" data-dc="${e.id}" title="Disenchant">♻</button>` : ''}
+            ${canEdit() ? `<button class="icon-btn" data-del="${e.id}" title="Remove">✕</button>` : ''}
           </div>
         </div>`;
     }
@@ -1149,7 +1458,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
         ? `<span class="sync-ok">✓ ${fmtDateTime(info.lastGearSync)}</span>`
         : `<span class="sync-miss">—</span>`;
       const busy = lookupBusy.has(r.player.toLowerCase());
-      const rankCell = isUnlocked
+      const canRoster = can('editRoster');
+      const rankCell = canRoster
         ? `<select class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="rank" style="padding:4px 6px;font-size:12px;max-width:130px">
             ${RANKS.map(rk => `<option value="${rk}"${rank===rk?' selected':''}>${rk}</option>`).join('')}
            </select>`
@@ -1158,8 +1468,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
       return `<tr>
         <td>${rankCell}</td>
         <td class="player-name ${nameCls}">${escapeHtml(r.player)}</td>
-        <td>${isUnlocked && !cls ? `<span class="unsynced">— unsynced —</span>` : classSpec}</td>
-        <td>${isUnlocked
+        <td>${!cls ? '<span class="unsynced">— unsynced —</span>' : classSpec}</td>
+        <td>${canRoster
           ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="ilvl" value="${escapeHtml(info.ilvl||'')}" style="max-width:70px;padding:4px 6px" />`
           : ilvl}</td>
         <td class="num">${r.count}</td>
@@ -1354,52 +1664,64 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
     btn.addEventListener('click', () => switchTab(btn.dataset.goto));
   });
 
-  $('lockBtn').addEventListener('click', async () => {
-    if (isUnlocked) {
-      isUnlocked = false;
-      await savePersonalUnlock(false);
-      updateLockUI();
-      renderCurrentTab();
-      return;
-    }
-    const record = await loadAuthRecord();
-    openAuthModal(record ? 'login' : 'setup');
+  $('lockBtn').addEventListener('click', () => {
+    openAuthModal(Accounts.isSetupNeeded() ? 'setup' : 'login');
   });
+  if ($('gateLoginBtn')) {
+    $('gateLoginBtn').addEventListener('click', () => {
+      openAuthModal(Accounts.isSetupNeeded() ? 'setup' : 'login');
+    });
+  }
+  if ($('logoutBtn')) {
+    $('logoutBtn').addEventListener('click', () => {
+      Accounts.logout();
+      applyAccessGate();
+      renderCurrentTab();
+      $('footerMsg').textContent = 'Logged out.';
+    });
+  }
   $('authCancel').addEventListener('click', closeAuthModal);
   $('authBackdrop').addEventListener('click', (ev) => { if (ev.target.id === 'authBackdrop') closeAuthModal(); });
   $('authSubmit').addEventListener('click', async () => {
+    const user = ($('authUser').value || '').trim();
     const pass = $('authPass').value;
     const pass2 = $('authPass2').value;
-    if (!pass) { $('authErr').textContent = 'Enter a password.'; return; }
-    if (authMode === 'setup') {
-      if (pass.length < 4) { $('authErr').textContent = 'Use at least 4 characters.'; return; }
-      if (pass !== pass2) { $('authErr').textContent = "Passwords don't match."; return; }
-      await saveAuthRecord(simpleHash(pass));
-      isUnlocked = true;
-      await savePersonalUnlock(true);
-      closeAuthModal();
-      updateLockUI();
-      renderCurrentTab();
-    } else {
-      const record = await loadAuthRecord();
-      if (record && record.hash === simpleHash(pass)) {
-        isUnlocked = true;
-        await savePersonalUnlock(true);
+    const display = ($('authDisplay').value || '').trim();
+    $('authErr').textContent = '';
+    try {
+      if (authMode === 'setup') {
+        if (!user) { $('authErr').textContent = 'Enter a username.'; return; }
+        if (!pass) { $('authErr').textContent = 'Enter a password.'; return; }
+        if (pass !== pass2) { $('authErr').textContent = "Passwords don't match."; return; }
+        await Accounts.createFirstAdmin({ username: user, password: pass, displayName: display || user });
         closeAuthModal();
-        updateLockUI();
+        applyAccessGate();
         renderCurrentTab();
-      } else $('authErr').textContent = 'Wrong password.';
+        $('footerMsg').textContent = 'Admin account created. Open Settings to add officers.';
+      } else {
+        if (!user || !pass) { $('authErr').textContent = 'Enter username and password.'; return; }
+        await Accounts.login(user, pass, !!$('authRemember').checked);
+        closeAuthModal();
+        applyAccessGate();
+        renderCurrentTab();
+        const s = session();
+        $('footerMsg').textContent = `Signed in as ${s.displayName} (${Accounts.roleLabel(s.role)})`;
+      }
+    } catch (err) {
+      $('authErr').textContent = err.message || String(err);
     }
   });
-  ['authPass','authPass2'].forEach(id => {
-    $(id).addEventListener('keydown', (ev) => {
+  ['authUser','authPass','authPass2','authDisplay'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') $('authSubmit').click();
       if (ev.key === 'Escape') closeAuthModal();
     });
   });
 
   $('mrBrandBtn').addEventListener('click', async () => {
-    if (!isUnlocked) return;
+    if (!canEdit()) return;
     const parsed = parsePaste($('mrPaste').value);
     if (!parsed.length) { setMsg('Could not parse that export.', true); return; }
     const added = dedupeAdd(parsed);
@@ -1412,12 +1734,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   });
   $('mrClearPaste').addEventListener('click', () => { $('mrPaste').value = ''; });
   $('mrEnrichBtn').addEventListener('click', async () => {
-    if (!isUnlocked) return;
+    if (!canEdit()) return;
     await enrichItems(entries);
     renderCurrentTab();
   });
   $('manAddBtn').addEventListener('click', async () => {
-    if (!isUnlocked) return;
+    if (!canEdit()) return;
     const player = $('manPlayer').value.trim();
     const item = $('manItem').value.trim();
     const itemId = $('manItemId').value.trim().replace(/\D/g, '');
@@ -1438,13 +1760,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   $('mrFilter').addEventListener('input', renderLedger);
   $('mrSort').addEventListener('change', renderLedger);
   $('mrExportCsv').addEventListener('click', () => {
+    if (!can('export')) { setMsg('Export not allowed for your role.', true); return; }
     const rows = [['Player','Item Name','Item ID','Item iLvl','Reason','Quality','Disenchants Into','Raid Date']]
       .concat(currentFilterSort().map(e => [e.player,e.item,e.itemId||'',e.itemIlvl||'',e.rollType||'',e.quality||'',e.disenchantsInto||'',dayKey(e.date)]));
     downloadCsv('midnight-rodeo-ledger.csv', rows);
   });
 
   $('mrLedger').addEventListener('click', async (ev) => {
-    if (!isUnlocked) return;
+    if (!canEdit()) return;
     const del = ev.target.closest('[data-del]');
     if (del) {
       entries = entries.filter(e => e.id !== del.dataset.del);
@@ -1486,7 +1809,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   $('dcBackdrop').addEventListener('click', (ev) => { if (ev.target.id === 'dcBackdrop') $('dcBackdrop').classList.add('hidden'); });
 
   $('rosterBody').addEventListener('change', async (ev) => {
-    if (!isUnlocked) return;
+    if (!can('editRoster')) return;
     const el = ev.target.closest('.roster-field');
     if (!el) return;
     const player = el.dataset.player;
@@ -1501,6 +1824,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   $('rosterBody').addEventListener('click', async (ev) => {
     const btn = ev.target.closest('[data-lookup]');
     if (!btn) return;
+    if (!can('gearSync')) {
+      setRosterStatus('Your role cannot gear-sync.', 'err');
+      return;
+    }
     const player = btn.dataset.lookup;
     if (!window.WowApi || !window.WowApi.isConfigured()) {
       setRosterStatus('Add blizzardProxyUrl in config.js', 'err');
@@ -1522,6 +1849,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
     }
   });
   $('rosterLookupAll').addEventListener('click', async () => {
+    if (!can('gearSync')) { setRosterStatus('Your role cannot gear-sync.', 'err'); return; }
     if (!window.WowApi || !window.WowApi.isConfigured()) {
       setRosterStatus('Configure config.js first.', 'err'); return;
     }
@@ -1587,6 +1915,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
     }
   });
   $('exportAllBtn').addEventListener('click', () => {
+    if (!can('export')) { alert('Export not allowed for your role.'); return; }
     const blob = new Blob([JSON.stringify({ meta, entries, playerInfo, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1594,8 +1923,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   });
-  $('importAllBtn').addEventListener('click', () => $('importFile').click());
+  $('importAllBtn').addEventListener('click', () => {
+    if (!canEdit()) { alert('Only lootmaster/admin can import ledger data.'); return; }
+    $('importFile').click();
+  });
   $('importFile').addEventListener('change', async () => {
+    if (!canEdit()) return;
     const file = $('importFile').files && $('importFile').files[0];
     if (!file) return;
     try {
@@ -1615,13 +1948,205 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
     $('importFile').value = '';
   });
 
+  /* ---- Settings events ---- */
+  function setSaveMsg(id, text, err) {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text || '';
+    el.classList.toggle('err', !!err);
+    if (text) setTimeout(() => { if (el.textContent === text) el.textContent = ''; }, 3500);
+  }
+
+  if ($('saveGuildBtn')) {
+    $('saveGuildBtn').addEventListener('click', () => {
+      try {
+        const gs = Accounts.updateSettings({
+          guildName: $('setGuildName').value.trim() || 'Midnight Rodeo',
+          realm: $('setRealm').value.trim(),
+          game: $('setGame').value,
+          region: $('setRegion').value,
+        });
+        if ($('rosterRealm') && gs.realm) $('rosterRealm').value = gs.realm;
+        if ($('rosterGame') && gs.game) $('rosterGame').value = gs.game;
+        if (window.WowApi) WowApi.setUiPrefs({ realm: gs.realm, game: gs.game });
+        updateGuildHeader();
+        setSaveMsg('guildSaveMsg', 'Saved.', false);
+      } catch (e) {
+        setSaveMsg('guildSaveMsg', e.message, true);
+      }
+    });
+  }
+  if ($('saveAccessBtn')) {
+    $('saveAccessBtn').addEventListener('click', () => {
+      try {
+        Accounts.updateSettings({
+          requireLogin: !!$('setRequireLogin').checked,
+          publicCanView: !!$('setPublicView').checked,
+          officersCanEditRoster: !!$('setOfficerRoster').checked,
+          officersCanGearSync: !!$('setOfficerSync').checked,
+          viewersCanExport: !!$('setViewerExport').checked,
+        });
+        applyAccessGate();
+        setSaveMsg('accessSaveMsg', 'Saved.', false);
+      } catch (e) {
+        setSaveMsg('accessSaveMsg', e.message, true);
+      }
+    });
+  }
+  if ($('createUserBtn')) {
+    $('createUserBtn').addEventListener('click', async () => {
+      try {
+        await Accounts.createUser({
+          username: $('newUserName').value,
+          displayName: $('newUserDisplay').value,
+          password: $('newUserPass').value,
+          role: $('newUserRole').value,
+        });
+        $('newUserName').value = '';
+        $('newUserDisplay').value = '';
+        $('newUserPass').value = '';
+        setSaveMsg('createUserMsg', 'Account created.', false);
+        renderUsersTable();
+      } catch (e) {
+        setSaveMsg('createUserMsg', e.message, true);
+      }
+    });
+  }
+  if ($('usersBody')) {
+    $('usersBody').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-edit-user]');
+      if (!btn) return;
+      const id = btn.dataset.editUser;
+      const u = Accounts.listUsers().find(x => x.id === id);
+      if (!u) return;
+      $('userEditId').value = u.id;
+      $('userEditSub').textContent = '@' + u.username;
+      $('userEditDisplay').value = u.displayName || '';
+      $('userEditRole').value = u.role;
+      $('userEditPass').value = '';
+      $('userEditActive').checked = u.active !== false;
+      $('userEditErr').textContent = '';
+      $('userEditBackdrop').classList.remove('hidden');
+    });
+  }
+  if ($('userEditCancel')) {
+    $('userEditCancel').addEventListener('click', () => $('userEditBackdrop').classList.add('hidden'));
+  }
+  if ($('userEditBackdrop')) {
+    $('userEditBackdrop').addEventListener('click', (ev) => {
+      if (ev.target.id === 'userEditBackdrop') $('userEditBackdrop').classList.add('hidden');
+    });
+  }
+  if ($('userEditSave')) {
+    $('userEditSave').addEventListener('click', async () => {
+      try {
+        const patch = {
+          displayName: $('userEditDisplay').value,
+          role: $('userEditRole').value,
+          active: !!$('userEditActive').checked,
+        };
+        if ($('userEditPass').value) patch.password = $('userEditPass').value;
+        await Accounts.updateUser($('userEditId').value, patch);
+        $('userEditBackdrop').classList.add('hidden');
+        renderUsersTable();
+        applyAccessGate();
+      } catch (e) {
+        $('userEditErr').textContent = e.message || String(e);
+      }
+    });
+  }
+  if ($('userEditDelete')) {
+    $('userEditDelete').addEventListener('click', async () => {
+      if (!confirm('Delete this account permanently?')) return;
+      try {
+        await Accounts.deleteUser($('userEditId').value);
+        $('userEditBackdrop').classList.add('hidden');
+        renderUsersTable();
+      } catch (e) {
+        $('userEditErr').textContent = e.message || String(e);
+      }
+    });
+  }
+  if ($('changePassBtn')) {
+    $('changePassBtn').addEventListener('click', async () => {
+      try {
+        if ($('newPass').value !== $('newPass2').value) {
+          setSaveMsg('passMsg', "New passwords don't match.", true);
+          return;
+        }
+        await Accounts.changeOwnPassword($('curPass').value, $('newPass').value);
+        $('curPass').value = '';
+        $('newPass').value = '';
+        $('newPass2').value = '';
+        setSaveMsg('passMsg', 'Password updated.', false);
+      } catch (e) {
+        setSaveMsg('passMsg', e.message, true);
+      }
+    });
+  }
+  if ($('settingsTestApi')) {
+    $('settingsTestApi').addEventListener('click', async () => {
+      if (!window.WowApi || !WowApi.isConfigured()) {
+        $('settingsApiStatus').textContent = 'Set blizzardProxyUrl in config.js';
+        $('settingsApiStatus').className = 'status err';
+        return;
+      }
+      $('settingsApiStatus').textContent = 'Testing…';
+      const h = await WowApi.health();
+      if (h.ok && h.hasCredentials) {
+        $('settingsApiStatus').textContent = `API ok · region ${h.region || '?'}`;
+        $('settingsApiStatus').className = 'status ok';
+      } else if (h.ok) {
+        $('settingsApiStatus').textContent = 'Proxy up but secrets missing';
+        $('settingsApiStatus').className = 'status err';
+      } else {
+        $('settingsApiStatus').textContent = h.error || 'Unreachable';
+        $('settingsApiStatus').className = 'status err';
+      }
+    });
+  }
+  if ($('exportAccountsBtn')) {
+    $('exportAccountsBtn').addEventListener('click', () => {
+      try {
+        const data = Accounts.exportAccountsBundle();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'midnight-rodeo-accounts.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert(e.message || String(e));
+      }
+    });
+  }
+  if ($('importAccountsBtn')) {
+    $('importAccountsBtn').addEventListener('click', () => $('importAccountsFile').click());
+  }
+  if ($('importAccountsFile')) {
+    $('importAccountsFile').addEventListener('change', async () => {
+      const file = $('importAccountsFile').files && $('importAccountsFile').files[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        Accounts.importAccountsBundle(data, { merge: true });
+        renderSettings();
+        applyAccessGate();
+        alert('Accounts imported (merged).');
+      } catch (e) {
+        alert(e.message || 'Import failed');
+      }
+      $('importAccountsFile').value = '';
+    });
+  }
+
   function applyHash() {
     const h = (location.hash || '').replace(/^#/, '');
     if (h.startsWith('raid/')) {
       const key = h.slice(5);
       switchTab('raids');
       openViewLog(key);
-    } else if (['overview','ledger','roster','items','raids'].includes(h)) {
+    } else if (['overview','ledger','roster','items','raids','settings'].includes(h)) {
       switchTab(h);
     }
   }
@@ -1629,20 +2154,36 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
   /* ---- Init ---- */
   (async function init() {
     $('footerMsg').textContent = 'loading ledger…';
+    await Accounts.migrateLegacyAuth();
+
+    const gs = guildSettings();
     if (window.WowApi) {
       const cfg = window.WowApi.getConfig();
-      if (cfg.defaultRealm) $('rosterRealm').value = cfg.defaultRealm;
-      if (cfg.game) $('rosterGame').value = cfg.game;
+      const realm = gs.realm || cfg.defaultRealm || '';
+      const game = gs.game || cfg.game || 'classic';
+      if ($('rosterRealm') && realm) $('rosterRealm').value = realm;
+      if ($('rosterGame')) $('rosterGame').value = game;
       if (window.WowApi.isConfigured()) setRosterStatus('Proxy configured — Test API or Gear sync.');
       else setRosterStatus('Gear sync idle — set config.js when ready.');
     }
-    isUnlocked = await loadPersonalUnlock();
-    updateLockUI();
+
     await loadAll();
+    applyAccessGate();
     updateGuildHeader();
+
+    // First visit: prompt setup if no accounts
+    if (Accounts.isSetupNeeded()) {
+      openAuthModal('setup');
+    }
+
     if (location.hash) applyHash();
     else renderCurrentTab();
-    $('footerMsg').textContent = `Midnight Rodeo ledger · ${entries.length} item${entries.length===1?'':'s'} on record`;
+
+    const s = session();
+    const gname = guildSettings().guildName || 'Midnight Rodeo';
+    $('footerMsg').textContent = s
+      ? `${gname} · signed in as ${s.displayName} · ${entries.length} items`
+      : `${gname} · ${entries.length} item${entries.length===1?'':'s'} on record · guest`;
   })();
 
   window.addEventListener('hashchange', applyHash);

@@ -18,9 +18,23 @@ Modern guild loot council tool for **TBC Classic** aesthetics: Gargul imports, r
 ## Quick start
 
 1. Open `index.html` in a browser (or host on GitHub Pages).  
-2. **Lootmaster Login** → set a password (this browser only).  
-3. Paste a Gargul export on **Ledger** → **Brand it** (auto-resolves item names via Wowhead TBC).  
-4. Optional gear sync: deploy the Blizzard proxy and fill `config.js`.
+2. **First-time setup** → create the **Admin** account (username + password).  
+3. Open **Settings** → create Officer / Lootmaster / Viewer accounts, set guild name & realm.  
+4. Paste a Gargul export on **Ledger** → **Brand it** (auto-resolves item names via Wowhead TBC).  
+5. Optional gear sync: deploy the Blizzard proxy and fill `config.js`.
+
+## Accounts & roles
+
+| Role | Can do |
+|------|--------|
+| **Admin** | Everything + manage users/settings |
+| **Lootmaster** | Brand/edit/delete loot, DE notes, import backup |
+| **Officer** | Gear sync + roster fields (if allowed in Settings) |
+| **Viewer** | Read-only (export optional) |
+
+Passwords are **salted SHA-256** in `localStorage`. This stops casual edits; it is **not** server-side security. For real multi-officer sync, add Supabase next.
+
+Settings tab also covers: require login, public view, officer permissions, change-my-password, accounts backup import/export.
 
 ## Gargul
 
