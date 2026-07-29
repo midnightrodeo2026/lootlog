@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Midnight Rodeo — Loot Ledger</title>
 <meta name="description" content="Midnight Rodeo TBC Classic guild manager — Raid-Helper signups, roster, loot council, Gargul." />
-<script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true, iconSize: 'medium'};</script>
+<script>const whTooltips = {colorLinks: true, iconizeLinks: false, renameLinks: false, iconSize: 'medium'};</script>
 <script src="https://wow.zamimg.com/js/tooltips.js"></script>
 <script src="config.js"></script>
 <script src="js/accounts.js"></script>
@@ -304,8 +304,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   width:26px;height:26px;border-radius:8px;border:1px solid var(--line);
   background:var(--panel2);flex-shrink:0;overflow:hidden;
 }
-.item-ico img{width:100%;height:100%;display:block;object-fit:cover}
-.item-ico .wh{display:block;width:100%;height:100%}
+.item-ico img,.stamp img{
+  width:100%;height:100%;display:block;object-fit:cover;border:0;
+}
+/* Prevent Wowhead from injecting a second icon next to our own */
+.wh-name .iconsmall,
+.wh-name .iconmedium,
+.wh-name .iconlarge,
+.wh-name ins,
+a.wh-name > span[style*="background"],
+.item-cell a.wh-name::before,
+.lcard .wh-name .iconsmall{display:none!important}
 .wh-name{text-decoration:none;font-weight:600;letter-spacing:-.01em}
 .wh-name:hover{text-decoration:underline;text-underline-offset:2px}
 .recipients{color:var(--muted);font-size:13px;line-height:1.45}
@@ -1056,24 +1065,37 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     if (window.WowApi && WowApi.wowheadDataAttr) return WowApi.wowheadDataAttr(domain);
     return domain ? ` data-wowhead="domain=${domain}"` : '';
   }
-  function whIcon(itemId, domain) {
-    if (!itemId) return '';
-    const d = domain || '';
-    return `<a class="wh" href="${whHref(itemId, d)}"${whDataAttr(d)} target="_blank" rel="noopener"></a>`;
+  function itemIconUrl(e) {
+    if (e && e.iconUrl) return e.iconUrl;
+    if (e && e.icon) return `https://wow.zamimg.com/images/wow/icons/large/${e.icon}.jpg`;
+    return '';
+  }
+  /** Single icon for stamp / table — never a Wowhead empty link (avoids double icons) */
+  function stampIcon(e, initials) {
+    const src = itemIconUrl(e);
+    if (src) {
+      const d = itemDomain(e);
+      const href = e.itemId ? whHref(e.itemId, d) : '#';
+      return `<a href="${href}" target="_blank" rel="noopener" title="${escapeHtml(e.item || '')}"><img src="${escapeHtml(src)}" alt="" loading="lazy" /></a>`;
+    }
+    if (e && e.itemId) {
+      // Placeholder until Wowhead enrich fills iconUrl — no WH iconize
+      return `<span class="muted" style="font-size:11px">#</span>`;
+    }
+    return escapeHtml(initials || '??');
   }
   function itemLink(e) {
     const q = qualityClass(e.qualityNum != null ? e.qualityNum : e.quality);
     const name = escapeHtml(e.item || ('Item #' + (e.itemId || '?')));
     if (!e.itemId) return `<span class="${q}">${name}</span>`;
     const d = itemDomain(e);
+    // tooltip only — iconizeLinks is off; no icon beside the name
     return `<a class="wh-name ${q}" href="${whHref(e.itemId, d)}"${whDataAttr(d)} target="_blank" rel="noopener">${name}</a>`;
   }
   function itemCell(e) {
-    const d = itemDomain(e);
-    const ico = e.itemId
-      ? (e.iconUrl
-          ? `<div class="item-ico"><img src="${escapeHtml(e.iconUrl)}" alt="" loading="lazy" /></div>`
-          : `<div class="item-ico">${whIcon(e.itemId, d)}</div>`)
+    const src = itemIconUrl(e);
+    const ico = src
+      ? `<div class="item-ico"><img src="${escapeHtml(src)}" alt="" loading="lazy" /></div>`
       : `<div class="item-ico"></div>`;
     return `<div class="item-cell">${ico}${itemLink(e)}</div>`;
   }
