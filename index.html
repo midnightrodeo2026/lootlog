@@ -605,9 +605,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
       <div class="section-title">// Guild & raid roster (TBC)</div>
       <div class="controls">
         <input class="input" id="rosterRealm" placeholder="Realm" />
-        <select class="input" id="rosterGame" style="max-width:150px">
-          <option value="classic">Classic</option>
-          <option value="classic1x">Classic Era</option>
+        <select class="input" id="rosterGame" style="max-width:170px" title="TBC Classic only">
+          <option value="classic">TBC Classic only</option>
         </select>
         <button class="btn btn-orange" id="rosterLookupAll" type="button">Gear sync all</button>
         <button class="btn btn-ghost" id="rosterTestApi" type="button">Test API</button>
@@ -713,10 +712,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
             <input class="input" id="setRealm" placeholder="Realm name" />
           </div>
           <div class="field">
-            <label for="setGame">Classic game</label>
-            <select class="input" id="setGame">
-              <option value="classic">Classic (progression)</option>
-              <option value="classic1x">Classic Era (1.x)</option>
+            <label for="setGame">Expansion</label>
+            <select class="input" id="setGame" disabled title="This app is TBC Classic only">
+              <option value="classic" selected>Burning Crusade Classic (TBC only)</option>
             </select>
           </div>
           <div class="field">
@@ -795,9 +793,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         </div>
 
         <div class="settings-card" id="cardApi">
-          <h3>Integrations · TBC</h3>
+          <h3>Integrations · TBC Classic only</h3>
           <p class="share-hint" style="text-align:left;max-width:none;margin:0 0 10px">
-            <b>Expansion:</b> Burning Crusade Classic only (Wowhead TBC items).<br/>
+            This guild manager is <b>Burning Crusade Classic only</b> — not retail, not Era, not later Classic phases.
+            Items use Wowhead <b>TBC</b> only. Use TBC item IDs in Gargul.<br/>
             Gear sync: <code>config.js</code> → <code>blizzardProxyUrl</code>.
           </p>
           <div class="field">

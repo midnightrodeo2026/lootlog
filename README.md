@@ -1,6 +1,8 @@
-# Midnight Rodeo — Loot Ledger
+# Midnight Rodeo — TBC Classic Guild Manager
 
-Modern guild loot council tool for **TBC Classic** aesthetics: Gargul imports, raid view logs, item distribution, and Blizzard Classic gear sync.
+**Burning Crusade Classic only.** Not retail, not Classic Era, not Wrath/Cata/MoP.
+
+Guild loot council + Raid-Helper roster + Gargul imports + raid logs for **Midnight Rodeo**.
 
 **Repo:** https://github.com/vorlof69/lootlog  
 **Live site (GitHub Pages):** https://vorlof69.github.io/lootlog/  

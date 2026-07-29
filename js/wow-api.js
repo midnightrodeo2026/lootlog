@@ -32,13 +32,16 @@
 
   function getConfig() {
     const c = Object.assign({}, DEFAULTS, global.LOOTLOG_CONFIG || {});
+    // Hard-lock: this app is TBC Classic only
     c.expansion = 'tbc';
+    c.tbcOnly = true;
     c.itemDataEnvs = [TBC_DATA_ENV];
+    c.game = c.game === 'classic1x' ? 'classic' : (c.game || 'classic');
     try {
       const realm = localStorage.getItem('lootlog-default-realm');
-      const game = localStorage.getItem('lootlog-game');
       if (realm) c.defaultRealm = realm;
-      if (game) c.game = game;
+      // Never persist Era / other expansions
+      localStorage.setItem('lootlog-game', 'classic');
     } catch (_) {}
     return c;
   }

@@ -1,6 +1,6 @@
-// Midnight Rodeo — TBC Classic guild manager config
+// Midnight Rodeo — TBC Classic ONLY guild manager
+// Not retail · not Classic Era · not Wrath/Cata/MoP
 window.LOOTLOG_CONFIG = {
-  // Optional Blizzard armory proxy (see api/blizzard-proxy)
   blizzardProxyUrl: '',
 
   region: 'us',
@@ -8,9 +8,11 @@ window.LOOTLOG_CONFIG = {
   defaultRealm: '',
   locale: 'en_US',
   guildName: 'Midnight Rodeo',
-  expansion: 'tbc',
 
-  // Default Raid-Helper event (Discord raid signups)
-  // Example: https://raid-helper.xyz/event/1530078606578024520
+  // Locked expansion
+  expansion: 'tbc',
+  tbcOnly: true,
+
+  // Default Raid-Helper event (Discord)
   raidHelperEventUrl: 'https://raid-helper.xyz/event/1530078606578024520',
 };
