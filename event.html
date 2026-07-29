@@ -266,8 +266,11 @@ a:hover{text-decoration:underline}
   text-shadow:0 0 8px rgba(0,0,0,.55);
 }
 .person .sp{
-  display:block;font-size:10.5px;color:var(--dim);font-weight:500;
+  display:block;font-size:11px;color:var(--muted);font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;
+}
+.person .sp .role-tag{
+  color:var(--dim);font-weight:500;font-size:10.5px;
 }
 .person .loc{
   flex-shrink:0;font-size:9px;font-weight:800;letter-spacing:.04em;
@@ -311,11 +314,37 @@ a:hover{text-decoration:underline}
 }
 .links a.cta:hover{border-color:var(--blurple);color:#fff}
 
-.gif-box{
-  margin-top:14px;border-radius:10px;overflow:hidden;max-width:100%;
-  background:#0d0e10;border:1px solid var(--border);
+/* Event banner (RH image or branded fallback) */
+.banner{
+  position:relative;margin:0 0 16px;border-radius:10px;overflow:hidden;
+  border:1px solid var(--border);background:#0d0e10;min-height:120px;
 }
-.gif-box img{display:block;width:100%;height:auto;max-height:180px;object-fit:cover}
+.banner img.banner-img{
+  display:block;width:100%;height:auto;max-height:200px;object-fit:cover;
+  vertical-align:middle;
+}
+.banner img.banner-img[hidden]{display:none}
+.banner-fallback{
+  display:flex;align-items:center;gap:14px;padding:18px 16px;
+  min-height:120px;
+  background:
+    linear-gradient(135deg, rgba(227,161,60,.18), transparent 55%),
+    linear-gradient(180deg, #2a1710 0%, #1a1b1e 100%);
+}
+.banner-fallback[hidden]{display:none}
+.banner-fallback .ico{
+  width:56px;height:56px;border-radius:14px;object-fit:cover;flex-shrink:0;
+  border:1px solid rgba(227,161,60,.4);
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+  background:linear-gradient(135deg,#e3a13c,#6b4726);
+}
+.banner-fallback .btitle{
+  font-weight:800;font-size:18px;letter-spacing:.01em;color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+}
+.banner-fallback .bsub{
+  font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:500;
+}
 
 /* Local signup (collapsed by default) */
 .signup-box{
@@ -396,6 +425,17 @@ a:hover{text-decoration:underline}
 
     <div class="tiles" id="tiles" aria-label="Event title"></div>
 
+    <div class="banner" id="banner">
+      <img class="banner-img" id="bannerImg" alt="Event banner" hidden />
+      <div class="banner-fallback" id="bannerFallback">
+        <img class="ico" id="bannerIco" alt="" width="56" height="56" />
+        <div>
+          <div class="btitle" id="bannerTitle">Midnight Rodeo</div>
+          <div class="bsub" id="bannerSub">Raid signup board</div>
+        </div>
+      </div>
+    </div>
+
     <div class="leader-row">
       <span class="flag" aria-hidden="true">🚩</span>
       <span id="leader">—</span>
@@ -428,10 +468,6 @@ a:hover{text-decoration:underline}
       <a href="index.html#bosses">Bosses</a>
       <a href="index.html#raids">Raids</a>
       <a href="index.html#roster">Roster</a>
-    </div>
-
-    <div class="gif-box" id="gifBox" hidden>
-      <img id="gifImg" alt="Event banner" />
     </div>
   </div>
 
@@ -560,6 +596,21 @@ a:hover{text-decoration:underline}
       <div class="role-pill tank"><span class="n">${m.counts.tanks}</span><span class="l">🛡 Tanks</span></div>
     `;
 
+    function formatPersonSpec(p) {
+      const bits = [];
+      if (p.spec) bits.push(p.spec);
+      else if (p.class && !/^(tank|absence|tentative|late|bench)$/i.test(p.class))
+        bits.push(p.class);
+      const role =
+        p.role && !/^(absence|tentative|late|bench)$/i.test(p.role) ? p.role : '';
+      if (!bits.length && role) return '<span class="sp">' + escapeHtml(role) + '</span>';
+      if (!bits.length) return '';
+      const roleHtml = role
+        ? ' <span class="role-tag">· ' + escapeHtml(role) + '</span>'
+        : '';
+      return '<span class="sp">' + escapeHtml(bits.join(' ')) + roleHtml + '</span>';
+    }
+
     if (!m.classCols || !m.classCols.length) {
       el('classes').innerHTML = '<div class="empty-classes">No signups yet — be the first on Raid-Helper.</div>';
     } else {
@@ -569,15 +620,13 @@ a:hover{text-decoration:underline}
           const rm = p.local
             ? '<button type="button" class="rm" data-rm="' + escapeHtml(p.name) + '" title="Remove local">×</button>'
             : '';
-          const spec = p.spec
-            ? '<span class="sp">' + escapeHtml(p.spec) + (p.role ? ' · ' + escapeHtml(p.role) : '') + '</span>'
-            : (p.role ? '<span class="sp">' + escapeHtml(p.role) + '</span>' : '');
+          const tip = [p.name, p.spec, p.role, p.class].filter(Boolean).join(' · ');
           return `
-            <div class="person" title="${escapeHtml((p.spec || '') + ' ' + (p.role || ''))}">
+            <div class="person" title="${escapeHtml(tip)}">
               <span class="pos">${p.position || '·'}</span>
               <div class="info">
                 <span class="nm" style="color:${col.color}">${escapeHtml(p.name)}</span>
-                ${spec}
+                ${formatPersonSpec(p)}
               </div>
               ${localBadge}${rm}
             </div>`;
@@ -593,34 +642,32 @@ a:hover{text-decoration:underline}
       }).join('');
     }
 
-    // Footer: late / bench / tentative / absence
+    // Footer: late / bench / tentative / absence (with specs)
     const foot = [];
+    function footPeople(list) {
+      return list.map((p) => {
+        if (p.spec) return escapeHtml(p.name) + ' (' + escapeHtml(p.spec) + ')';
+        return escapeHtml(p.name);
+      }).join(', ');
+    }
     if (m.late && m.late.length) {
       foot.push(
-        `<div class="line">⏰ <strong>Late (${m.late.length}):</strong> ${
-          m.late.map((p) => escapeHtml(p.name)).join(', ')
-        }</div>`
+        `<div class="line">⏰ <strong>Late (${m.late.length}):</strong> ${footPeople(m.late)}</div>`
       );
     }
     if (m.bench && m.bench.length) {
       foot.push(
-        `<div class="line">🪑 <strong>Bench (${m.bench.length}):</strong> ${
-          m.bench.map((p) => escapeHtml(p.name)).join(', ')
-        }</div>`
+        `<div class="line">🪑 <strong>Bench (${m.bench.length}):</strong> ${footPeople(m.bench)}</div>`
       );
     }
     if (m.tentative && m.tentative.length) {
       foot.push(
-        `<div class="line">🕐 <strong>Tentative (${m.tentative.length}):</strong> ${
-          m.tentative.map((p) => escapeHtml(p.name)).join(', ')
-        }</div>`
+        `<div class="line">🕐 <strong>Tentative (${m.tentative.length}):</strong> ${footPeople(m.tentative)}</div>`
       );
     }
     if (m.absence && m.absence.length) {
       foot.push(
-        `<div class="line">⌀ <strong>Absence (${m.absence.length}):</strong> ${
-          m.absence.map((p) => escapeHtml(p.name)).join(', ')
-        }</div>`
+        `<div class="line">⌀ <strong>Absence (${m.absence.length}):</strong> ${footPeople(m.absence)}</div>`
       );
     }
     foot.push(
@@ -631,12 +678,62 @@ a:hover{text-decoration:underline}
     el('footerLines').innerHTML = foot.join('');
 
     el('linkRh').href = m.rhUrl || '#';
-    if (m.image) {
-      el('gifBox').hidden = false;
-      if (el('gifImg').src !== m.image) el('gifImg').src = m.image;
+    renderBanner(m);
+  }
+
+  function renderBanner(m) {
+    const img = el('bannerImg');
+    const fallback = el('bannerFallback');
+    const ico = el('bannerIco');
+    const title = el('bannerTitle');
+    const sub = el('bannerSub');
+    if (!img || !fallback) return;
+
+    title.textContent = m.title || 'Midnight Rodeo';
+    sub.textContent = [m.datePretty || m.date, m.time, m.leader ? 'Lead ' + m.leader : '']
+      .filter(Boolean)
+      .join(' · ');
+
+    const iconUrl = m.serverIcon || '';
+    if (iconUrl) {
+      ico.hidden = false;
+      if (ico.getAttribute('data-url') !== iconUrl) {
+        ico.setAttribute('data-url', iconUrl);
+        ico.src = iconUrl;
+      }
     } else {
-      el('gifBox').hidden = true;
+      ico.removeAttribute('src');
+      ico.removeAttribute('data-url');
+      ico.hidden = true;
     }
+
+    function showFallback() {
+      img.hidden = true;
+      img.removeAttribute('src');
+      img.removeAttribute('data-url');
+      fallback.hidden = false;
+    }
+
+    function showImage(url) {
+      img.onerror = () => showFallback();
+      img.onload = () => {
+        img.hidden = false;
+        fallback.hidden = true;
+      };
+      // Start with fallback visible until image loads (avoids empty hole)
+      fallback.hidden = false;
+      img.hidden = true;
+      if (img.getAttribute('data-url') !== url) {
+        img.setAttribute('data-url', url);
+        img.src = url;
+      } else if (img.complete && img.naturalWidth > 0) {
+        img.hidden = false;
+        fallback.hidden = true;
+      }
+    }
+
+    if (m.image) showImage(m.image);
+    else showFallback();
   }
 
   async function refresh(opts) {

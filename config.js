@@ -19,4 +19,8 @@ window.LOOTLOG_CONFIG = {
   // Share THIS link in Discord (our board — no need to open RH)
   // Live site: https://vorlof69.github.io/lootlog/event.html
   signupBoardPath: 'event.html',
+
+  // Optional event banner image (overrides RH advanced.image if set).
+  // RH Discord attachment URLs often expire — set a permanent URL here if needed.
+  eventBannerUrl: '',
 };

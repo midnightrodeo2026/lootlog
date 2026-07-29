@@ -231,7 +231,8 @@
       server: event.servername || '<Midnight Rodeo>',
       channel: event.channelName || '',
       description: event.description || event.description2 || '',
-      image: (event.advanced && event.advanced.image) || '',
+      image: resolveEventImage(event),
+      serverIcon: event.servericon || '',
       accent,
       target: TARGET_SIZE,
       counts: {
@@ -253,6 +254,39 @@
       all: signups,
       raw: event,
     };
+  }
+
+  /**
+   * RH often stores Discord attachment URLs with expired signed query params.
+   * Prefer a usable image; empty string means UI should use branded fallback.
+   */
+  function resolveEventImage(event) {
+    const cfg =
+      (typeof window !== 'undefined' && window.LOOTLOG_CONFIG) || {};
+    const adv = event && event.advanced ? event.advanced : {};
+    const candidates = [
+      cfg.eventBannerUrl,
+      adv.image,
+      adv.thumbnail && adv.thumbnail !== 'none' ? adv.thumbnail : '',
+      event.image,
+      event.banner,
+    ].filter(Boolean);
+    for (let i = 0; i < candidates.length; i++) {
+      const url = String(candidates[i]).trim();
+      if (!url || url === 'none') continue;
+      if (!/^https?:\/\//i.test(url)) continue;
+      // Discord CDN signed links: ex=<hex unix> — skip clearly expired
+      if (isExpiredDiscordCdn(url)) continue;
+      return url;
+    }
+    return '';
+  }
+
+  function isExpiredDiscordCdn(url) {
+    const m = String(url).match(/[?&]ex=([0-9a-f]+)/i);
+    if (!m) return false;
+    const expMs = parseInt(m[1], 16) * 1000;
+    return Number.isFinite(expMs) && expMs < Date.now() - 60 * 1000;
   }
 
   /** "255,0,0" or "#ff0000" → css color */
@@ -411,24 +445,28 @@
     (model.classCols || []).forEach((col) => {
       lines.push(`**${col.class} (${col.people.length})**`);
       col.people.forEach((p) => {
-        const spec = p.spec ? ` · ${p.spec}` : '';
-        lines.push(`\`${String(p.position).padStart(2, ' ')}\` ${p.name}${spec}`);
+        const spec = p.spec ? ` — ${p.spec}` : '';
+        const role = p.role && !/^(melee|ranged|healers|tanks)$/i.test(p.role)
+          ? ` [${p.role}]`
+          : '';
+        lines.push(`\`${String(p.position).padStart(2, ' ')}\` ${p.name}${spec}${role}`);
       });
       lines.push('');
     });
+    function nameSpec(p) {
+      return p.spec ? `${p.name} (${p.spec})` : p.name;
+    }
     if (model.late && model.late.length) {
-      lines.push(`**Late:** ${model.late.map((p) => p.name).join(', ')}`);
+      lines.push(`**Late:** ${model.late.map(nameSpec).join(', ')}`);
     }
     if (model.bench && model.bench.length) {
-      lines.push(`**Bench:** ${model.bench.map((p) => p.name).join(', ')}`);
+      lines.push(`**Bench:** ${model.bench.map(nameSpec).join(', ')}`);
     }
     if (model.tentative && model.tentative.length) {
-      lines.push(
-        `**Tentative:** ${model.tentative.map((p) => p.name).join(', ')}`
-      );
+      lines.push(`**Tentative:** ${model.tentative.map(nameSpec).join(', ')}`);
     }
     if (model.absence && model.absence.length) {
-      lines.push(`**Absence:** ${model.absence.map((p) => p.name).join(', ')}`);
+      lines.push(`**Absence:** ${model.absence.map(nameSpec).join(', ')}`);
     }
     lines.push('');
     const boardUrl =
