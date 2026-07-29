@@ -16,6 +16,26 @@
   const API_LEGACY_EVENT = BASE + '/api/event/';
   const API_V4_SERVER_EVENTS = BASE + '/api/v4/servers/';
 
+  /** Strip commas/quotes/whitespace from pasted keys */
+  function cleanApiKey(key) {
+    return String(key || '')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/^["'\s]+|["'\s]+$/g, '')
+      .replace(/[,\s]+$/g, '')
+      .trim();
+  }
+
+  function getProxyBase() {
+    try {
+      const cfg =
+        (typeof window !== 'undefined' && window.LOOTLOG_CONFIG) || {};
+      const u = (cfg.raidHelperProxyUrl || '').trim().replace(/\/+$/, '');
+      return u || '';
+    } catch {
+      return '';
+    }
+  }
+
   function extractEventId(input) {
     const s = String(input || '').trim();
     if (!s) return '';
@@ -245,7 +265,7 @@
    */
   async function listServerEvents(serverId, apiKey, opts) {
     const sid = String(serverId || '').trim();
-    const key = String(apiKey || '').trim();
+    const key = cleanApiKey(apiKey);
     if (!sid) throw new Error('Missing Discord server id');
     if (!key) {
       throw new Error(
@@ -260,30 +280,64 @@
     };
     if (page > 1) headers.Page = String(page);
 
-    // Prefer v4; docs sometimes show v3 path — try both
-    const urls = [
-      API_V4_SERVER_EVENTS + encodeURIComponent(sid) + '/events',
-      BASE + '/api/v3/servers/' + encodeURIComponent(sid) + '/events',
-    ];
+    // Prefer CORS proxy (GitHub Pages cannot call RH with Authorization header)
+    const proxy = getProxyBase();
+    const urls = [];
+    if (proxy) {
+      urls.push(
+        proxy +
+          '/v4/servers/' +
+          encodeURIComponent(sid) +
+          '/events' +
+          (page > 1 ? '?page=' + page : '')
+      );
+    }
+    urls.push(API_V4_SERVER_EVENTS + encodeURIComponent(sid) + '/events');
 
     let res = null;
     let data = null;
     let lastErr = '';
     for (const url of urls) {
-      res = await fetch(url, { headers, cache: 'no-store' });
+      try {
+        res = await fetch(url, { headers, cache: 'no-store' });
+      } catch (netErr) {
+        // Browser "Failed to fetch" = usually CORS from GitHub Pages
+        lastErr = 'network: ' + (netErr.message || netErr);
+        if (!proxy) {
+          throw new Error(
+            'Raid-Helper blocks API keys from the browser (CORS). ' +
+              'Deploy api/rh-proxy (Cloudflare Worker) and set config.raidHelperProxyUrl, ' +
+              'or paste a single event link instead. See api/rh-proxy/README.'
+          );
+        }
+        continue;
+      }
       if (res.ok) {
         data = await res.json();
         break;
       }
       const body = await res.text();
-      lastErr = res.status + ' ' + body.slice(0, 120);
+      lastErr = res.status + ' ' + body.slice(0, 160);
       if (res.status === 401 || res.status === 403) {
+        let reason = 'Invalid API key';
+        try {
+          const j = JSON.parse(body);
+          if (j.reason) reason = j.reason;
+        } catch (_) {}
         throw new Error(
-          'Invalid API key — run /apikey in Discord and paste the current key (do not share it publicly)'
+          reason +
+            ' — In Discord run /apikey, copy the key carefully (no commas/spaces), paste again. ' +
+            'If you shared the key publicly, refresh it with /apikey.'
         );
       }
     }
-    if (!data) throw new Error('Could not list server events (' + lastErr + ')');
+    if (!data) {
+      throw new Error(
+        'Could not list server events (' +
+          lastErr +
+          '). Use a fresh /apikey key and set raidHelperProxyUrl if on GitHub Pages.'
+      );
+    }
 
     // Response: array, or { events, page, pages, count, ... }
     const arr = Array.isArray(data)
@@ -403,21 +457,37 @@
   async function listGuildEvents(cfg) {
     const c = cfg || {};
     const sid = c.raidHelperServerId || c.serverId || '';
-    const apiKey = c.raidHelperApiKey || c.apiKey || '';
-    const calKey = c.raidHelperCalendarKey || c.calendarKey || '';
+    const apiKey = cleanApiKey(c.raidHelperApiKey || c.apiKey || '');
+    const calKey = String(c.raidHelperCalendarKey || c.calendarKey || '').trim();
 
+    let apiErr = null;
     if (sid && apiKey) {
-      const list = await listServerEvents(sid, apiKey);
-      list.source = 'api';
-      return list;
+      try {
+        const list = await listServerEvents(sid, apiKey);
+        list.source = 'api';
+        return list;
+      } catch (e) {
+        apiErr = e;
+        // fall through to calendar if available
+        if (!calKey) throw e;
+      }
     }
     if (sid && calKey) {
-      return listServerEventsViaCalendar(sid, calKey);
+      try {
+        return await listServerEventsViaCalendar(sid, calKey);
+      } catch (e) {
+        if (apiErr) throw apiErr;
+        throw e;
+      }
     }
+    if (apiErr) throw apiErr;
     throw new Error(
-      'Set Raid-Helper API key (Discord /apikey) or unrestricted calendar link to auto-load Midnight Rodeo events'
+      'Set Raid-Helper API key (Discord /apikey) + deploy rh-proxy for GitHub Pages, or paste a single event URL'
     );
   }
+
+  // expose cleaner
+  global.RaidHelperCleanApiKey = cleanApiKey;
 
   async function resolveActiveEvent(cfg) {
     const c = cfg || {};
@@ -511,5 +581,6 @@
     listGuildEvents,
     resolveActiveEvent,
     normalizeEventPayload,
+    cleanApiKey,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

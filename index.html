@@ -855,8 +855,9 @@ a.wh-name > span[style*="background"],
           <button class="btn btn-ghost" id="rhSaveApiBtn" type="button">Save key</button>
         </div>
         <p class="share-hint" style="margin:8px 0 0;max-width:none;text-align:left;font-size:12px">
-          Official docs: <a href="https://raid-helper.xyz/documentation/api" target="_blank" rel="noopener">raid-helper.xyz/documentation/api</a>
-          · In Discord run <b>/apikey</b> (admin) → paste once → Auto events lists every Midnight Rodeo raid.
+          Docs: <a href="https://raid-helper.xyz/documentation/api" target="_blank" rel="noopener">RH API</a>
+          · Discord <b>/apikey</b> → paste key (admin)
+          · GitHub Pages needs <b>api/rh-proxy</b> (CORS) — or paste one event URL and Import (no key).
         </p>
         <span class="msg" id="rhMsg" style="display:block;margin-top:8px"></span>
         <div id="rhUpcoming" class="rh-upcoming"></div>
@@ -1596,9 +1597,11 @@ a.wh-name > span[style*="background"],
   }
 
   function saveApiKeyFromInput() {
-    const raw = ($('rhApiKey') && $('rhApiKey').value.trim()) || '';
+    let raw = ($('rhApiKey') && $('rhApiKey').value) || '';
+    if (window.RaidHelper && RaidHelper.cleanApiKey) raw = RaidHelper.cleanApiKey(raw);
+    else raw = String(raw).replace(/[,\s]+$/g, '').trim();
     if (!raw) {
-      setRhMsg('Paste the API key from Discord /apikey.', true);
+      setRhMsg('Paste the API key from Discord /apikey (no commas).', true);
       return;
     }
     const c = rhConfig();
@@ -1607,12 +1610,23 @@ a.wh-name > span[style*="background"],
       setRhMsg('Missing server id in config.js (raidHelperServerId).', true);
       return;
     }
+    const proxy = ((window.LOOTLOG_CONFIG || {}).raidHelperProxyUrl || '').trim();
     try {
       Accounts.updateSettings({
         raidHelperServerId: serverId,
         raidHelperApiKey: raw,
       });
-      setRhMsg('API key saved locally — loading events…');
+      if ($('rhApiKey')) $('rhApiKey').value = '';
+      if ($('rhApiKey')) $('rhApiKey').placeholder = 'API key saved · paste new to replace';
+      if (!proxy) {
+        setRhMsg(
+          'Key saved. GitHub Pages needs the RH CORS proxy (api/rh-proxy) — or paste a single event URL to Import. See api/rh-proxy/README.md',
+          true
+        );
+        // Still try — may work on localhost
+      } else {
+        setRhMsg('API key saved — loading events via proxy…');
+      }
       refreshServerEvents({ silent: false });
     } catch (e) {
       setRhMsg(e.message || String(e), true);
