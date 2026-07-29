@@ -107,6 +107,14 @@ a{color:inherit}
   letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
 }
 .banner-meta .dot{opacity:.4;margin:0 10px}
+.banner-credit{
+  margin-top:14px;font-family:var(--font);font-size:13px;font-weight:500;
+  color:var(--muted);letter-spacing:-.01em;
+}
+.banner-credit b{
+  font-weight:600;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
 
 /* Tabs */
 .tabs{
@@ -393,6 +401,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   text-align:center;margin-top:40px;font-family:var(--font);
   font-size:12.5px;color:var(--muted);letter-spacing:-.01em;font-weight:450;
 }
+.footer-credit{
+  margin-top:10px;font-size:13px;font-weight:500;color:var(--muted);
+}
+.footer-credit b{
+  font-weight:600;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+}
 .share-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:22px 0 10px}
 .share-hint{text-align:center;color:var(--muted);font-size:13.5px;max-width:500px;margin:0 auto 8px;line-height:1.55}
 
@@ -468,6 +483,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
         <span class="dot">—</span>
         <span id="guildRegisteredLabel">LEDGER READY</span>
       </div>
+      <div class="banner-credit">Created by <b>Hornyslewt</b></div>
     </header>
 
     <nav class="tabs" role="tablist" id="mainTabs">
@@ -768,7 +784,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 
     </div><!-- #appMain -->
 
-    <footer class="footer" id="footerMsg">loading…</footer>
+    <footer class="footer">
+      <div id="footerMsg">loading…</div>
+      <div class="footer-credit">Created by <b>Hornyslewt</b></div>
+    </footer>
   </div>
 </div>
 
