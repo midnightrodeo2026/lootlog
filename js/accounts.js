@@ -172,20 +172,24 @@
   function can(action) {
     const s = getSession();
     const settings = loadSettings();
-    // Local gear sync (RH + loot) is always allowed — no Blizzard key needed
-    if (action === 'gearSync' || action === 'editRoster') {
+    const isAdmin = !!(s && s.role === 'admin');
+
+    // Everyone who can open the app may view (unless requireLogin / public locked)
+    if (action === 'view') {
       if (settings.requireLogin && !s) return false;
-      return true; // guests can sync/view roster fields from RH
+      if (!s && settings.publicCanView === false) return false;
+      return true;
     }
-    if (!s) {
-      if (settings.requireLogin) return false;
-      if (action === 'view') return settings.publicCanView !== false;
-      if (action === 'export') return settings.publicCanView !== false && settings.viewersCanExport !== false;
+
+    // All management is admin-only (roster pick 25, RH apply, Gargul, clear, etc.)
+    if (!isAdmin) {
+      if (action === 'export') {
+        // optional: guests never export backups
+        return false;
+      }
       return false;
     }
-    // Logged-in admin can do everything
-    if (s.role === 'admin') return true;
-    return false;
+    return true;
   }
 
   function canEdit() {

@@ -707,7 +707,8 @@ a.wh-name > span[style*="background"],
           <div class="card-d">Paste Gargul export when the night is done.</div>
         </button>
       </div>
-      <div class="share-row">
+      <div class="notice" id="ovViewOnly" hidden>👁 <b>View only.</b> Log in as <b>Admin</b> to manage roster, RH, comp, bosses, and loot.</div>
+      <div class="share-row" id="ovManageRow">
         <a class="btn btn-ghost" href="event.html" style="text-decoration:none">📋 Signup board</a>
         <button class="btn btn-ghost" id="copyLinkBtn" type="button">🔗 Copy guild link</button>
         <button class="btn btn-ghost" id="exportAllBtn" type="button">⬇ Export backup</button>
@@ -1636,8 +1637,9 @@ a.wh-name > span[style*="background"],
       logoutBtn.classList.add('hidden');
     }
 
-    // edit surfaces
-    const unlocked = canEdit();
+    // edit surfaces — admin only manages everything
+    const unlocked = canEdit(); // admin session
+    const isAdmin = !!session();
     if ($('viewOnlyNotice')) {
       $('viewOnlyNotice').hidden = unlocked || gated;
       if (!unlocked && !gated) {
@@ -1645,6 +1647,23 @@ a.wh-name > span[style*="background"],
       }
     }
     if ($('editControls')) $('editControls').hidden = !unlocked;
+    // Overview: management tools only for admin
+    if ($('ovViewOnly')) {
+      $('ovViewOnly').hidden = isAdmin || gated;
+    }
+    if ($('ovManageRow')) {
+      // Guests: signup board + copy link only; hide import/export/clear
+      const manageOnly = ['exportAllBtn', 'importAllBtn', 'clearDataBtn'];
+      manageOnly.forEach((id) => {
+        const el = $(id);
+        if (el) el.hidden = !isAdmin;
+      });
+    }
+    // Disable dangerous controls when not admin (extra safety)
+    document.querySelectorAll('[data-admin-only]').forEach((el) => {
+      el.hidden = !isAdmin;
+      if ('disabled' in el) el.disabled = !isAdmin;
+    });
   }
 
   /* ---- Gargul parsing ---- */
@@ -2408,6 +2427,7 @@ a.wh-name > span[style*="background"],
 
   /* ---- Renders ---- */
   function renderOverview() {
+    applyAccessGate();
     const groups = raidGroups();
     const players = new Set(entries.map(e => e.player));
     $('ovRaids').textContent = groups.length;
@@ -3616,6 +3636,10 @@ a.wh-name > span[style*="background"],
 
   if ($('clearDataBtn')) {
     $('clearDataBtn').addEventListener('click', async () => {
+      if (!canEdit()) {
+        alert('Admin only.');
+        return;
+      }
       if (!confirm('Clear ALL local data (loot, roster, raids)? This cannot be undone.')) return;
       entries = [];
       playerInfo = {};
