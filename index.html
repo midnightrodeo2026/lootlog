@@ -481,13 +481,26 @@ a.wh-name > span[style*="background"],
   color:var(--amber2);
 }
 .comp-group .cg-note{font-size:11.5px;color:var(--leather);margin-bottom:8px;line-height:1.4}
-.comp-group .cg-buffs{font-size:11px;color:var(--green);margin-bottom:8px;line-height:1.4}
+.comp-group .cg-buffs{font-size:11px;color:var(--green);margin-bottom:4px;line-height:1.45}
+.comp-group .cg-miss{font-size:11px;color:#e35d5d;margin-bottom:8px;line-height:1.45}
 .comp-group .cg-member{
   font-size:13px;padding:4px 0;border-bottom:1px solid rgba(44,53,96,.5);
   display:flex;justify-content:space-between;gap:6px;
 }
 .comp-group .cg-member:last-child{border-bottom:none}
 .comp-group .cg-spec{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.comp-cover{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:0 0 18px;
+}
+.comp-cover .cc-item{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:10px 12px;border-left:3px solid var(--muted);
+}
+.comp-cover .cc-item.good{border-left-color:var(--green)}
+.comp-cover .cc-item.warn{border-left-color:var(--amber)}
+.comp-cover .cc-item.bad{border-left-color:#e35d5d}
+.comp-cover .cc-label{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px}
+.comp-cover .cc-detail{font-size:11.5px;color:var(--muted);line-height:1.4}
 
 .gm-pitch{
   margin:14px 0 0;padding-left:20px;color:var(--muted);font-size:13.5px;line-height:1.55;
@@ -782,9 +795,11 @@ a.wh-name > span[style*="background"],
         <div class="stat"><div class="stat-n" id="compRanged">0</div><div class="stat-l">Ranged</div></div>
       </div>
       <div id="compTips" class="notice" style="display:none"></div>
-      <div class="section-title">// Groups</div>
+      <div class="section-title">// Buff coverage</div>
+      <div id="compCoverage" class="comp-cover"></div>
+      <div class="section-title">// Groups (party buffs)</div>
       <div id="compGroups" class="comp-groups"></div>
-      <div class="section-title">// Blessings</div>
+      <div class="section-title">// Blessings + threat</div>
       <div id="compBlessings" class="raid-list"></div>
       <div class="section-title">// Utility</div>
       <div id="compUtility" class="raid-list"></div>
@@ -1753,6 +1768,7 @@ a.wh-name > span[style*="background"],
     if (!players.length) {
       if ($('compEmpty')) $('compEmpty').hidden = false;
       if ($('compGroups')) $('compGroups').innerHTML = '';
+      if ($('compCoverage')) $('compCoverage').innerHTML = '';
       if ($('compBlessings')) $('compBlessings').innerHTML = '';
       if ($('compUtility')) $('compUtility').innerHTML = '';
       return;
@@ -1776,12 +1792,22 @@ a.wh-name > span[style*="background"],
       } else tips.style.display = 'none';
     }
 
+    if ($('compCoverage')) {
+      const cov = result.coverage || [];
+      $('compCoverage').innerHTML = cov.map(item => `
+        <div class="cc-item ${escapeHtml(item.level || '')}">
+          <div class="cc-label">${item.ok ? '✓' : '✗'} ${escapeHtml(item.label)}</div>
+          <div class="cc-detail">${escapeHtml(item.detail)}</div>
+        </div>`).join('') || '<div class="muted">No coverage data.</div>';
+    }
+
     if ($('compGroups')) {
       $('compGroups').innerHTML = result.groups.map(g => `
         <div class="comp-group">
           <h4>${escapeHtml(g.label)}</h4>
           <div class="cg-note">${escapeHtml(g.note)}</div>
           ${g.buffs && g.buffs.length ? `<div class="cg-buffs">✦ ${g.buffs.map(escapeHtml).join(' · ')}</div>` : ''}
+          ${g.missing && g.missing.length ? `<div class="cg-miss">✗ Missing: ${g.missing.map(escapeHtml).join(' · ')}</div>` : ''}
           ${g.members.map(m => `
             <div class="cg-member">
               <span class="player-name ${classCss(m.class)}">${escapeHtml(m.name)}</span>
@@ -1826,9 +1852,17 @@ a.wh-name > span[style*="background"],
   function compDiscordText() {
     if (!lastComp) return '';
     const lines = ['**Midnight Rodeo · TBC Comp (auto)**', ''];
+    if (lastComp.coverage && lastComp.coverage.length) {
+      lines.push('**Coverage**');
+      lastComp.coverage.forEach(c => {
+        lines.push(`${c.ok ? '✓' : '✗'} **${c.label}** — ${c.detail}`);
+      });
+      lines.push('');
+    }
     lastComp.groups.forEach(g => {
       lines.push(`**${g.label}** — _${g.note}_`);
       if (g.buffs && g.buffs.length) lines.push(`Buffs: ${g.buffs.join(', ')}`);
+      if (g.missing && g.missing.length) lines.push(`Missing: ${g.missing.join(', ')}`);
       g.members.forEach(m => lines.push(`• ${m.name} — ${m.spec || m.class || '?'}`));
       lines.push('');
     });
