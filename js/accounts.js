@@ -169,6 +169,11 @@
   function can(action) {
     const s = getSession();
     const settings = loadSettings();
+    // Local gear sync (RH + loot) is always allowed — no Blizzard key needed
+    if (action === 'gearSync' || action === 'editRoster') {
+      if (settings.requireLogin && !s) return false;
+      return true; // guests can sync/view roster fields from RH
+    }
     if (!s) {
       if (settings.requireLogin) return false;
       if (action === 'view') return settings.publicCanView !== false;

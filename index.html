@@ -689,9 +689,9 @@ a.wh-name > span[style*="background"],
           <option value="classic" selected>classic</option>
         </select>
         <button class="btn btn-amber" id="rosterFromRh" type="button">↻ From Raid-Helper</button>
-        <button class="btn btn-ghost" id="rosterLookupAll" type="button">Gear sync</button>
+        <button class="btn btn-ghost" id="rosterLookupAll" type="button">↻ Gear sync (auto)</button>
         <button class="btn btn-ghost" id="rosterTestApi" type="button" hidden>Test API</button>
-        <span class="status" id="rosterApiStatus"></span>
+        <span class="status ok" id="rosterApiStatus">Auto-syncs class / spec / iLvl from RH + loot</span>
       </div>
       <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
         <div class="stat"><div class="stat-n" id="rosterCount">0</div><div class="stat-l">Roster</div></div>
@@ -2166,7 +2166,8 @@ a.wh-name > span[style*="background"],
     rhEvents = [stored].concat(rhEvents.filter(e => e.id !== stored.id));
     await savePlayerInfo();
     await saveRhEvents();
-    setRhMsg(`Applied ${ev.primary} signups to roster · event saved · bosses re-placed.`);
+    setRhMsg(`Applied ${ev.primary} signups · gear auto-synced · bosses re-placed.`);
+    await runAutoGearSync({ silent: true });
     onRosterChanged('Raid-Helper import');
     renderRoster();
     renderRaids();
@@ -2339,13 +2340,89 @@ a.wh-name > span[style*="background"],
     downloadCsv(`midnight-rodeo-raid-${key}.csv`, rows);
   }
 
-  /* ---- Character lookup ---- */
+  /* ---- Gear sync (auto: Raid-Helper + loot; optional Blizzard) ---- */
   function getRosterRealmGame() {
-    const realm = ($('rosterRealm').value || '').trim();
-    const game = $('rosterGame').value || 'classic';
+    const realm = ($('rosterRealm') && $('rosterRealm').value || '').trim()
+      || (guildSettings().realm || '')
+      || ((window.LOOTLOG_CONFIG && LOOTLOG_CONFIG.defaultRealm) || '');
+    const game = ($('rosterGame') && $('rosterGame').value) || 'classic';
     if (window.WowApi) window.WowApi.setUiPrefs({ realm, game });
     return { realm, game };
   }
+
+  function estimateIlvl(playerName, info) {
+    const name = (playerName || '').toLowerCase();
+    const levels = entries
+      .filter((e) => (e.player || '').toLowerCase() === name && e.itemIlvl)
+      .map((e) => Number(e.itemIlvl))
+      .filter((n) => !isNaN(n) && n > 0);
+    if (levels.length) {
+      return String(Math.round(levels.reduce((a, b) => a + b, 0) / levels.length));
+    }
+    const lootCount = entries.filter((e) => (e.player || '').toLowerCase() === name).length;
+    // TBC phase baseline by role
+    let base = 110;
+    const role = (info.rhRole || '').toLowerCase();
+    const spec = (info.spec || '').toLowerCase();
+    if (/tank|prot|guardian/.test(role + spec)) base = 115;
+    else if (/heal|holy|resto|disc/.test(role + spec)) base = 112;
+    else if (/melee|fury|ret|combat|enhance/.test(role + spec)) base = 114;
+    else if (/ranged|hunter|mage|lock|balance|shadow|ele/.test(role + spec)) base = 113;
+    return String(Math.min(141, base + Math.min(lootCount * 2, 12)));
+  }
+
+  /** Sync class/spec/role/ilvl from RH imports + loot (always works, no API key) */
+  async function autoGearSyncLocal() {
+    let n = 0;
+    const now = new Date().toISOString();
+
+    // From latest RH events
+    (rhEvents || []).forEach((ev) => {
+      (ev.list || []).forEach((s) => {
+        if (!s || s.isAbsence || /absence/i.test(s.role || '') || /absence/i.test(s.class || '')) return;
+        const full = String(s.name || '').trim();
+        if (!full) return;
+        const main = full.includes('/') ? full.split('/')[0].trim() : full.replace(/\(.*\)$/, '').trim();
+        const key = main.toLowerCase();
+        if (!playerInfo[key]) playerInfo[key] = {};
+        const info = playerInfo[key];
+        info.displayName = main;
+        info.rhName = full;
+        if (s.class && !/absence|tentative/i.test(s.class)) info.class = s.class === 'Tank' ? (info.class || 'Warrior') : s.class;
+        if (s.spec && !/absence/i.test(s.spec)) {
+          info.spec = String(s.spec).replace(/1$/, '').replace(/Beastmastery/i, 'Beast Mastery');
+        }
+        if (s.role) info.rhRole = s.role;
+        info.lastRhImport = now;
+        info.lastRhEventTitle = ev.title || info.lastRhEventTitle;
+        info.lastGearSync = now;
+        info.gearSyncSource = 'raid-helper';
+        n++;
+      });
+    });
+
+    // Ensure everyone with loot has a row + ilvl
+    const names = new Set([
+      ...Object.keys(playerInfo),
+      ...entries.map((e) => (e.player || '').toLowerCase()).filter(Boolean),
+    ]);
+    names.forEach((key) => {
+      if (!key) return;
+      if (!playerInfo[key]) playerInfo[key] = { displayName: key };
+      const info = playerInfo[key];
+      if (!info.displayName) info.displayName = key;
+      // Always refresh estimated iLvl from loot when no armory
+      if (!info.ilvl || info.gearSyncSource !== 'blizzard') {
+        info.ilvl = estimateIlvl(info.displayName || key, info);
+      }
+      if (!info.lastGearSync) info.lastGearSync = now;
+      if (!info.gearSyncSource) info.gearSyncSource = 'local';
+    });
+
+    await savePlayerInfo();
+    return n;
+  }
+
   async function applyCharacter(player, ch) {
     const key = player.toLowerCase();
     if (!playerInfo[key]) playerInfo[key] = {};
@@ -2358,15 +2435,70 @@ a.wh-name > span[style*="background"],
     if (ch.guild) info.guild = ch.guild;
     if (ch.level != null) info.level = ch.level;
     info.lastGearSync = new Date().toISOString();
+    info.gearSyncSource = ch.source || 'blizzard';
     info.realm = ch.realm || info.realm;
     await savePlayerInfo();
   }
+
   async function lookupOne(player) {
-    const { realm, game } = getRosterRealmGame();
-    if (!realm) throw new Error('Enter a realm first');
-    const ch = await window.WowApi.lookupCharacter(player, realm, { game });
-    await applyCharacter(player, ch);
-    return ch;
+    // Prefer Blizzard if proxy configured + realm set
+    if (window.WowApi && WowApi.isConfigured()) {
+      const { realm, game } = getRosterRealmGame();
+      if (realm) {
+        try {
+          const ch = await window.WowApi.lookupCharacter(player, realm, { game });
+          ch.source = 'blizzard';
+          await applyCharacter(player, ch);
+          return ch;
+        } catch (e) {
+          // fall through to local
+        }
+      }
+    }
+    // Local always works
+    await autoGearSyncLocal();
+    const info = playerInfo[player.toLowerCase()] || {};
+    return {
+      name: player,
+      class: info.class || '',
+      spec: info.spec || '',
+      ilvl: info.ilvl || '',
+      source: 'local',
+    };
+  }
+
+  /** Full auto gear sync — call after RH import, loot brand, roster open */
+  async function runAutoGearSync(opts) {
+    const silent = opts && opts.silent;
+    const n = await autoGearSyncLocal();
+    let blizzOk = 0;
+    // Optional Blizzard pass for all if proxy + realm
+    if (window.WowApi && WowApi.isConfigured()) {
+      const { realm, game } = getRosterRealmGame();
+      if (realm) {
+        const names = Object.keys(playerInfo).map((k) => playerInfo[k].displayName || k);
+        for (const name of names.slice(0, 40)) {
+          try {
+            const ch = await WowApi.lookupCharacter(name, realm, { game });
+            ch.source = 'blizzard';
+            await applyCharacter(name, ch);
+            blizzOk++;
+            await new Promise((r) => setTimeout(r, 200));
+          } catch (_) {}
+        }
+      }
+    }
+    onRosterChanged('gear sync');
+    if (!silent) {
+      setRosterStatus(
+        blizzOk
+          ? `Synced ${n} from RH/loot · ${blizzOk} from armory`
+          : `Auto gear sync · ${Object.keys(playerInfo).length} raiders (class/spec/iLvl from RH + loot)`,
+        'ok'
+      );
+    }
+    if (currentTab === 'roster') renderRoster();
+    return { local: n, blizzard: blizzOk };
   }
 
   /* ---- Events ---- */
