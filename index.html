@@ -12,6 +12,7 @@
 <script src="js/wow-api.js"></script>
 <script src="js/raid-helper.js"></script>
 <script src="js/demo-data.js"></script>
+<script src="js/raid-comp.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=Rye&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -464,6 +465,27 @@ a.wh-name > span[style*="background"],
 .manual-grid{display:grid;grid-template-columns:1fr 1fr 120px 140px auto;gap:8px;margin-top:10px}
 .manual-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 
+/* Comp / groups */
+.comp-groups{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:22px;
+}
+.comp-group{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:12px 14px;border-top:2px solid var(--amber);
+}
+.comp-group h4{
+  font-family:var(--font-display);font-size:13px;font-weight:650;margin:0 0 4px;letter-spacing:-.01em;
+  color:var(--amber2);
+}
+.comp-group .cg-note{font-size:11.5px;color:var(--leather);margin-bottom:8px;line-height:1.4}
+.comp-group .cg-buffs{font-size:11px;color:var(--green);margin-bottom:8px;line-height:1.4}
+.comp-group .cg-member{
+  font-size:13px;padding:4px 0;border-bottom:1px solid rgba(44,53,96,.5);
+  display:flex;justify-content:space-between;gap:6px;
+}
+.comp-group .cg-member:last-child{border-bottom:none}
+.comp-group .cg-spec{color:var(--muted);font-size:11.5px;white-space:nowrap}
+
 /* Soft scrollbar */
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -501,6 +523,7 @@ a.wh-name > span[style*="background"],
       <button class="tab" data-tab="roster" type="button">Roster</button>
       <button class="tab" data-tab="items" type="button">Items</button>
       <button class="tab" data-tab="raids" type="button">Raids</button>
+      <button class="tab" data-tab="comp" type="button">Comp</button>
       <button class="tab" data-tab="settings" type="button">Settings</button>
     </nav>
 
@@ -699,6 +722,35 @@ a.wh-name > span[style*="background"],
       <div class="section-title">// Loot by raid night</div>
       <div id="raidsList" class="raid-list"></div>
       <div class="empty" id="raidsEmpty" hidden>No loot nights yet — brand Gargul on Ledger.</div>
+    </section>
+
+    <!-- COMP / BUFFS -->
+    <section id="panel-comp" class="panel" hidden>
+      <div class="section-title">// TBC raid comp · buffs · max DPS</div>
+      <p class="share-hint" style="margin-bottom:16px">
+        Auto-groups 25-man for Windfury, Trueshot, caster stack, and assigns
+        <b>Paladin Greater Blessings</b> (Might, Kings, Wisdom, Salvation, Sanctuary, Light).
+        Uses your Roster + latest Raid-Helper import.
+      </p>
+      <div class="row" style="justify-content:center;margin-bottom:18px">
+        <button class="btn btn-amber" id="compRunBtn" type="button">⚡ Optimize groups & blessings</button>
+        <button class="btn btn-ghost" id="compCopyBtn" type="button">📋 Copy for Discord</button>
+      </div>
+      <div class="stats" style="grid-template-columns:repeat(5,1fr)">
+        <div class="stat"><div class="stat-n" id="compTotal">0</div><div class="stat-l">Raiders</div></div>
+        <div class="stat"><div class="stat-n" id="compTanks">0</div><div class="stat-l">Tanks</div></div>
+        <div class="stat"><div class="stat-n" id="compHeal">0</div><div class="stat-l">Healers</div></div>
+        <div class="stat"><div class="stat-n" id="compMelee">0</div><div class="stat-l">Melee</div></div>
+        <div class="stat"><div class="stat-n" id="compRanged">0</div><div class="stat-l">Ranged</div></div>
+      </div>
+      <div id="compTips" class="notice" style="display:none"></div>
+      <div class="section-title">// Groups (buff optimized)</div>
+      <div id="compGroups" class="comp-groups"></div>
+      <div class="section-title">// Paladin blessings</div>
+      <div id="compBlessings" class="raid-list"></div>
+      <div class="section-title">// Utility</div>
+      <div id="compUtility" class="raid-list"></div>
+      <div class="empty" id="compEmpty" hidden>No roster yet — load demo or import Raid-Helper first.</div>
     </section>
 
     <!-- SETTINGS -->
@@ -1607,7 +1659,7 @@ a.wh-name > span[style*="background"],
     } else {
       el.innerHTML = recent.map(e => `
         <div class="lcard">
-          <div class="stamp${e.itemId ? ' has-ico' : ''}">${e.itemId ? whIcon(e.itemId, itemDomain(e)) : escapeHtml((e.player||'').slice(0,2).toUpperCase())}</div>
+          <div class="stamp${itemIconUrl(e) ? ' has-ico' : ''}">${stampIcon(e, (e.player||'').slice(0,2).toUpperCase())}</div>
           <div>
             <div>${itemLink(e)}</div>
             <div class="sub">to <b>${escapeHtml(e.player)}</b></div>
@@ -1650,7 +1702,7 @@ a.wh-name > span[style*="background"],
       const initials = (e.player || '??').slice(0, 2).toUpperCase();
       html += `
         <div class="lcard" data-id="${e.id}">
-          <div class="stamp${e.itemId ? ' has-ico' : ''}">${e.itemId ? whIcon(e.itemId, itemDomain(e)) : escapeHtml(initials)}</div>
+          <div class="stamp${itemIconUrl(e) ? ' has-ico' : ''}">${stampIcon(e, initials)}</div>
           <div>
             <div>
               ${itemLink(e)}
