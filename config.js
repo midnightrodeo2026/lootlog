@@ -13,6 +13,10 @@ window.LOOTLOG_CONFIG = {
   expansion: 'tbc',
   tbcOnly: true,
 
-  // Default Raid-Helper event (Discord)
+  // Default Raid-Helper event (source of truth for live signups)
   raidHelperEventUrl: 'https://raid-helper.xyz/event/1530078606578024520',
+
+  // Share THIS link in Discord (our board — no need to open RH)
+  // Live site: https://vorlof69.github.io/lootlog/event.html
+  signupBoardPath: 'event.html',
 };

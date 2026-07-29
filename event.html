@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Midnight Rodeo · Tuesday 25 man</title>
+<meta name="description" content="Midnight Rodeo TBC signup board — Discord-ready, guild only." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="config.js"></script>
+<script src="js/signup-board.js"></script>
+<style>
+:root{
+  --bg:#1e1f22;
+  --card:#2b2d31;
+  --card2:#313338;
+  --line:#1e1f22;
+  --text:#dbdee1;
+  --muted:#949ba4;
+  --blurple:#5865f2;
+  --green:#23a559;
+  --red:#f23f43;
+  --amber:#e3a13c;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+a{color:#00a8fc;text-decoration:none}
+a:hover{text-decoration:underline}
+.page{max-width:520px;margin:0 auto;padding:20px 14px 48px}
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:14px;flex-wrap:wrap;
+}
+.brand{font-weight:700;font-size:14px;color:var(--muted)}
+.brand b{color:var(--amber)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  border:0;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+}
+.btn-primary{background:var(--blurple);color:#fff}
+.btn-ghost{background:var(--card2);color:var(--text)}
+.btn-amber{background:var(--amber);color:#1a1000}
+
+/* Discord-like embed card */
+.embed{
+  background:var(--card);
+  border-radius:8px;
+  border-left:4px solid #c23b3b;
+  padding:16px 16px 14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.embed-app{
+  display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--muted);
+}
+.embed-app .dot{
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,#e3a13c,#6b4726);
+}
+.embed-app .name{color:#fff;font-weight:600}
+.embed-app .badge{
+  background:var(--blurple);color:#fff;font-size:9px;font-weight:700;
+  padding:1px 5px;border-radius:3px;letter-spacing:.04em;
+}
+
+/* Letter tiles title */
+.tiles{
+  display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:4px 0 14px;
+}
+.tile{
+  min-width:28px;height:34px;padding:0 6px;
+  background:#1e1f22;border:1px solid #3f4147;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:16px;letter-spacing:.04em;color:#f2f3f5;
+  box-shadow:inset 0 -2px 0 #111;
+}
+.tile.gap{background:transparent;border:0;box-shadow:none;min-width:10px}
+
+.meta-row{
+  display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;
+  font-size:13px;margin-bottom:10px;color:var(--text);
+}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#1e1f22;border-radius:4px;padding:3px 8px;font-size:12.5px;
+}
+.chip .ic{opacity:.85}
+.leader{font-weight:600}
+
+.role-counts{
+  display:flex;flex-wrap:wrap;gap:10px 16px;margin:10px 0 14px;font-size:13px;font-weight:600;
+}
+.role-counts span{display:inline-flex;align-items:center;gap:5px}
+
+/* Class columns */
+.classes{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px 12px;
+  margin-bottom:14px;
+}
+@media(max-width:480px){.classes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.class-col h4{
+  margin:0 0 6px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;
+}
+.class-col h4 .count{opacity:.75;font-weight:600}
+.person{
+  display:flex;align-items:center;gap:6px;font-size:13px;margin:3px 0;
+  min-width:0;
+}
+.person .pos{
+  flex-shrink:0;min-width:18px;height:18px;border-radius:50%;
+  background:#1e1f22;color:var(--muted);font-size:10px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.person .nm{
+  font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.person .spec{color:var(--muted);font-size:11px;margin-left:2px}
+
+.footer-lines{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:6px}
+.footer-lines strong{color:var(--text);font-weight:600}
+.links{margin-top:12px;font-size:13px}
+.links a{margin-right:10px}
+.gif-box{
+  margin-top:12px;border-radius:8px;overflow:hidden;max-width:280px;
+  background:#111;border:1px solid #3f4147;
+}
+.gif-box img{display:block;width:100%;height:auto;max-height:160px;object-fit:cover}
+
+.status{
+  font-size:12px;color:var(--muted);margin:10px 0;text-align:center;
+}
+.status.ok{color:var(--green)}
+.status.err{color:var(--red)}
+
+/* Local signup */
+.signup-box{
+  margin-top:16px;background:var(--card2);border-radius:8px;padding:12px;
+}
+.signup-box h3{margin:0 0 8px;font-size:13px;color:var(--amber)}
+.signup-box .row{display:flex;flex-wrap:wrap;gap:8px}
+.signup-box input,.signup-box select{
+  background:#1e1f22;border:1px solid #3f4147;color:var(--text);
+  border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;
+}
+.signup-box input{flex:1;min-width:120px}
+
+.hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="brand">Midnight <b>Rodeo</b> · TBC board</div>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button" id="btnRefresh">↻ Refresh</button>
+      <button class="btn btn-primary" type="button" id="btnCopy">📋 Copy for Discord</button>
+      <a class="btn btn-amber" href="index.html" style="display:inline-block;text-decoration:none">Open ledger</a>
+    </div>
+  </div>
+
+  <div class="status" id="status">Loading event…</div>
+
+  <div class="embed" id="embed">
+    <div class="embed-app">
+      <div class="dot"></div>
+      <span class="name">Midnight Rodeo</span>
+      <span class="badge">APP</span>
+      <span id="embedTime"></span>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="meta-row">
+      <span class="leader" id="leader">—</span>
+    </div>
+    <div class="meta-row">
+      <span class="chip"><span class="ic">📅</span> <span id="dateEl">—</span></span>
+      <span class="chip"><span class="ic">🕐</span> <span id="timeEl">—</span></span>
+      <span class="chip"><span class="ic">👥</span> <span id="countEl">—</span></span>
+    </div>
+
+    <div class="role-counts" id="roleCounts"></div>
+    <div class="classes" id="classes"></div>
+
+    <div class="footer-lines" id="footerLines"></div>
+
+    <div class="links">
+      <a href="index.html#comp" id="linkComp">Comp</a>
+      <a href="index.html#bosses" id="linkBosses">Bosses</a>
+      <a href="index.html#raids" id="linkRaids">Raids</a>
+      <a href="#" id="linkRh" target="_blank" rel="noopener">RH source</a>
+    </div>
+
+    <div class="gif-box" id="gifBox" hidden>
+      <img id="gifImg" alt="event" />
+    </div>
+  </div>
+
+  <div class="signup-box">
+    <h3>Quick local signup (this browser)</h3>
+    <div class="row">
+      <input id="suName" placeholder="Character name" />
+      <select id="suRole">
+        <option>Tanks</option>
+        <option>Melee</option>
+        <option selected>Ranged</option>
+        <option>Healers</option>
+        <option>Tentative</option>
+        <option>Absence</option>
+      </select>
+      <select id="suClass">
+        <option>Warrior</option><option>Paladin</option><option>Hunter</option>
+        <option>Rogue</option><option>Priest</option><option>Shaman</option>
+        <option>Mage</option><option>Warlock</option><option>Druid</option>
+      </select>
+      <button class="btn btn-amber" type="button" id="btnSignup">Sign up</button>
+    </div>
+    <p class="hint">
+      Live list mirrors your Raid-Helper event so Discord can use <b>this</b> link instead of raid-helper.xyz.
+      Local signups stay on this device (for offline / extras). Officers: refresh to pull latest RH signups.
+    </p>
+  </div>
+</div>
+
+<script>
+(function () {
+  const cfg = window.LOOTLOG_CONFIG || {};
+  const defaultUrl = cfg.raidHelperEventUrl || '';
+  const params = new URLSearchParams(location.search);
+  const eventRef = params.get('event') || params.get('id') || defaultUrl || SignupBoard.DEFAULT_EVENT_ID;
+
+  let model = null;
+
+  function el(id) { return document.getElementById(id); }
+
+  function render(m) {
+    model = m;
+    const st = el('status');
+    if (m.error && !m.counts.signed) {
+      st.textContent = 'Offline / error: ' + m.error;
+      st.className = 'status err';
+    } else {
+      st.textContent = m.live
+        ? 'Live from guild event · auto-synced · ' + new Date().toLocaleTimeString()
+        : 'Cached / local board';
+      st.className = 'status ok';
+    }
+
+    // tiles
+    const tiles = el('tiles');
+    tiles.innerHTML = (m.letterTiles || []).map((ch) =>
+      ch == null ? '<div class="tile gap"></div>' : `<div class="tile">${ch}</div>`
+    ).join('');
+
+    el('leader').textContent = '🚩 ' + (m.leader || '—');
+    el('dateEl').textContent = m.datePretty || m.date || '—';
+    el('timeEl').textContent = m.time || '—';
+    el('countEl').textContent = m.counts.signed + (m.counts.tentative ? ' (+' + m.counts.tentative + ')' : '');
+    el('embedTime').textContent = new Date().toLocaleString();
+
+    const rc = el('roleCounts');
+    rc.innerHTML = `
+      <span style="color:#e35d5d">⚔ ${m.counts.melee} Melee</span>
+      <span style="color:#69CCF0">◎ ${m.counts.ranged} Ranged</span>
+      <span style="color:#6fc27a">✚ ${m.counts.healers} Healers</span>
+      <span style="color:#C79C6E">🛡 ${m.counts.tanks} Tank</span>
+    `;
+
+    const classes = el('classes');
+    classes.innerHTML = (m.classCols || []).map((col) => {
+      const people = col.people.map((p) => `
+        <div class="person" title="${p.spec || ''}">
+          <span class="pos">${p.position || '·'}</span>
+          <span class="nm" style="color:${col.color}">${escapeHtml(p.name)}</span>
+        </div>`).join('');
+      return `<div class="class-col">
+        <h4 style="color:${col.color}">${escapeHtml(col.class)} <span class="count">(${col.people.length})</span></h4>
+        ${people}
+      </div>`;
+    }).join('');
+
+    const foot = [];
+    if (m.tentative && m.tentative.length) {
+      foot.push(
+        `<div>🕐 <strong>Tentative (${m.tentative.length}):</strong> ${m.tentative.map((p) => escapeHtml(p.name)).join(', ')}</div>`
+      );
+    }
+    if (m.absence && m.absence.length) {
+      foot.push(
+        `<div>⌀ <strong>Absence (${m.absence.length}):</strong> ${m.absence.map((p) => escapeHtml(p.name)).join(', ')}</div>`
+      );
+    }
+    foot.push(`<div style="margin-top:6px">${escapeHtml(m.server || '')} · #${escapeHtml(m.channel || '')}</div>`);
+    el('footerLines').innerHTML = foot.join('');
+
+    el('linkRh').href = m.rhUrl || '#';
+    if (m.image) {
+      el('gifBox').hidden = false;
+      el('gifImg').src = m.image;
+    } else {
+      el('gifBox').hidden = true;
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    );
+  }
+
+  async function refresh() {
+    el('status').textContent = 'Refreshing…';
+    el('status').className = 'status';
+    try {
+      const m = await SignupBoard.loadBoard(eventRef);
+      render(m);
+    } catch (e) {
+      el('status').textContent = e.message || String(e);
+      el('status').className = 'status err';
+    }
+  }
+
+  el('btnRefresh').onclick = refresh;
+  el('btnCopy').onclick = async () => {
+    if (!model) return;
+    const text = SignupBoard.toDiscordText(model);
+    try {
+      await navigator.clipboard.writeText(text);
+      el('status').textContent = 'Copied Discord text — paste in your channel.';
+      el('status').className = 'status ok';
+    } catch {
+      prompt('Copy:', text);
+    }
+  };
+
+  el('btnSignup').onclick = async () => {
+    const name = el('suName').value.trim();
+    if (!name) { alert('Enter a name'); return; }
+    const id = model ? model.eventId : SignupBoard.extractId(eventRef);
+    SignupBoard.addLocalSignup(id, {
+      name,
+      role: el('suRole').value,
+      className: el('suClass').value,
+      spec: '',
+    });
+    el('suName').value = '';
+    await refresh();
+  };
+
+  // Auto-refresh every 60s so Discord link stays current
+  refresh();
+  setInterval(refresh, 60000);
+})();
+</script>
+</body>
+</html>
