@@ -25,6 +25,10 @@ window.LOOTLOG_CONFIG = {
   // Fallback single event if API key not set yet
   raidHelperEventUrl: 'https://raid-helper.xyz/event/1530078606578024520',
 
+  // Discord guild icon (logo)
+  guildIconUrl:
+    'https://cdn.discordapp.com/icons/491809191154155520/57f435ac49e7f30c19490785c15e1b7f.png?size=128',
+
   // Share THIS link in Discord (our board)
   signupBoardPath: 'event.html',
 

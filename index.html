@@ -103,13 +103,13 @@ a{color:inherit}
   background:linear-gradient(90deg,transparent,rgba(227,161,60,.4),transparent);
 }
 .banner-logo{
-  width:56px;height:56px;margin:0 auto 14px;border-radius:14px;
+  width:64px;height:64px;margin:0 auto 14px;border-radius:16px;
   background:linear-gradient(145deg,#2a1710 0%,#1b2245 55%,#0f1528 100%);
   border:1px solid rgba(227,161,60,.45);
   box-shadow:0 0 22px rgba(227,161,60,.22), inset 0 1px 0 rgba(243,236,217,.08);
-  display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
 }
-.banner-logo svg{width:30px;height:30px;display:block}
+.banner-logo img{width:100%;height:100%;object-fit:cover;display:block}
 .banner h1{
   font-family:var(--font-rodeo);font-weight:400;
   font-size:clamp(32px,6vw,50px);
@@ -629,11 +629,11 @@ a.wh-name > span[style*="background"],
   <div class="wrap">
 
     <header class="banner">
-      <div class="banner-logo" aria-hidden="true" title="Midnight Rodeo">
-        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 40 L32 14 L46 40 Z" stroke="#f4bd5f" stroke-width="3" fill="rgba(227,161,60,.2)" stroke-linejoin="round"/>
-          <circle cx="32" cy="44" r="3.5" fill="#e3a13c"/>
-        </svg>
+      <div class="banner-logo" title="Midnight Rodeo">
+        <img id="guildLogoImg"
+          src="https://cdn.discordapp.com/icons/491809191154155520/57f435ac49e7f30c19490785c15e1b7f.png?size=128"
+          alt="Midnight Rodeo"
+          width="56" height="56" />
       </div>
       <h1>Midnight <span>Rodeo</span></h1>
       <div class="banner-meta" id="guildRealmLabel">World of Warcraft Guild Manager</div>
@@ -780,10 +780,10 @@ a.wh-name > span[style*="background"],
         <select class="input" id="rosterGame" hidden>
           <option value="classic" selected>classic</option>
         </select>
-        <button class="btn btn-amber" id="rosterFromRh" type="button">↻ Import RH</button>
-        <button class="btn btn-ghost" id="rosterAuto25" type="button">Auto-pick 25</button>
-        <button class="btn btn-ghost" id="rosterClear25" type="button">Clear picks</button>
-        <button class="btn btn-ghost" id="rosterLookupAll" type="button">↻ Gear sync</button>
+        <button class="btn btn-amber" id="rosterFromRh" type="button" data-admin-only>↻ Import RH</button>
+        <button class="btn btn-ghost" id="rosterAuto25" type="button" data-admin-only>Auto-pick 25</button>
+        <button class="btn btn-ghost" id="rosterClear25" type="button" data-admin-only>Clear picks</button>
+        <button class="btn btn-ghost" id="rosterLookupAll" type="button" data-admin-only>↻ Gear sync</button>
         <span class="status ok" id="rosterApiStatus">Tick who is in the 25 · dual names kept</span>
       </div>
       <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
@@ -845,12 +845,12 @@ a.wh-name > span[style*="background"],
         </div>
         <div class="row" style="margin-top:0">
           <input class="input" id="rhEventUrl" placeholder="https://raid-helper.xyz/event/…" style="flex:1;min-width:200px;max-width:none" />
-          <button class="btn btn-amber" id="rhImportBtn" type="button">Import</button>
-          <button class="btn btn-ghost" id="rhAutoBtn" type="button">↻ Auto events</button>
+          <button class="btn btn-amber" id="rhImportBtn" type="button" data-admin-only>Import</button>
+          <button class="btn btn-ghost" id="rhAutoBtn" type="button" data-admin-only>↻ Auto events</button>
           <a class="btn btn-ghost" href="event.html" style="text-decoration:none">Board</a>
           <button class="btn btn-ghost" id="rhOpenBtn" type="button">RH ↗</button>
         </div>
-        <div class="row" style="margin-top:8px">
+        <div class="row" style="margin-top:8px" data-admin-only>
           <input class="input" id="rhApiKey" type="password" placeholder="RH API key (Discord /apikey) — auto-loads all MR events" style="flex:1;min-width:200px;max-width:none" autocomplete="off" title="Official API: https://raid-helper.xyz/documentation/api — GET /api/v4/servers/{id}/events" />
           <button class="btn btn-ghost" id="rhSaveApiBtn" type="button">Save key</button>
         </div>
@@ -879,8 +879,8 @@ a.wh-name > span[style*="background"],
     <section id="panel-comp" class="panel" hidden>
       <div class="section-title">// Comp</div>
       <div class="row" style="justify-content:center;margin-bottom:14px;flex-wrap:wrap">
-        <button class="btn btn-amber" id="compRunBtn" type="button">Optimize</button>
-        <button class="btn btn-ghost" id="compResetBtn" type="button">Reset seats</button>
+        <button class="btn btn-amber" id="compRunBtn" type="button" data-admin-only>Optimize</button>
+        <button class="btn btn-ghost" id="compResetBtn" type="button" data-admin-only>Reset seats</button>
         <button class="btn btn-ghost" id="compCopyBtn" type="button">Copy Discord</button>
       </div>
       <p class="share-hint" style="margin:0 0 12px;max-width:none" id="compDragHint">
@@ -911,7 +911,7 @@ a.wh-name > span[style*="background"],
       <div class="row" style="justify-content:center;margin-bottom:12px">
         <button class="btn btn-amber" data-raid-pick="hyjal" type="button" id="bossRaidHyjal">Hyjal</button>
         <button class="btn btn-orange" data-raid-pick="bt" type="button" id="bossRaidBt">Black Temple</button>
-        <button class="btn btn-ghost" id="bossAutoAll" type="button">Re-place all</button>
+        <button class="btn btn-ghost" id="bossAutoAll" type="button" data-admin-only>Re-place all</button>
         <button class="btn btn-ghost" id="bossCopyBtn" type="button">Copy Discord</button>
       </div>
       <p class="status ok" id="bossLiveStatus" style="text-align:center;margin:0 0 12px">Live · auto-place</p>
@@ -1069,6 +1069,15 @@ a.wh-name > span[style*="background"],
   }
   function can(action) {
     return !!(window.Accounts && window.Accounts.can(action));
+  }
+  function isAdmin() {
+    return !!session();
+  }
+  /** Block non-admin manage actions */
+  function requireAdmin(msg) {
+    if (canEdit()) return true;
+    alert(msg || 'Admin only — log in with the admin password to manage the guild.');
+    return false;
   }
   function guildSettings() {
     return window.Accounts ? window.Accounts.getSettings() : {};
@@ -1638,8 +1647,7 @@ a.wh-name > span[style*="background"],
     }
 
     // edit surfaces — admin only manages everything
-    const unlocked = canEdit(); // admin session
-    const isAdmin = !!session();
+    const unlocked = canEdit(); // true only when admin session
     if ($('viewOnlyNotice')) {
       $('viewOnlyNotice').hidden = unlocked || gated;
       if (!unlocked && !gated) {
@@ -1649,20 +1657,31 @@ a.wh-name > span[style*="background"],
     if ($('editControls')) $('editControls').hidden = !unlocked;
     // Overview: management tools only for admin
     if ($('ovViewOnly')) {
-      $('ovViewOnly').hidden = isAdmin || gated;
+      $('ovViewOnly').hidden = unlocked || gated;
     }
     if ($('ovManageRow')) {
       // Guests: signup board + copy link only; hide import/export/clear
-      const manageOnly = ['exportAllBtn', 'importAllBtn', 'clearDataBtn'];
-      manageOnly.forEach((id) => {
+      ['exportAllBtn', 'importAllBtn', 'clearDataBtn'].forEach((id) => {
         const el = $(id);
-        if (el) el.hidden = !isAdmin;
+        if (el) el.hidden = !unlocked;
       });
     }
-    // Disable dangerous controls when not admin (extra safety)
+    // Hide all admin-only controls for guests
     document.querySelectorAll('[data-admin-only]').forEach((el) => {
-      el.hidden = !isAdmin;
-      if ('disabled' in el) el.disabled = !isAdmin;
+      el.hidden = !unlocked;
+      if ('disabled' in el) el.disabled = !unlocked;
+    });
+    // Guests cannot edit inputs that mutate state
+    document.querySelectorAll('.roster-field, .raid-check, #rhEventUrl, #rhApiKey, #mrPaste').forEach((el) => {
+      if (!el) return;
+      if (el.classList && el.classList.contains('raid-check')) {
+        el.disabled = !unlocked;
+      } else if (el.id === 'rhEventUrl') {
+        el.readOnly = !unlocked;
+      } else if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+        if (el.id === 'mrFilter' || el.id === 'mrSort' || el.id === 'itemsFilter' || el.id === 'itemsSort') return;
+        el.disabled = !unlocked && (el.classList.contains('roster-field') || el.id === 'rhApiKey' || el.id === 'mrPaste');
+      }
     });
   }
 
@@ -2758,15 +2777,19 @@ a.wh-name > span[style*="background"],
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px">${sections}</div>
         <div class="row" style="margin-top:14px">
-          <button class="btn btn-amber" id="rhApplyBtn" type="button">Apply to guild roster</button>
+          ${canEdit() ? `<button class="btn btn-amber" id="rhApplyBtn" type="button">Apply to guild roster</button>` : '<span class="muted">Admin login to apply roster</span>'}
           <a class="btn btn-ghost" href="${escapeHtml(ev.url)}" target="_blank" rel="noopener">Open in Raid-Helper</a>
         </div>
       </div>`;
     const apply = $('rhApplyBtn');
-    if (apply) apply.addEventListener('click', () => applyRhEventToGuild(ev));
+    if (apply) apply.addEventListener('click', () => {
+      if (!requireAdmin()) return;
+      applyRhEventToGuild(ev);
+    });
   }
 
   async function applyRhEventToGuild(ev) {
+    if (!requireAdmin()) return;
     if (!window.RaidHelper) return;
     const n = rebuildRosterFromRh(ev);
     // Store compact event
@@ -2830,6 +2853,7 @@ a.wh-name > span[style*="background"],
       return;
     }
     if (empty) empty.hidden = true;
+    const admin = canEdit();
     list.innerHTML = rhEvents.map(ev => {
       const roleLine = Object.keys(ev.byRole || {}).map(r => `${r} ${ev.byRole[r]}`).join(' · ');
       return `
@@ -2842,9 +2866,9 @@ a.wh-name > span[style*="background"],
         </div>
         <div class="raid-actions">
           <button class="btn btn-orange" type="button" data-rh-view="${escapeHtml(ev.id)}">View roster</button>
-          <button class="btn btn-ghost" type="button" data-rh-apply="${escapeHtml(ev.id)}">Re-apply</button>
+          ${admin ? `<button class="btn btn-ghost" type="button" data-rh-apply="${escapeHtml(ev.id)}">Re-apply</button>` : ''}
           <a class="btn btn-green" href="${escapeHtml(ev.url)}" target="_blank" rel="noopener">RH ↗</a>
-          <button class="btn btn-ghost" type="button" data-rh-del="${escapeHtml(ev.id)}" style="color:var(--red)">Remove</button>
+          ${admin ? `<button class="btn btn-ghost" type="button" data-rh-del="${escapeHtml(ev.id)}" style="color:var(--red)">Remove</button>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -3272,6 +3296,7 @@ a.wh-name > span[style*="background"],
     }
   });
   $('dcSave').addEventListener('click', async () => {
+    if (!requireAdmin()) return;
     const entry = entries.find(e => e.id === dcEditingId);
     if (entry) {
       entry.quality = $('dcQuality').value;
@@ -3282,6 +3307,7 @@ a.wh-name > span[style*="background"],
     $('dcBackdrop').classList.add('hidden');
   });
   $('dcClear').addEventListener('click', async () => {
+    if (!requireAdmin()) return;
     const entry = entries.find(e => e.id === dcEditingId);
     if (entry) {
       entry.quality = '';
@@ -3407,6 +3433,7 @@ a.wh-name > span[style*="background"],
 
   /* ---- Raid-Helper ---- */
   async function runRhImport() {
+    if (!requireAdmin()) return;
     if (!window.RaidHelper) {
       setRhMsg('Raid-Helper client missing (js/raid-helper.js).', true);
       return;
@@ -3432,10 +3459,16 @@ a.wh-name > span[style*="background"],
   }
   if ($('rhImportBtn')) $('rhImportBtn').addEventListener('click', runRhImport);
   if ($('rhAutoBtn')) {
-    $('rhAutoBtn').addEventListener('click', () => refreshServerEvents({ silent: false }));
+    $('rhAutoBtn').addEventListener('click', () => {
+      if (!requireAdmin()) return;
+      refreshServerEvents({ silent: false });
+    });
   }
   if ($('rhSaveApiBtn')) {
-    $('rhSaveApiBtn').addEventListener('click', saveApiKeyFromInput);
+    $('rhSaveApiBtn').addEventListener('click', () => {
+      if (!requireAdmin()) return;
+      saveApiKeyFromInput();
+    });
   }
   if ($('rhApiKey')) {
     $('rhApiKey').addEventListener('keydown', (e) => {
@@ -3472,9 +3505,9 @@ a.wh-name > span[style*="background"],
       if (view) { showStoredRhEvent(view.dataset.rhView); return; }
       const apply = ev.target.closest('[data-rh-apply]');
       if (apply) {
+        if (!requireAdmin()) return;
         const stored = rhEvents.find(e => e.id === apply.dataset.rhApply);
         if (stored) {
-          // re-fetch for freshest data if possible
           try {
             const fresh = await RaidHelper.fetchEvent(stored.url || stored.id);
             lastRhPreview = fresh;
@@ -3488,6 +3521,7 @@ a.wh-name > span[style*="background"],
       }
       const del = ev.target.closest('[data-rh-del]');
       if (del) {
+        if (!requireAdmin('Admin only — cannot remove events.')) return;
         rhEvents = rhEvents.filter(e => e.id !== del.dataset.rhDel);
         await saveRhEvents();
         renderRaids();
@@ -3516,6 +3550,7 @@ a.wh-name > span[style*="background"],
 
   if ($('rosterFromRh')) {
     $('rosterFromRh').addEventListener('click', () => {
+      if (!requireAdmin()) return;
       if (!rhEvents.length) {
         setRosterStatus('Import a Raid-Helper event on the Raids tab first.', 'err');
         return;
@@ -3669,6 +3704,7 @@ a.wh-name > span[style*="background"],
 
   if ($('compRunBtn')) {
     $('compRunBtn').addEventListener('click', () => {
+      if (!requireAdmin()) return;
       // Optimize = rebuild auto seats (clear manual)
       compSeats = {};
       saveCompSeats();
@@ -3685,6 +3721,7 @@ a.wh-name > span[style*="background"],
   }
   if ($('compResetBtn')) {
     $('compResetBtn').addEventListener('click', () => {
+      if (!requireAdmin()) return;
       compSeats = {};
       saveCompSeats();
       renderComp();
@@ -3723,6 +3760,7 @@ a.wh-name > span[style*="background"],
   }
   if ($('bossAutoAll')) {
     $('bossAutoAll').addEventListener('click', () => {
+      if (!requireAdmin()) return;
       if (!window.RaidBosses) return;
       const players = getCompPlayers();
       if (!players.length) {
