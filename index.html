@@ -13,6 +13,7 @@
 <script src="js/raid-helper.js"></script>
 <script src="js/demo-data.js"></script>
 <script src="js/raid-comp.js"></script>
+<script src="js/raid-bosses.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=Rye&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -497,6 +498,22 @@ a.wh-name > span[style*="background"],
 }
 .gm-tour #gmTourLabel{flex:1;font-weight:600;color:var(--amber2);font-size:14px}
 
+.boss-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.boss-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:12px 14px;cursor:pointer;transition:border-color .15s, background .15s;
+}
+.boss-row:hover,.boss-row.active{border-color:var(--line-strong);background:rgba(227,161,60,.06)}
+.boss-row .br-num{
+  font-family:var(--font-mono);font-size:12px;color:var(--amber);min-width:28px;
+}
+.boss-row .br-name{font-weight:600;font-size:14.5px;flex:1}
+.boss-row .br-raid{font-size:12px;color:var(--leather)}
+.boss-strat{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.5}
+.boss-strat li{margin:4px 0}
+.btn-raid-on{box-shadow:0 0 0 2px rgba(227,161,60,.35)}
+
 /* Soft scrollbar */
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -535,6 +552,7 @@ a.wh-name > span[style*="background"],
       <button class="tab" data-tab="items" type="button">Items</button>
       <button class="tab" data-tab="raids" type="button">Raids</button>
       <button class="tab" data-tab="comp" type="button">Comp</button>
+      <button class="tab" data-tab="bosses" type="button">Bosses</button>
       <button class="tab" data-tab="settings" type="button">Settings</button>
     </nav>
 
@@ -783,6 +801,39 @@ a.wh-name > span[style*="background"],
       <div class="section-title">// Utility</div>
       <div id="compUtility" class="raid-list"></div>
       <div class="empty" id="compEmpty" hidden>No roster yet — load demo or import Raid-Helper first.</div>
+    </section>
+
+    <!-- BOSSES BT / HYJAL -->
+    <section id="panel-bosses" class="panel" hidden>
+      <div class="section-title">// Black Temple · Mount Hyjal · auto assigns</div>
+      <p class="share-hint" style="margin-bottom:14px">
+        Simple interactive sheet (like Excel raid sheets). Picks tanks, heals, kicks, kiters from your
+        <b>Roster / Raid-Helper</b> automatically. TBC Classic only.
+      </p>
+      <div class="row" style="justify-content:center;margin-bottom:14px">
+        <button class="btn btn-amber" data-raid-pick="hyjal" type="button" id="bossRaidHyjal">Mount Hyjal</button>
+        <button class="btn btn-orange" data-raid-pick="bt" type="button" id="bossRaidBt">Black Temple</button>
+        <button class="btn btn-ghost" id="bossAutoAll" type="button">⚡ Auto-assign all bosses</button>
+        <button class="btn btn-ghost" id="bossCopyBtn" type="button">📋 Copy boss for Discord</button>
+      </div>
+      <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat"><div class="stat-n" id="bossRosterN">0</div><div class="stat-l">In roster</div></div>
+        <div class="stat"><div class="stat-n" id="bossTankN">0</div><div class="stat-l">Tanks</div></div>
+        <div class="stat"><div class="stat-n" id="bossHealN">0</div><div class="stat-l">Healers</div></div>
+        <div class="stat"><div class="stat-n" id="bossDpsN">0</div><div class="stat-l">DPS</div></div>
+      </div>
+      <div id="bossList" class="boss-list"></div>
+      <div id="bossDetail" class="pen" style="margin-top:16px" hidden>
+        <div class="pen-head">
+          <div class="pen-title" id="bossDetailTitle">Boss</div>
+          <div class="pen-hint" id="bossDetailRaid"></div>
+        </div>
+        <div class="section-title" style="text-align:left;margin:8px 0">// Strategy</div>
+        <ul id="bossStrat" class="boss-strat"></ul>
+        <div class="section-title" style="text-align:left;margin:12px 0 8px">// Auto assignments</div>
+        <div id="bossAssign" class="raid-list"></div>
+      </div>
+      <div class="empty" id="bossEmpty" hidden>Load GM demo or import Raid-Helper so we can place people.</div>
     </section>
 
     <!-- SETTINGS -->
@@ -1645,7 +1696,7 @@ a.wh-name > span[style*="background"],
   function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    ['overview','ledger','roster','items','raids','comp','settings'].forEach(t => {
+    ['overview','ledger','roster','items','raids','comp','bosses','settings'].forEach(t => {
       const el = $('panel-' + t);
       if (el) el.hidden = t !== tab;
     });
@@ -1662,8 +1713,110 @@ a.wh-name > span[style*="background"],
     else if (currentTab === 'items') renderItems();
     else if (currentTab === 'raids') renderRaids();
     else if (currentTab === 'comp') renderComp();
+    else if (currentTab === 'bosses') renderBosses();
     else if (currentTab === 'settings') renderSettings();
     updateGuildHeader();
+  }
+
+  let bossRaidId = 'bt';
+  let bossSelectedId = null;
+  let lastBossAssign = null;
+  let lastBossAll = null;
+
+  function getCompPlayers() {
+    if (window.RaidComp) return RaidComp.fromAppState(playerInfo, rhEvents);
+    return Object.keys(playerInfo || {}).map((k) => {
+      const info = playerInfo[k] || {};
+      return {
+        displayName: info.displayName || k,
+        class: info.class,
+        spec: info.spec,
+        rhRole: info.rhRole,
+        ilvl: info.ilvl,
+      };
+    });
+  }
+
+  function renderBosses() {
+    if (!window.RaidBosses) {
+      if ($('bossEmpty')) {
+        $('bossEmpty').hidden = false;
+        $('bossEmpty').textContent = 'Boss module missing.';
+      }
+      return;
+    }
+    const players = getCompPlayers();
+    const p = RaidBosses.pool(players);
+    if ($('bossRosterN')) $('bossRosterN').textContent = p.all.length;
+    if ($('bossTankN')) $('bossTankN').textContent = p.tanks.length;
+    if ($('bossHealN')) $('bossHealN').textContent = p.heals.length;
+    if ($('bossDpsN')) $('bossDpsN').textContent = p.melee.length + p.ranged.length;
+
+    const empty = !p.all.length;
+    if ($('bossEmpty')) $('bossEmpty').hidden = !empty;
+
+    // raid toggle style
+    if ($('bossRaidHyjal')) $('bossRaidHyjal').classList.toggle('btn-raid-on', bossRaidId === 'hyjal');
+    if ($('bossRaidBt')) $('bossRaidBt').classList.toggle('btn-raid-on', bossRaidId === 'bt');
+
+    const bosses = (RaidBosses.BOSSES || []).filter((b) => b.raid === bossRaidId);
+    if ($('bossList')) {
+      $('bossList').innerHTML = bosses.map((b) => `
+        <div class="boss-row${bossSelectedId === b.id ? ' active' : ''}" data-boss="${escapeHtml(b.id)}">
+          <span class="br-num">#${b.order}</span>
+          <span class="br-name">${escapeHtml(b.name)}</span>
+          <span class="br-raid">${escapeHtml(b.raidLabel)}</span>
+          <button type="button" class="lookup-btn" data-boss-go="${escapeHtml(b.id)}">Assign</button>
+        </div>`).join('');
+    }
+
+    if (bossSelectedId) {
+      showBossDetail(bossSelectedId);
+    } else if (bosses[0] && !empty) {
+      bossSelectedId = bosses[0].id;
+      showBossDetail(bossSelectedId);
+    } else if ($('bossDetail')) {
+      $('bossDetail').hidden = true;
+    }
+  }
+
+  function showBossDetail(bossId) {
+    if (!window.RaidBosses) return;
+    bossSelectedId = bossId;
+    const players = getCompPlayers();
+    let result;
+    try {
+      result = RaidBosses.assignBoss(bossId, players);
+    } catch (e) {
+      if ($('bossDetail')) {
+        $('bossDetail').hidden = false;
+        $('bossDetailTitle').textContent = 'Error';
+        $('bossAssign').innerHTML = `<div class="empty">${escapeHtml(e.message || String(e))}</div>`;
+      }
+      return;
+    }
+    lastBossAssign = result;
+    const b = result.boss;
+    if ($('bossDetail')) $('bossDetail').hidden = false;
+    if ($('bossDetailTitle')) $('bossDetailTitle').textContent = b.name;
+    if ($('bossDetailRaid')) $('bossDetailRaid').textContent = b.raidLabel + ' · auto · ' + (result.rosterSize || 0) + ' raiders';
+    if ($('bossStrat')) {
+      $('bossStrat').innerHTML = (b.strategy || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+    }
+    if ($('bossAssign')) {
+      $('bossAssign').innerHTML = (result.assignments || []).map((a) => `
+        <div class="raid-row">
+          <div class="raid-meta">
+            <div><strong style="color:var(--amber2)">${escapeHtml(a.role)}</strong></div>
+            <div>${(a.people || []).map(escapeHtml).join(', ')}</div>
+            <div class="muted">${escapeHtml(a.note || '')}</div>
+          </div>
+        </div>`).join('');
+    }
+    // highlight row
+    document.querySelectorAll('.boss-row').forEach((el) => {
+      el.classList.toggle('active', el.getAttribute('data-boss') === bossId);
+    });
   }
 
   function renderComp() {
@@ -2772,6 +2925,58 @@ a.wh-name > span[style*="background"],
     });
   }
 
+  // Bosses tab
+  document.querySelectorAll('[data-raid-pick]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      bossRaidId = btn.getAttribute('data-raid-pick') || 'bt';
+      bossSelectedId = null;
+      renderBosses();
+    });
+  });
+  if ($('bossList')) {
+    $('bossList').addEventListener('click', (ev) => {
+      const go = ev.target.closest('[data-boss-go]');
+      const row = ev.target.closest('[data-boss]');
+      const id = (go && go.getAttribute('data-boss-go')) || (row && row.getAttribute('data-boss'));
+      if (id) showBossDetail(id);
+    });
+  }
+  if ($('bossAutoAll')) {
+    $('bossAutoAll').addEventListener('click', () => {
+      if (!window.RaidBosses) return;
+      const players = getCompPlayers();
+      if (!players.length) {
+        alert('Load GM demo or import Raid-Helper first.');
+        return;
+      }
+      try {
+        lastBossAll = RaidBosses.assignAll(players);
+        const n = (lastBossAll.bt || []).length + (lastBossAll.hyjal || []).length;
+        $('footerMsg').textContent = `Auto-assigned ${n} bosses (BT + Hyjal) from roster.`;
+        renderBosses();
+        if (bossSelectedId) showBossDetail(bossSelectedId);
+      } catch (e) {
+        alert(e.message || String(e));
+      }
+    });
+  }
+  if ($('bossCopyBtn')) {
+    $('bossCopyBtn').addEventListener('click', async () => {
+      if (!lastBossAssign && bossSelectedId) showBossDetail(bossSelectedId);
+      if (!lastBossAssign || !window.RaidBosses) {
+        alert('Select a boss first.');
+        return;
+      }
+      const text = RaidBosses.toDiscord(lastBossAssign);
+      try {
+        await navigator.clipboard.writeText(text);
+        $('footerMsg').textContent = 'Boss assignments copied for Discord.';
+      } catch {
+        prompt('Copy:', text);
+      }
+    });
+  }
+
   $('copyLinkBtn').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(location.href.split('#')[0]);
@@ -3012,7 +3217,7 @@ a.wh-name > span[style*="background"],
       const key = h.slice(5);
       switchTab('raids');
       openViewLog(key);
-    } else if (['overview','ledger','roster','items','raids','comp','settings'].includes(h)) {
+    } else if (['overview','ledger','roster','items','raids','comp','bosses','settings'].includes(h)) {
       switchTab(h);
     }
   }
