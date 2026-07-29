@@ -980,12 +980,72 @@
     };
   }
 
+  function isSoftRh(s) {
+    if (!s) return true;
+    if (s.isSoft || s.isAbsence || s.isTentative || s.isLate || s.isBench) return true;
+    if (window.RaidHelper && RaidHelper.isSoftStatus) {
+      return RaidHelper.isSoftStatus(s.role, s.class, s.status);
+    }
+    const r = String(s.role || '');
+    const c = String(s.class || '');
+    return /absence|tentative|late|bench/i.test(r + ' ' + c);
+  }
+
+  function pickName(raw, info) {
+    if (info && info.displayName) return info.displayName;
+    if (window.RaidHelper && RaidHelper.pickMainName) {
+      return RaidHelper.pickMainName(raw, info && info.preferredName);
+    }
+    const parts = String(raw || '')
+      .split(/[/\\|]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return parts[0] || String(raw || '').trim();
+  }
+
+  /**
+   * Build player list for comp.
+   * Prefer RH primary signed (≈25); fall back to playerInfo.
+   * Dual RH names collapse to one display name.
+   */
   function fromAppState(playerInfo, rhEvents) {
     const map = {};
-    Object.keys(playerInfo || {}).forEach((k) => {
-      const info = playerInfo[k] || {};
-      const name = info.displayName || k;
-      map[name.toLowerCase()] = {
+    const pi = playerInfo || {};
+
+    // Prefer latest RH event primary seats
+    const ev = rhEvents && rhEvents[0];
+    if (ev && Array.isArray(ev.list) && ev.list.length) {
+      ev.list.forEach((s) => {
+        if (!s || !s.name || isSoftRh(s)) return;
+        if (s.isPrimary === false) return;
+        const info =
+          pi[pickName(s.name).toLowerCase()] ||
+          pi[String(s.name).toLowerCase()] ||
+          {};
+        const display = pickName(s.name, info);
+        const key = display.toLowerCase();
+        if (map[key]) return;
+        map[key] = {
+          displayName: display,
+          class: info.class || s.class || '',
+          spec: (info.spec || s.spec || '').toString().replace(/(\d+)$/, ''),
+          rhRole: info.rhRole || s.role || '',
+          ilvl: info.ilvl,
+        };
+      });
+      if (Object.keys(map).length) return Object.values(map);
+    }
+
+    // Fallback: playerInfo only (dedupe duals)
+    Object.keys(pi).forEach((k) => {
+      const info = pi[k] || {};
+      if (info.fromRh === false && !info.class && !info.rhRole) return;
+      const name = info.displayName || pickName(info.rhName || k, info);
+      const key = name.toLowerCase();
+      if (map[key]) return;
+      // skip soft roles stored by mistake
+      if (isSoftRh({ role: info.rhRole, class: info.class, status: info.rhStatus })) return;
+      map[key] = {
         displayName: name,
         class: info.class,
         spec: info.spec,
@@ -993,26 +1053,101 @@
         ilvl: info.ilvl,
       };
     });
-    if (rhEvents && rhEvents[0] && rhEvents[0].list) {
-      rhEvents[0].list.forEach((s) => {
-        if (s.isAbsence) return;
-        const main = String(s.name || '').split('/')[0].trim();
-        const key = main.toLowerCase();
-        if (!map[key]) {
-          map[key] = {
-            displayName: main,
-            class: s.class,
-            spec: s.spec,
-            rhRole: s.role,
-          };
-        } else {
-          if (!map[key].class && s.class) map[key].class = s.class;
-          if (!map[key].spec && s.spec) map[key].spec = s.spec;
-          if (!map[key].rhRole && s.role) map[key].rhRole = s.role;
+    return Object.values(map);
+  }
+
+  /**
+   * Apply admin manual seats: { "playername": groupIndex 0-4 }
+   * Unlisted players keep auto placement from analyze().
+   */
+  function applyManualSeats(result, seatsByName) {
+    if (!result || !result.groups) return result;
+    const seats = seatsByName || {};
+    const all = [];
+    result.groups.forEach((g) => g.members.forEach((m) => all.push(m)));
+    if (result.overflow) result.overflow.forEach((m) => all.push(m));
+
+    const byName = {};
+    all.forEach((p) => {
+      byName[String(p.name || '').toLowerCase()] = p;
+    });
+
+    const buckets = [[], [], [], [], []];
+    const placed = new Set();
+
+    Object.keys(seats).forEach((name) => {
+      const gi = Number(seats[name]);
+      if (gi < 0 || gi > 4) return;
+      const p = byName[String(name).toLowerCase()];
+      if (!p || placed.has(p.name.toLowerCase())) return;
+      if (buckets[gi].length >= 5) return;
+      buckets[gi].push(p);
+      placed.add(p.name.toLowerCase());
+    });
+
+    // Keep remaining in original relative groups if possible
+    result.groups.forEach((g, gi) => {
+      g.members.forEach((p) => {
+        const k = p.name.toLowerCase();
+        if (placed.has(k)) return;
+        // if seats forced this name elsewhere, skip
+        if (seats[k] != null && Number(seats[k]) !== gi) return;
+        if (buckets[gi].length < 5) {
+          buckets[gi].push(p);
+          placed.add(k);
         }
       });
-    }
-    return Object.values(map);
+    });
+
+    // leftover → emptiest
+    all.forEach((p) => {
+      const k = p.name.toLowerCase();
+      if (placed.has(k)) return;
+      let best = 0;
+      for (let i = 1; i < 5; i++) if (buckets[i].length < buckets[best].length) best = i;
+      if (buckets[best].length < 5) {
+        buckets[best].push(p);
+        placed.add(k);
+      }
+    });
+
+    const focuses = ['tank', 'melee', 'melee', 'caster', 'mixed'];
+    const labels = result.groups.map((g) => g.label);
+    const notes = result.groups.map((g) => g.note);
+
+    result.groups = buckets.map((members, i) => {
+      const buffs = analyzePartyBuffs(members, focuses[i] || 'mixed');
+      return {
+        index: i + 1,
+        label: labels[i] || 'G' + (i + 1),
+        note: notes[i] || '',
+        focus: focuses[i] || 'mixed',
+        members,
+        buffs: buffs.present.map((b) =>
+          b.upgraded && b.id === 'wf' ? 'WF (Improved)' : b.short
+        ),
+        buffDetail: buffs,
+        missing: buffs.missing.map((b) => b.short),
+        hasWF: members.some(canDropWindfury),
+        hasImprovedWF: members.some(isEnhShaman),
+      };
+    });
+    result.manual = true;
+    result.counts = Object.assign({}, result.counts, {
+      total: result.groups.reduce((n, g) => n + g.members.length, 0),
+    });
+    return result;
+  }
+
+  /** Snapshot seats from groups → { nameLower: groupIndex } */
+  function seatsFromGroups(groups) {
+    const seats = {};
+    (groups || []).forEach((g, gi) => {
+      (g.members || []).forEach((m) => {
+        if (m && m.name) seats[String(m.name).toLowerCase()] = gi;
+      });
+    });
+    return seats;
   }
 
   global.RaidComp = {
@@ -1023,5 +1158,8 @@
     normalizePlayer,
     PARTY_BUFFS,
     coverageReport,
+    applyManualSeats,
+    seatsFromGroups,
+    analyzePartyBuffs,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

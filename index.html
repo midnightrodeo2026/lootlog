@@ -484,11 +484,19 @@ a.wh-name > span[style*="background"],
 .comp-group .cg-buffs{font-size:11px;color:var(--green);margin-bottom:4px;line-height:1.45}
 .comp-group .cg-miss{font-size:11px;color:#e35d5d;margin-bottom:8px;line-height:1.45}
 .comp-group .cg-member{
-  font-size:13px;padding:4px 0;border-bottom:1px solid rgba(44,53,96,.5);
-  display:flex;justify-content:space-between;gap:6px;
+  font-size:13px;padding:5px 6px;margin:2px 0;
+  display:flex;justify-content:space-between;gap:6px;align-items:center;
+  border-radius:6px;border:1px solid transparent;
+  cursor:grab;user-select:none;
 }
-.comp-group .cg-member:last-child{border-bottom:none}
+.comp-group .cg-member:active{cursor:grabbing}
+.comp-group .cg-member.dragging{opacity:.45}
+.comp-group .cg-member:hover{border-color:var(--line);background:rgba(255,255,255,.03)}
+.comp-group.locked .cg-member{cursor:default}
+.comp-group.drag-over{outline:2px dashed var(--amber);outline-offset:2px;background:rgba(227,161,60,.06)}
 .comp-group .cg-spec{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.comp-group .cg-drop{min-height:36px}
+.roster-name-pick{max-width:130px;padding:4px 6px;font-size:12px}
 .comp-cover{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin:0 0 18px;
 }
@@ -587,7 +595,6 @@ a.wh-name > span[style*="background"],
       <button class="tab" data-tab="raids" type="button">Raids</button>
       <button class="tab" data-tab="comp" type="button">Comp</button>
       <button class="tab" data-tab="bosses" type="button">Bosses</button>
-      <button class="tab" data-tab="settings" type="button">Settings</button>
     </nav>
 
     <div class="authbar" id="authBar">
@@ -704,20 +711,23 @@ a.wh-name > span[style*="background"],
         <button class="btn btn-amber" id="rosterFromRh" type="button">↻ From Raid-Helper</button>
         <button class="btn btn-ghost" id="rosterLookupAll" type="button">↻ Gear sync (auto)</button>
         <button class="btn btn-ghost" id="rosterTestApi" type="button" hidden>Test API</button>
-        <span class="status ok" id="rosterApiStatus">Auto-syncs class / spec / iLvl from RH + loot</span>
+        <span class="status ok" id="rosterApiStatus">RH signed only · dual names auto → one</span>
       </div>
       <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
-        <div class="stat"><div class="stat-n" id="rosterCount">0</div><div class="stat-l">Roster</div></div>
+        <div class="stat"><div class="stat-n" id="rosterCount">0</div><div class="stat-l">Signed</div></div>
         <div class="stat"><div class="stat-n" id="rosterTanks">0</div><div class="stat-l">Tanks</div></div>
         <div class="stat"><div class="stat-n" id="rosterHeal">0</div><div class="stat-l">Healers</div></div>
         <div class="stat"><div class="stat-n" id="rosterDps">0</div><div class="stat-l">DPS</div></div>
       </div>
+      <p class="share-hint" style="margin:0 0 12px;max-width:none;text-align:left" id="rosterHint">
+        Roster = Raid-Helper <b>primary signed</b> (not absence / tent). Dual names like Moon/Luna auto-use the first; admin can pick the other.
+      </p>
       <div class="table-wrap">
         <table class="tbl">
           <thead>
             <tr>
-              <th>Rank</th><th>Player</th><th>Role</th><th>Class / Spec</th><th>iLvl</th>
-              <th>Items</th><th>Last</th><th></th>
+              <th>Rank</th><th>Player</th><th>RH name</th><th>Role</th><th>Class / Spec</th><th>iLvl</th>
+              <th>Items</th><th></th>
             </tr>
           </thead>
           <tbody id="rosterBody"></tbody>
@@ -783,10 +793,14 @@ a.wh-name > span[style*="background"],
     <!-- COMP -->
     <section id="panel-comp" class="panel" hidden>
       <div class="section-title">// Comp</div>
-      <div class="row" style="justify-content:center;margin-bottom:14px">
+      <div class="row" style="justify-content:center;margin-bottom:14px;flex-wrap:wrap">
         <button class="btn btn-amber" id="compRunBtn" type="button">Optimize</button>
+        <button class="btn btn-ghost" id="compResetBtn" type="button">Reset seats</button>
         <button class="btn btn-ghost" id="compCopyBtn" type="button">Copy Discord</button>
       </div>
+      <p class="share-hint" style="margin:0 0 12px;max-width:none" id="compDragHint">
+        Admin: drag raiders between groups (widget). Optimize rebuilds auto seats; your moves are saved.
+      </p>
       <div class="stats" style="grid-template-columns:repeat(5,1fr)">
         <div class="stat"><div class="stat-n" id="compTotal">0</div><div class="stat-l">Raiders</div></div>
         <div class="stat"><div class="stat-n" id="compTanks">0</div><div class="stat-l">Tanks</div></div>
@@ -842,51 +856,6 @@ a.wh-name > span[style*="background"],
       <div class="empty" id="bossEmpty" hidden>Import a roster first.</div>
     </section>
 
-    <!-- SETTINGS (simplified) -->
-    <section id="panel-settings" class="panel" hidden>
-      <div class="section-title">// Settings</div>
-      <div id="settingsLocked" class="notice hidden">🔐 Admin login required to save.</div>
-      <div class="settings-card" id="cardGuild" style="max-width:520px;margin:0 auto">
-        <h3>Guild</h3>
-        <div class="field">
-          <label for="setGuildName">Name</label>
-          <input class="input" id="setGuildName" placeholder="Midnight Rodeo" />
-        </div>
-        <input class="input" id="setRealm" type="hidden" value="" />
-        <div class="field">
-          <label for="setRhUrl">Raid-Helper event URL</label>
-          <input class="input" id="setRhUrl" placeholder="https://raid-helper.xyz/event/…" />
-        </div>
-        <div class="field">
-          <label for="setRegion">Region</label>
-          <select class="input" id="setRegion">
-            <option value="us">US</option>
-            <option value="eu">EU</option>
-          </select>
-        </div>
-        <!-- hidden compat fields -->
-        <select class="input" id="setGame" hidden><option value="classic" selected>classic</option></select>
-        <input type="checkbox" id="setRequireLogin" hidden />
-        <input type="checkbox" id="setPublicView" checked hidden />
-        <input type="checkbox" id="setOfficerRoster" checked hidden />
-        <input type="checkbox" id="setOfficerSync" checked hidden />
-        <input type="checkbox" id="setViewerExport" checked hidden />
-        <div class="row">
-          <button class="btn btn-amber" id="saveGuildBtn" type="button">Save</button>
-          <button class="btn btn-ghost" id="saveRhUrlBtn" type="button">Save RH only</button>
-          <button class="btn btn-ghost" id="saveAccessBtn" type="button" hidden>Save access</button>
-          <span class="msg" id="guildSaveMsg"></span>
-          <span class="msg" id="rhSaveMsg"></span>
-          <span class="msg" id="accessSaveMsg" hidden></span>
-        </div>
-        <p class="share-hint" style="text-align:left;margin-top:14px;max-width:none">
-          Admin password unlocks edits. Guests can view.
-          Optional gear sync uses <code>config.js</code> · <span id="settingsApiStatus" class="status">—</span>
-        </p>
-        <button class="btn btn-ghost" id="settingsTestApi" type="button" style="margin-top:8px">Test Blizzard proxy</button>
-      </div>
-    </section>
-
     </div><!-- #appMain -->
 
     <footer class="footer">
@@ -900,7 +869,7 @@ a.wh-name > span[style*="background"],
 <div class="backdrop hidden" id="authBackdrop">
   <div class="modal modal-sm">
     <div class="modal-title" id="authTitle">Admin login</div>
-    <p class="modal-sub" id="authHint">Enter the guild admin password to edit loot, roster, and settings.</p>
+    <p class="modal-sub" id="authHint">Enter the guild admin password to edit loot, roster, and comp.</p>
     <input class="input" id="authUser" placeholder="Username (optional)" autocomplete="username" hidden />
     <input class="input" type="password" id="authPass" placeholder="Admin password" autocomplete="current-password" style="margin:10px 0 8px" />
     <input class="input" type="password" id="authPass2" hidden />
@@ -977,6 +946,8 @@ a.wh-name > span[style*="background"],
 (function () {
   const STORAGE_KEY = 'midnight-rodeo-loot-log';
   const PLAYER_INFO_KEY = 'midnight-rodeo-player-info';
+  const COMP_SEATS_KEY = 'midnight-rodeo-comp-seats';
+  const NAME_OVERRIDES_KEY = 'midnight-rodeo-name-overrides';
   const META_KEY = 'midnight-rodeo-meta';
   const RH_EVENTS_KEY = 'midnight-rodeo-rh-events';
 
@@ -987,6 +958,8 @@ a.wh-name > span[style*="background"],
   let playerInfo = {};
   let meta = { registeredAt: null };
   let rhEvents = []; // imported Raid-Helper events
+  let nameOverrides = {}; // dual RH name picks: "Moon/Luna" → "Luna"
+  let compSeats = {}; // manual group seats: name → 0-4
   let lastRhPreview = null;
   let freshIds = new Set();
   let currentTab = 'overview';
@@ -1152,6 +1125,16 @@ a.wh-name > span[style*="background"],
       if (!playerInfo || typeof playerInfo !== 'object') playerInfo = {};
     } catch { playerInfo = {}; }
     try {
+      const res = await store.get(NAME_OVERRIDES_KEY);
+      nameOverrides = res && res.value ? JSON.parse(res.value) : {};
+      if (!nameOverrides || typeof nameOverrides !== 'object') nameOverrides = {};
+    } catch { nameOverrides = {}; }
+    try {
+      const raw = localStorage.getItem(COMP_SEATS_KEY);
+      compSeats = raw ? JSON.parse(raw) : {};
+      if (!compSeats || typeof compSeats !== 'object') compSeats = {};
+    } catch { compSeats = {}; }
+    try {
       const res = await store.get(META_KEY);
       meta = res && res.value ? JSON.parse(res.value) : { registeredAt: null };
       if (!meta.registeredAt && entries.length) {
@@ -1181,8 +1164,87 @@ a.wh-name > span[style*="background"],
   async function savePlayerInfo() {
     try { await store.set(PLAYER_INFO_KEY, JSON.stringify(playerInfo)); } catch {}
   }
+  async function saveNameOverrides() {
+    try { await store.set(NAME_OVERRIDES_KEY, JSON.stringify(nameOverrides)); } catch {}
+  }
+  function saveCompSeats() {
+    try { localStorage.setItem(COMP_SEATS_KEY, JSON.stringify(compSeats)); } catch {}
+  }
   async function saveMeta() {
     try { await store.set(META_KEY, JSON.stringify(meta)); } catch {}
+  }
+
+  function pickPlayerName(raw, preferred) {
+    if (window.RaidHelper && RaidHelper.pickMainName) {
+      return RaidHelper.pickMainName(raw, preferred);
+    }
+    const parts = String(raw || '').split(/[/\\|]+/).map((p) => p.trim()).filter(Boolean);
+    return preferred || parts[0] || String(raw || '').trim();
+  }
+
+  function nameOpts(raw) {
+    if (window.RaidHelper && RaidHelper.nameParts) return RaidHelper.nameParts(raw);
+    return String(raw || '').split(/[/\\|]+/).map((p) => p.trim()).filter(Boolean);
+  }
+
+  /**
+   * Rebuild playerInfo from RH primary signed only (≈25).
+   * Dual names collapse to one; nameOverrides let admin force pick.
+   * Keeps rank / ilvl / loot fields when re-keying.
+   */
+  function rebuildRosterFromRh(ev) {
+    if (!window.RaidHelper || !ev) return 0;
+    const patches = RaidHelper.toPlayerPatches(ev, nameOverrides);
+    const prev = playerInfo || {};
+    const next = {};
+
+    // Preserve rank/ilvl from any previous key that matches
+    function findPrev(display, rhName) {
+      const keys = [
+        display.toLowerCase(),
+        String(rhName || '').toLowerCase(),
+        ...nameOpts(rhName).map((p) => p.toLowerCase()),
+      ];
+      for (const k of keys) {
+        if (prev[k]) return prev[k];
+      }
+      // scan by rhName / displayName
+      for (const k of Object.keys(prev)) {
+        const info = prev[k] || {};
+        if (
+          (info.rhName && info.rhName.toLowerCase() === String(rhName || '').toLowerCase()) ||
+          (info.displayName && info.displayName.toLowerCase() === display.toLowerCase())
+        ) {
+          return info;
+        }
+      }
+      return {};
+    }
+
+    Object.keys(patches).forEach((key) => {
+      const patch = patches[key];
+      const old = findPrev(patch.displayName, patch.rhName);
+      next[key] = Object.assign({}, old, patch, {
+        rank: old.rank || patch.rank || 'Raider',
+        ilvl: old.ilvl || patch.ilvl || '',
+        displayName: patch.displayName,
+      });
+    });
+
+    // Keep pure loot/rank officers not on this RH night (GM/Officer only)
+    Object.keys(prev).forEach((k) => {
+      const info = prev[k] || {};
+      const rank = info.rank || '';
+      if (!/guild master|officer/i.test(rank)) return;
+      const dn = (info.displayName || k).toLowerCase();
+      if (next[dn] || next[k]) return;
+      // skip soft / dual ghost keys
+      if (info.rhName && nameOpts(info.rhName).length > 1 && !info.fromRh) return;
+      next[dn] = Object.assign({}, info, { displayName: info.displayName || k, fromRh: false });
+    });
+
+    playerInfo = next;
+    return Object.keys(patches).length;
   }
 
   function setMsg(text, isErr) {
@@ -1489,7 +1551,7 @@ a.wh-name > span[style*="background"],
   function openAuthModal(mode) {
     authMode = 'login';
     $('authTitle').textContent = 'Admin login';
-    $('authHint').textContent = 'Enter the guild admin password to edit loot, roster, and settings.';
+    $('authHint').textContent = 'Enter the guild admin password to edit loot, roster, and comp.';
     if ($('authUser')) $('authUser').value = 'admin';
     $('authPass').value = '';
     $('authErr').textContent = '';
@@ -1499,45 +1561,14 @@ a.wh-name > span[style*="background"],
   }
   function closeAuthModal() { $('authBackdrop').classList.add('hidden'); }
 
-  function fillSettingsForm() {
-    const gs = guildSettings();
-    const cfg = window.LOOTLOG_CONFIG || {};
-    if ($('setGuildName')) $('setGuildName').value = gs.guildName || cfg.guildName || '';
-    if ($('setGame')) $('setGame').value = 'classic';
-    if ($('setRegion')) $('setRegion').value = gs.region || 'us';
-    if ($('setRhUrl')) $('setRhUrl').value = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
-    // defaults for hidden compat checkboxes
-    if ($('setPublicView')) $('setPublicView').checked = true;
-    if ($('setOfficerRoster')) $('setOfficerRoster').checked = true;
-    if ($('setOfficerSync')) $('setOfficerSync').checked = true;
-    if ($('setViewerExport')) $('setViewerExport').checked = true;
-
-    const admin = can('manageSettings');
-    ['setGuildName','setRegion','setRhUrl','saveGuildBtn','saveRhUrlBtn'].forEach(id => {
-      const el = $(id);
-      if (el) el.disabled = !admin;
-    });
-    if ($('cardGuild')) $('cardGuild').style.opacity = admin ? '1' : '.7';
-    if ($('settingsLocked')) $('settingsLocked').classList.toggle('hidden', !!session());
-  }
-
-  function renderSettings() {
-    fillSettingsForm();
-    if (window.WowApi && $('settingsApiStatus')) {
-      $('settingsApiStatus').textContent = WowApi.isConfigured()
-        ? 'proxy ready'
-        : 'proxy off';
-      $('settingsApiStatus').className = 'status ' + (WowApi.isConfigured() ? 'ok' : '');
-    }
-  }
-
   /* ---- Tabs ---- */
   let lastComp = null;
 
   function switchTab(tab) {
+    if (tab === 'settings') tab = 'raids';
     currentTab = tab;
     document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    ['overview','ledger','roster','items','raids','comp','bosses','settings'].forEach(t => {
+    ['overview','ledger','roster','items','raids','comp','bosses'].forEach(t => {
       const el = $('panel-' + t);
       if (el) el.hidden = t !== tab;
     });
@@ -1551,14 +1582,12 @@ a.wh-name > span[style*="background"],
     if (currentTab === 'overview') renderOverview();
     else if (currentTab === 'ledger') renderLedger();
     else if (currentTab === 'roster') {
-      // Auto gear sync when opening roster (RH class/spec + loot iLvl)
       runAutoGearSync({ silent: true }).then(() => renderRoster()).catch(() => renderRoster());
     }
     else if (currentTab === 'items') renderItems();
     else if (currentTab === 'raids') renderRaids();
     else if (currentTab === 'comp') renderComp();
     else if (currentTab === 'bosses') renderBosses();
-    else if (currentTab === 'settings') renderSettings();
     updateGuildHeader();
   }
 
@@ -1775,7 +1804,11 @@ a.wh-name > span[style*="background"],
     }
     if ($('compEmpty')) $('compEmpty').hidden = true;
 
-    const result = RaidComp.analyze(players);
+    let result = RaidComp.analyze(players);
+    // Apply admin manual seats if any
+    if (compSeats && Object.keys(compSeats).length && RaidComp.applyManualSeats) {
+      result = RaidComp.applyManualSeats(result, compSeats);
+    }
     lastComp = result;
     const c = result.counts;
     if ($('compTotal')) $('compTotal').textContent = c.total;
@@ -1786,9 +1819,11 @@ a.wh-name > span[style*="background"],
 
     const tips = $('compTips');
     if (tips) {
-      if (result.tips && result.tips.length) {
+      const bits = (result.tips || []).slice();
+      if (result.manual) bits.unshift('Manual seats active — drag to rearrange, or Reset seats.');
+      if (bits.length) {
         tips.style.display = 'block';
-        tips.innerHTML = '<b>Raid lead tips:</b> ' + result.tips.map(escapeHtml).join(' · ');
+        tips.innerHTML = '<b>Raid lead tips:</b> ' + bits.map(escapeHtml).join(' · ');
       } else tips.style.display = 'none';
     }
 
@@ -1801,19 +1836,29 @@ a.wh-name > span[style*="background"],
         </div>`).join('') || '<div class="muted">No coverage data.</div>';
     }
 
+    const canMove = can('editRoster') || canEdit();
+    if ($('compDragHint')) {
+      $('compDragHint').textContent = canMove
+        ? 'Drag raiders between groups (admin). Optimize rebuilds auto seats; your moves are saved until Reset.'
+        : 'Login as admin to drag people between groups.';
+    }
+
     if ($('compGroups')) {
-      $('compGroups').innerHTML = result.groups.map(g => `
-        <div class="comp-group">
-          <h4>${escapeHtml(g.label)}</h4>
+      $('compGroups').innerHTML = result.groups.map((g, gi) => `
+        <div class="comp-group ${canMove ? '' : 'locked'}" data-group="${gi}">
+          <h4>${escapeHtml(g.label)} <span class="muted" style="font-weight:500">(${g.members.length}/5)</span></h4>
           <div class="cg-note">${escapeHtml(g.note)}</div>
           ${g.buffs && g.buffs.length ? `<div class="cg-buffs">✦ ${g.buffs.map(escapeHtml).join(' · ')}</div>` : ''}
           ${g.missing && g.missing.length ? `<div class="cg-miss">✗ Missing: ${g.missing.map(escapeHtml).join(' · ')}</div>` : ''}
+          <div class="cg-drop" data-group="${gi}">
           ${g.members.map(m => `
-            <div class="cg-member">
+            <div class="cg-member" draggable="${canMove ? 'true' : 'false'}" data-name="${escapeHtml(m.name)}" data-group="${gi}">
               <span class="player-name ${classCss(m.class)}">${escapeHtml(m.name)}</span>
               <span class="cg-spec">${escapeHtml(m.spec || m.class || '')}</span>
-            </div>`).join('') || '<div class="muted">Empty</div>'}
+            </div>`).join('') || '<div class="muted" style="padding:8px 4px">Drop here</div>'}
+          </div>
         </div>`).join('');
+      bindCompDrag(canMove);
     }
 
     if ($('compBlessings')) {
@@ -1847,6 +1892,59 @@ a.wh-name > span[style*="background"],
           </div>
         </div>`).join('') || `<div class="empty">No extra utility detected.</div>`;
     }
+  }
+
+  function bindCompDrag(enabled) {
+    const root = $('compGroups');
+    if (!root || !enabled) return;
+    let dragName = null;
+
+    root.querySelectorAll('.cg-member[draggable="true"]').forEach((el) => {
+      el.addEventListener('dragstart', (ev) => {
+        dragName = el.getAttribute('data-name');
+        el.classList.add('dragging');
+        ev.dataTransfer.setData('text/plain', dragName || '');
+        ev.dataTransfer.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', () => {
+        el.classList.remove('dragging');
+        root.querySelectorAll('.comp-group').forEach((g) => g.classList.remove('drag-over'));
+        dragName = null;
+      });
+    });
+
+    root.querySelectorAll('.comp-group').forEach((box) => {
+      box.addEventListener('dragover', (ev) => {
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = 'move';
+        box.classList.add('drag-over');
+      });
+      box.addEventListener('dragleave', () => box.classList.remove('drag-over'));
+      box.addEventListener('drop', (ev) => {
+        ev.preventDefault();
+        box.classList.remove('drag-over');
+        const name = (ev.dataTransfer.getData('text/plain') || dragName || '').trim();
+        const gi = Number(box.getAttribute('data-group'));
+        if (!name || isNaN(gi)) return;
+        // Snapshot current seats then move
+        if (lastComp && RaidComp.seatsFromGroups) {
+          compSeats = RaidComp.seatsFromGroups(lastComp.groups);
+        }
+        // Enforce max 5: if target full, swap with last
+        const targetCount = (lastComp.groups[gi] && lastComp.groups[gi].members.length) || 0;
+        const fromGi = compSeats[name.toLowerCase()];
+        if (targetCount >= 5 && fromGi !== gi) {
+          const target = lastComp.groups[gi];
+          const victim = target.members[target.members.length - 1];
+          if (victim && victim.name.toLowerCase() !== name.toLowerCase()) {
+            compSeats[victim.name.toLowerCase()] = fromGi != null ? fromGi : 0;
+          }
+        }
+        compSeats[name.toLowerCase()] = gi;
+        saveCompSeats();
+        renderComp();
+      });
+    });
   }
 
   function compDiscordText() {
@@ -1976,22 +2074,55 @@ a.wh-name > span[style*="background"],
 
   function collectRosterPlayers() {
     const byPlayer = {};
+    const lootCount = {};
     for (const e of entries) {
-      if (!byPlayer[e.player]) byPlayer[e.player] = { count: 0, last: null };
-      byPlayer[e.player].count++;
+      const pk = String(e.player || '').toLowerCase();
+      if (!pk) continue;
+      if (!lootCount[pk]) lootCount[pk] = { count: 0, last: null, name: e.player };
+      lootCount[pk].count++;
       const t = new Date(e.date).getTime();
-      if (!isNaN(t) && (byPlayer[e.player].last == null || t > byPlayer[e.player].last)) {
-        byPlayer[e.player].last = t;
+      if (!isNaN(t) && (lootCount[pk].last == null || t > lootCount[pk].last)) {
+        lootCount[pk].last = t;
       }
     }
-    // Include Raid-Helper / manual players from playerInfo
-    Object.keys(playerInfo).forEach((k) => {
+
+    // Prefer RH primary signed roster (playerInfo after rebuild)
+    const rhKeys = Object.keys(playerInfo || {}).filter((k) => {
       const info = playerInfo[k] || {};
-      const display = info.displayName || info.rhName || k;
-      const existing = Object.keys(byPlayer).find((p) => p.toLowerCase() === k || p.toLowerCase() === display.toLowerCase());
-      if (!existing) {
-        byPlayer[display] = { count: 0, last: null, fromRh: !!info.lastRhImport };
+      if (info.fromRh === false) return false;
+      // hide soft-status leftovers
+      if (window.RaidHelper && RaidHelper.isSoftStatus) {
+        if (RaidHelper.isSoftStatus(info.rhRole, info.class, info.rhStatus)) return false;
       }
+      return !!(info.fromRh || info.lastRhImport || info.rhRole || info.class);
+    });
+
+    if (rhKeys.length) {
+      rhKeys.forEach((k) => {
+        const info = playerInfo[k] || {};
+        const display = info.displayName || k;
+        const lk = display.toLowerCase();
+        const loot = lootCount[lk] || lootCount[k] || {};
+        byPlayer[display] = {
+          count: loot.count || 0,
+          last: loot.last || null,
+          fromRh: true,
+          info,
+        };
+      });
+      return byPlayer;
+    }
+
+    // Fallback: loot + playerInfo
+    Object.keys(lootCount).forEach((k) => {
+      const L = lootCount[k];
+      byPlayer[L.name] = { count: L.count, last: L.last, fromRh: false, info: pinfo(L.name) };
+    });
+    Object.keys(playerInfo || {}).forEach((k) => {
+      const info = playerInfo[k] || {};
+      const display = info.displayName || k;
+      if (byPlayer[display]) return;
+      byPlayer[display] = { count: 0, last: null, fromRh: !!info.lastRhImport, info };
     });
     return byPlayer;
   }
@@ -2010,14 +2141,17 @@ a.wh-name > span[style*="background"],
       player: p,
       count: byPlayer[p].count,
       last: byPlayer[p].last,
-      info: pinfo(p),
+      info: byPlayer[p].info || pinfo(p),
     })).sort((a, b) => {
       const ra = RANKS.indexOf(a.info.rank || '');
       const rb = RANKS.indexOf(b.info.rank || '');
       const oa = ra === -1 ? 99 : ra;
       const ob = rb === -1 ? 99 : rb;
       if (oa !== ob) return oa - ob;
-      return b.count - a.count || a.player.localeCompare(b.player);
+      const roleA = rhRoleBucket(a.info.rhRole);
+      const roleB = rhRoleBucket(b.info.rhRole);
+      if (roleA !== roleB) return roleA.localeCompare(roleB);
+      return a.player.localeCompare(b.player);
     });
 
     let tanks = 0, heals = 0, dps = 0;
@@ -2031,9 +2165,16 @@ a.wh-name > span[style*="background"],
     if ($('rosterTanks')) $('rosterTanks').textContent = tanks;
     if ($('rosterHeal')) $('rosterHeal').textContent = heals;
     if ($('rosterDps')) $('rosterDps').textContent = dps;
+    if ($('rosterHint')) {
+      const target = 25;
+      const extra = rows.length > target ? ` · ⚠ ${rows.length - target} over 25` : '';
+      $('rosterHint').innerHTML =
+        `Raid roster = Raid-Helper <b>primary signed</b> (${rows.length}/${target})${extra}. ` +
+        `Dual names auto-use the first; admin can pick the other in the RH name column.`;
+    }
 
     $('rosterEmpty').hidden = rows.length > 0;
-    const apiReady = !!(window.WowApi && window.WowApi.isConfigured());
+    const canRoster = can('editRoster');
 
     $('rosterBody').innerHTML = rows.map(r => {
       const info = r.info;
@@ -2047,25 +2188,39 @@ a.wh-name > span[style*="background"],
         ? `<span class="tag">${escapeHtml(info.rhRole)}</span>`
         : '<span class="muted">—</span>';
       const ilvl = info.ilvl ? `<span class="num">${escapeHtml(String(info.ilvl))}</span>` : '<span class="muted">—</span>';
-      const busy = lookupBusy.has(r.player.toLowerCase());
-      const canRoster = can('editRoster');
       const rankCell = canRoster
         ? `<select class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="rank" style="padding:4px 6px;font-size:12px;max-width:120px">
             ${RANKS.map(rk => `<option value="${rk}"${rank===rk?' selected':''}>${rk}</option>`).join('')}
            </select>`
         : `<span class="${rankClass(rank)}">${escapeHtml(rank)}</span>`;
 
+      // Dual-name picker for admin
+      const opts = (info.nameOptions && info.nameOptions.length > 1)
+        ? info.nameOptions
+        : nameOpts(info.rhName || '');
+      let nameCell = `<span class="player-name ${nameCls}">${escapeHtml(r.player)}</span>`;
+      let rhNameCell = `<span class="muted" title="Raid-Helper full name">${escapeHtml(info.rhName || '—')}</span>`;
+      if (canRoster && opts.length > 1) {
+        const cur = info.displayName || r.player;
+        rhNameCell = `<select class="input roster-name-pick" data-player="${escapeHtml(r.player)}" data-rhname="${escapeHtml(info.rhName || '')}" data-field="namePick" title="Pick which name to use">
+          ${opts.map(o => `<option value="${escapeHtml(o)}"${o === cur ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}
+        </select>`;
+        nameCell = `<span class="player-name ${nameCls}">${escapeHtml(cur)}</span>`;
+      } else if (canRoster) {
+        nameCell = `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="displayName" value="${escapeHtml(r.player)}" style="max-width:140px;padding:4px 6px;font-size:12px" title="Edit display name" />`;
+      }
+
       return `<tr>
         <td>${rankCell}</td>
-        <td class="player-name ${nameCls}" title="${escapeHtml(info.rhName || '')}">${escapeHtml(r.player)}</td>
+        <td>${nameCell}</td>
+        <td>${rhNameCell}</td>
         <td>${rhRole}</td>
         <td>${classSpec}</td>
         <td>${canRoster
           ? `<input class="input roster-field" data-player="${escapeHtml(r.player)}" data-field="ilvl" value="${escapeHtml(info.ilvl||'')}" style="max-width:64px;padding:4px 6px" />`
           : ilvl}</td>
         <td class="num">${r.count}</td>
-        <td class="muted">${r.last ? dayKey(r.last) : (info.lastRhImport ? 'RH' : '—')}</td>
-        <td>${apiReady ? `<button type="button" class="lookup-btn" data-lookup="${escapeHtml(r.player)}" ${busy?'disabled':''}>${busy?'…':'Sync'}</button>` : ''}</td>
+        <td></td>
       </tr>`;
     }).join('');
   }
@@ -2129,7 +2284,7 @@ a.wh-name > span[style*="background"],
     if (!box || !ev) { if (box) box.classList.add('hidden'); return; }
     const roles = Object.keys(ev.byRole || {}).sort();
     const roleBits = roles.map(r => `<span class="tag">${escapeHtml(r)}: ${ev.byRole[r]}</span>`).join(' ');
-    const primary = (ev.list || []).filter(s => s.isPrimary);
+    const primary = (ev.list || []).filter(s => s.isPrimary && !s.isSoft);
     const byRoleGroups = {};
     primary.forEach(s => {
       const role = s.role || 'Other';
@@ -2168,14 +2323,8 @@ a.wh-name > span[style*="background"],
 
   async function applyRhEventToGuild(ev) {
     if (!window.RaidHelper) return;
-    const patches = RaidHelper.toPlayerPatches(ev);
-    let n = 0;
-    Object.keys(patches).forEach((key) => {
-      if (!playerInfo[key]) playerInfo[key] = {};
-      Object.assign(playerInfo[key], patches[key]);
-      n++;
-    });
-    // Store compact event (no huge raw if possible)
+    const n = rebuildRosterFromRh(ev);
+    // Store compact event
     const stored = {
       id: ev.id,
       url: ev.url,
@@ -2189,17 +2338,28 @@ a.wh-name > span[style*="background"],
       channel: ev.channel,
       primary: ev.primary,
       absence: ev.absence,
+      tentative: ev.tentative,
       byRole: ev.byRole,
       list: (ev.list || []).map(s => ({
         name: s.name, class: s.class, spec: s.spec, role: s.role,
-        status: s.status, isAbsence: s.isAbsence, isPrimary: s.isPrimary,
+        status: s.status,
+        isAbsence: !!s.isAbsence,
+        isSoft: !!s.isSoft,
+        isPrimary: !!s.isPrimary,
+        isTentative: !!s.isTentative,
+        isLate: !!s.isLate,
+        isBench: !!s.isBench,
       })),
       importedAt: new Date().toISOString(),
     };
     rhEvents = [stored].concat(rhEvents.filter(e => e.id !== stored.id));
+    // Fresh import → clear stale manual seats so optimize matches new 25
+    compSeats = {};
+    saveCompSeats();
     await savePlayerInfo();
     await saveRhEvents();
-    setRhMsg(`Applied ${ev.primary} signups · gear auto-synced · bosses re-placed.`);
+    setRhMsg(`Raid roster set to ${n} RH signed (dual names → one) · gear synced.`);
+    if ($('rosterApiStatus')) setRosterStatus(`${n} signed from Raid-Helper`, 'ok');
     await runAutoGearSync({ silent: true });
     onRosterChanged('Raid-Helper import');
     renderRoster();
@@ -2683,14 +2843,67 @@ a.wh-name > span[style*="background"],
 
   $('rosterBody').addEventListener('change', async (ev) => {
     if (!can('editRoster')) return;
+    const pick = ev.target.closest('[data-field="namePick"]');
+    if (pick) {
+      const player = pick.dataset.player;
+      const rhName = pick.dataset.rhname || '';
+      const chosen = pick.value.trim();
+      if (!chosen) return;
+      // Admin override for dual RH names
+      if (rhName) {
+        nameOverrides[rhName] = chosen;
+        nameOverrides[rhName.toLowerCase()] = chosen;
+      }
+      nameOverrides[player.toLowerCase()] = chosen;
+      await saveNameOverrides();
+      // Re-key playerInfo entry
+      const oldKey = player.toLowerCase();
+      const info = playerInfo[oldKey] || {};
+      const newKey = chosen.toLowerCase();
+      const next = Object.assign({}, info, {
+        displayName: chosen,
+        preferredName: chosen,
+        rhName: info.rhName || rhName,
+      });
+      if (oldKey !== newKey) {
+        delete playerInfo[oldKey];
+      }
+      playerInfo[newKey] = next;
+      await savePlayerInfo();
+      // Update seats if name changed
+      if (compSeats[oldKey] != null && oldKey !== newKey) {
+        compSeats[newKey] = compSeats[oldKey];
+        delete compSeats[oldKey];
+        saveCompSeats();
+      }
+      onRosterChanged('name pick');
+      renderRoster();
+      return;
+    }
     const el = ev.target.closest('.roster-field');
     if (!el) return;
     const player = el.dataset.player;
     const field = el.dataset.field;
     const key = player.toLowerCase();
-    if (!playerInfo[key]) playerInfo[key] = {};
+    if (!playerInfo[key]) playerInfo[key] = { displayName: player };
     let val = el.value.trim();
     if (field === 'ilvl') val = val.replace(/[^\d.]/g, '');
+    if (field === 'displayName' && val && val.toLowerCase() !== key) {
+      const info = playerInfo[key];
+      nameOverrides[info.rhName || player] = val;
+      await saveNameOverrides();
+      delete playerInfo[key];
+      playerInfo[val.toLowerCase()] = Object.assign({}, info, { displayName: val, preferredName: val });
+      if (compSeats[key] != null) {
+        compSeats[val.toLowerCase()] = compSeats[key];
+        delete compSeats[key];
+        saveCompSeats();
+      }
+      await savePlayerInfo();
+      onRosterChanged('rename');
+      renderRoster();
+      return;
+    }
     playerInfo[key][field] = val;
     await savePlayerInfo();
     onRosterChanged('roster edit');
@@ -2767,7 +2980,14 @@ a.wh-name > span[style*="background"],
       const ev = await RaidHelper.fetchEvent(input);
       lastRhPreview = ev;
       renderRhPreview(ev);
-      setRhMsg(`Loaded “${ev.title}” · ${ev.primary} signed · ${ev.absence} absence · ${ev.server || ''}`);
+      try {
+        if (window.Accounts && input) {
+          Accounts.updateSettings({ raidHelperEventUrl: String(input).trim() });
+        }
+      } catch (_) {}
+      setRhMsg(
+        `Loaded “${ev.title}” · ${ev.primary} signed (raid seats) · ${ev.absence || 0} abs · ${ev.tentative || 0} tent · ${ev.server || ''}`
+      );
     } catch (e) {
       setRhMsg(e.message || String(e), true);
       if ($('rhPreview')) $('rhPreview').classList.add('hidden');
@@ -2795,9 +3015,7 @@ a.wh-name > span[style*="background"],
             await applyRhEventToGuild(fresh);
           } catch {
             showStoredRhEvent(stored.id);
-            await applyRhEventToGuild(Object.assign({}, stored, {
-              list: (stored.list || []).map(s => Object.assign({ isPrimary: !s.isAbsence, isAbsence: !!s.isAbsence }, s)),
-            }));
+            await applyRhEventToGuild(hydrateStoredRh(stored));
           }
         }
         return;
@@ -2811,15 +3029,32 @@ a.wh-name > span[style*="background"],
       }
     });
   }
+  function hydrateStoredRh(stored) {
+    const list = (stored.list || []).map((s) => {
+      if (window.RaidHelper && RaidHelper.normalizeSignup) {
+        return RaidHelper.normalizeSignup(s);
+      }
+      const soft =
+        s.isSoft ||
+        s.isAbsence ||
+        /absence|tentative|late|bench/i.test(String(s.role || '') + ' ' + String(s.class || ''));
+      return Object.assign({}, s, {
+        isSoft: !!soft,
+        isPrimary: !soft,
+        isAbsence: !!s.isAbsence,
+      });
+    });
+    const primary = list.filter((s) => s.isPrimary).length;
+    return Object.assign({}, stored, { list, primary });
+  }
+
   if ($('rosterFromRh')) {
     $('rosterFromRh').addEventListener('click', () => {
       if (!rhEvents.length) {
         setRosterStatus('Import a Raid-Helper event on the Raids tab first.', 'err');
         return;
       }
-      applyRhEventToGuild(Object.assign({}, rhEvents[0], {
-        list: (rhEvents[0].list || []).map(s => Object.assign({ isPrimary: !s.isAbsence, isAbsence: !!s.isAbsence }, s)),
-      }));
+      applyRhEventToGuild(hydrateStoredRh(rhEvents[0]));
     });
   }
   if ($('saveRhUrlBtn')) {
@@ -2918,6 +3153,8 @@ a.wh-name > span[style*="background"],
       entries = [];
       playerInfo = {};
       rhEvents = [];
+      nameOverrides = {};
+      compSeats = {};
       meta = { registeredAt: null, isDemo: false };
       lastComp = null;
       lastBossAssign = null;
@@ -2925,6 +3162,8 @@ a.wh-name > span[style*="background"],
       lastBossRosterFp = '';
       await saveEntries();
       await savePlayerInfo();
+      await saveNameOverrides();
+      saveCompSeats();
       await saveRhEvents();
       await saveMeta();
       onRosterChanged('clear');
@@ -2935,10 +3174,26 @@ a.wh-name > span[style*="background"],
 
   if ($('compRunBtn')) {
     $('compRunBtn').addEventListener('click', () => {
+      // Optimize = rebuild auto seats (clear manual)
+      compSeats = {};
+      saveCompSeats();
       renderComp();
+      // snapshot auto seats so further drags start from optimize
+      if (lastComp && window.RaidComp && RaidComp.seatsFromGroups) {
+        compSeats = RaidComp.seatsFromGroups(lastComp.groups);
+        saveCompSeats();
+      }
       $('footerMsg').textContent = lastComp
-        ? `Comp optimized · ${lastComp.counts.total} raiders · ${lastComp.blessings.assignments.length} blessings`
+        ? `Comp optimized · ${lastComp.counts.total} raiders · drag to fine-tune`
         : 'No roster to optimize.';
+    });
+  }
+  if ($('compResetBtn')) {
+    $('compResetBtn').addEventListener('click', () => {
+      compSeats = {};
+      saveCompSeats();
+      renderComp();
+      $('footerMsg').textContent = 'Manual seats cleared — showing auto groups.';
     });
   }
   if ($('compCopyBtn')) {
@@ -3123,8 +3378,10 @@ a.wh-name > span[style*="background"],
       const key = h.slice(5);
       switchTab('raids');
       openViewLog(key);
-    } else if (['overview','ledger','roster','items','raids','comp','bosses','settings'].includes(h)) {
+    } else if (['overview','ledger','roster','items','raids','comp','bosses'].includes(h)) {
       switchTab(h);
+    } else if (h === 'settings') {
+      switchTab('raids');
     }
   }
 
@@ -3143,12 +3400,18 @@ a.wh-name > span[style*="background"],
     // Prefill Raid-Helper URL
     const rhUrl = gs.raidHelperEventUrl || cfg.raidHelperEventUrl || '';
     if ($('rhEventUrl') && rhUrl) $('rhEventUrl').value = rhUrl;
-    if ($('setRhUrl') && rhUrl) $('setRhUrl').value = rhUrl;
 
     if ($('rosterGame')) $('rosterGame').value = 'classic';
-    if ($('setGame')) $('setGame').value = 'classic';
 
     await loadAll();
+
+    // Auto-repair bloated roster from latest RH (dual names → one, primary only)
+    if (rhEvents.length && window.RaidHelper) {
+      try {
+        const n = rebuildRosterFromRh(hydrateStoredRh(rhEvents[0]));
+        if (n) await savePlayerInfo();
+      } catch (_) {}
+    }
 
     // Drop old auto-demo data so the app starts clean
     if (meta && meta.isDemo) {
