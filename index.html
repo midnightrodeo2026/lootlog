@@ -1203,6 +1203,8 @@ a.wh-name > span[style*="background"],
   const RAID_SIZE = 25;
   const META_KEY = 'midnight-rodeo-meta';
   const RH_EVENTS_KEY = 'midnight-rodeo-rh-events';
+  /** Old demo / retired RH nights — never auto-import or show */
+  const RETIRED_RH_EVENT_IDS = new Set(['1530078606578024520']);
 
   const WOW_CLASSES = ['Warrior','Paladin','Hunter','Rogue','Priest','Shaman','Mage','Warlock','Druid'];
   const RANKS = ['Guild Master','Officer','Officer Alt','Raider','Trial','Alt'];
@@ -1428,6 +1430,59 @@ a.wh-name > span[style*="background"],
   }
   async function saveRhEvents() {
     try { await store.set(RH_EVENTS_KEY, JSON.stringify(rhEvents)); } catch {}
+  }
+
+  function isRetiredRhId(id) {
+    const s = String(id || '').trim();
+    if (!s) return false;
+    if (RETIRED_RH_EVENT_IDS.has(s)) return true;
+    return false;
+  }
+
+  function rhIdFromAny(input) {
+    if (!input) return '';
+    if (window.RaidHelper && RaidHelper.extractEventId) {
+      return String(RaidHelper.extractEventId(input) || '').trim();
+    }
+    const m = String(input).match(/(\d{15,})/);
+    return m ? m[1] : '';
+  }
+
+  function isRetiredRhRef(input) {
+    const id = rhIdFromAny(input);
+    if (isRetiredRhId(id)) return true;
+    return /1530078606578024520/.test(String(input || ''));
+  }
+
+  /** Drop retired event(s) from storage + clear saved URL so silent prep cannot revive them. */
+  async function purgeRetiredRhData() {
+    let changed = false;
+    const before = rhEvents.length;
+    rhEvents = (rhEvents || []).filter((e) => {
+      if (!e) return false;
+      if (isRetiredRhId(e.id) || isRetiredRhRef(e.url)) return false;
+      return true;
+    });
+    if (rhEvents.length !== before) changed = true;
+
+    try {
+      const gs = guildSettings();
+      if (gs.raidHelperEventUrl && isRetiredRhRef(gs.raidHelperEventUrl)) {
+        Accounts.updateSettings({ raidHelperEventUrl: '' });
+        changed = true;
+      }
+    } catch (_) {}
+
+    if ($('rhEventUrl') && isRetiredRhRef($('rhEventUrl').value)) {
+      $('rhEventUrl').value = '';
+    }
+
+    if (changed) {
+      try {
+        await saveRhEvents();
+      } catch (_) {}
+    }
+    return changed;
   }
   async function saveEntries() {
     try {
@@ -1689,30 +1744,8 @@ a.wh-name > span[style*="background"],
   }
 
   async function refreshDefaultEventBanner() {
-    if (!window.RaidHelper) return;
-    const c = rhConfig();
-    const id = RaidHelper.extractEventId(c.raidHelperEventUrl);
-    if (!id) {
-      setBannerLive('', '');
-      return;
-    }
-    try {
-      const ev = await RaidHelper.fetchEvent(id);
-      setBannerLive(
-        '<b>' +
-          escapeHtml(ev.title) +
-          '</b> · ' +
-          escapeHtml(ev.dayKey || ev.date || '') +
-          ' ' +
-          escapeHtml(ev.time || '') +
-          ' · ' +
-          (ev.primary || 0) +
-          ' signed',
-        'event.html?event=' + encodeURIComponent(id)
-      );
-    } catch (_) {
-      setBannerLive('Raid board ready', 'event.html');
-    }
+    // No default RH night — only show when user/API picks a live event
+    setBannerLive('', '');
   }
 
   function renderUpcomingList(list) {
@@ -2832,12 +2865,13 @@ a.wh-name > span[style*="background"],
       } catch (e) {
         rhErr = e && e.message ? e.message : String(e);
       }
+      // Explicit URL only (never re-pull retired nights). Silent boot needs API key or a fresh paste.
       if (!ev) {
         const url =
           ($('rhEventUrl') && $('rhEventUrl').value.trim()) ||
-          cfg.raidHelperEventUrl ||
+          (!silent ? cfg.raidHelperEventUrl || '' : '') ||
           '';
-        if (url && window.RaidHelper) {
+        if (url && !isRetiredRhRef(url) && window.RaidHelper) {
           try {
             ev = await RaidHelper.fetchEvent(url);
           } catch (e2) {
@@ -2845,8 +2879,12 @@ a.wh-name > span[style*="background"],
           }
         }
       }
-      if (!ev && rhEvents[0]) {
+      // Manual Prep only may re-use a stored import — silent boot must not revive old nights
+      if (!ev && !silent && rhEvents[0] && !isRetiredRhId(rhEvents[0].id)) {
         ev = hydrateStoredRh(rhEvents[0]);
+      }
+      if (ev && isRetiredRhId(ev.id)) {
+        ev = null;
       }
       if (ev && ev.id) {
         set('Applying ' + (ev.title || 'roster') + '…');
@@ -2884,7 +2922,7 @@ a.wh-name > span[style*="background"],
           })),
           importedAt: new Date().toISOString(),
         };
-        rhEvents = [stored].concat(rhEvents.filter((e) => e.id !== stored.id));
+        rhEvents = [stored].concat(rhEvents.filter((e) => e.id !== stored.id && !isRetiredRhId(e.id)));
         await savePlayerInfo();
         await saveRhEvents();
         if ($('rhEventUrl')) $('rhEventUrl').value = stored.url;
@@ -2896,9 +2934,11 @@ a.wh-name > span[style*="background"],
         set(n + ' signed · filling the 25…');
       } else {
         set(
-          rhErr
-            ? 'RH issue — using saved roster. ' + rhErr.slice(0, 80)
-            : 'No RH event — using saved roster…'
+          silent
+            ? ''
+            : rhErr
+              ? 'RH issue — using saved roster. ' + rhErr.slice(0, 80)
+              : 'No RH event yet — paste a link or save an API key.'
         );
       }
 
@@ -4039,9 +4079,18 @@ a.wh-name > span[style*="background"],
       return;
     }
     const input = ($('rhEventUrl') && $('rhEventUrl').value) || '';
+    if (isRetiredRhRef(input)) {
+      setRhMsg('That event is retired — paste a current Raid-Helper link.', true);
+      if ($('rhEventUrl')) $('rhEventUrl').value = '';
+      return;
+    }
     setRhMsg('Fetching event from Raid-Helper…');
     try {
       const ev = await RaidHelper.fetchEvent(input);
+      if (ev && isRetiredRhId(ev.id)) {
+        setRhMsg('That event is retired — paste a current Raid-Helper link.', true);
+        return;
+      }
       lastRhPreview = ev;
       renderRhPreview(ev);
       try {
@@ -4551,8 +4600,11 @@ a.wh-name > span[style*="background"],
 
     // Prefill Raid-Helper URL + calendar
     const rhCfg = rhConfig();
-    if ($('rhEventUrl') && rhCfg.raidHelperEventUrl) {
+    if ($('rhEventUrl') && rhCfg.raidHelperEventUrl && !isRetiredRhRef(rhCfg.raidHelperEventUrl)) {
       $('rhEventUrl').value = rhCfg.raidHelperEventUrl;
+    } else if ($('rhEventUrl') && rhCfg.raidHelperEventUrl && isRetiredRhRef(rhCfg.raidHelperEventUrl)) {
+      $('rhEventUrl').value = '';
+      try { Accounts.updateSettings({ raidHelperEventUrl: '' }); } catch (_) {}
     }
     if ($('rhApiKey') && rhCfg.raidHelperApiKey) {
       // show placeholder only — don't echo full key in value for casual shoulder-surfing
@@ -4563,20 +4615,21 @@ a.wh-name > span[style*="background"],
 
     await loadAll();
 
-    // Auto-repair bloated roster from latest RH (dual names → one, primary only)
-    if (rhEvents.length && window.RaidHelper) {
+    // Kill retired demo/old RH nights stuck in this browser
+    await purgeRetiredRhData();
+
+    // Only rebuild roster from a real (non-retired) import
+    if (rhEvents.length && window.RaidHelper && !isRetiredRhId(rhEvents[0].id)) {
       try {
         const n = rebuildRosterFromRh(hydrateStoredRh(rhEvents[0]));
         if (n) await savePlayerInfo();
       } catch (_) {}
     }
 
-    // Auto-discover Midnight Rodeo RH events (calendar) or fall back to default event banner
+    // Auto-discover with API key only (no default event)
     try {
       await refreshServerEvents({ silent: true });
-    } catch (_) {
-      try { await refreshDefaultEventBanner(); } catch (__) {}
-    }
+    } catch (_) {}
 
     // Drop old auto-demo data so the app starts clean
     if (meta && meta.isDemo) {
@@ -4593,8 +4646,13 @@ a.wh-name > span[style*="background"],
     applyAccessGate();
     updateGuildHeader();
 
-    // Auto-pick 25 if we already have RH signed and no squad
-    if (canEdit() && !raidSquad.length && Object.keys(playerInfo || {}).length) {
+    // Auto-pick 25 only when we still have a live RH import
+    if (
+      canEdit() &&
+      !raidSquad.length &&
+      rhEvents.length &&
+      Object.keys(playerInfo || {}).length
+    ) {
       try { autoPickRaid25(); } catch (_) {}
     }
 
@@ -4608,11 +4666,13 @@ a.wh-name > span[style*="background"],
       }).catch(() => {});
     }
 
-    // Admin: quiet refresh so the desk is ready without a button mash
-    if (canEdit()) {
+    // Quiet prep only when API key can fetch a real next raid — never re-import retired nights
+    const hasRhKey = !!(rhConfig().raidHelperApiKey || rhConfig().raidHelperCalendarKey);
+    if (canEdit() && hasRhKey) {
       runSmartPrep({ silent: true })
         .then(() => {
           if (currentTab === 'overview') renderOverview();
+          if (currentTab === 'raids') renderRaids();
           $('footerMsg').textContent =
             (guildSettings().guildName || 'Midnight Rodeo') + ' · raid desk';
         })
@@ -4623,6 +4683,8 @@ a.wh-name > span[style*="background"],
     } else {
       const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
       $('footerMsg').textContent = gname + ' · raid desk';
+      if (currentTab === 'raids') renderRaids();
+      if (currentTab === 'overview') renderOverview();
     }
   })();
 
