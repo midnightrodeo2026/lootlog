@@ -9,5 +9,5 @@ compatibility_date = "2024-11-01"
 
 [vars]
 # Comma-separated allowed origins. Empty = allow all (fine for public event list proxy).
-# Example: https://vorlof69.github.io,https://midnightrodeo2026.github.io,http://localhost:5500
-CORS_ORIGINS = "https://vorlof69.github.io,https://midnightrodeo2026.github.io,http://localhost:5500,http://127.0.0.1:5500"
+# Example: https://midnightrodeo2026.github.io,http://localhost:5500
+CORS_ORIGINS = "https://midnightrodeo2026.github.io,http://localhost:5500,http://127.0.0.1:5500"

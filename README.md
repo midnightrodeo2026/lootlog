@@ -4,9 +4,8 @@
 
 Guild loot council + Raid-Helper roster + Gargul imports + raid logs for **Midnight Rodeo**.
 
-**Repo:** https://github.com/vorlof69/lootlog  
-**Live site (GitHub Pages):** https://vorlof69.github.io/lootlog/  
-**Target guild repo (optional):** https://github.com/midnightrodeo2026/lootlog
+**Repo:** https://github.com/midnightrodeo2026/lootlog  
+**Live site (GitHub Pages):** https://midnightrodeo2026.github.io/lootlog/
 
 ## Features
 
@@ -100,19 +99,11 @@ window.LOOTLOG_CONFIG = {
 
 This app is static HTML/JS — ideal for free GitHub Pages. No build step.
 
-### Already enabled for `vorlof69/lootlog`
+### Live site · `midnightrodeo2026/lootlog`
 
-- **URL:** https://vorlof69.github.io/lootlog/  
+- **URL:** https://midnightrodeo2026.github.io/lootlog/  
 - **Source:** `main` branch, `/ (root)`  
 - Push to `main` and the site redeploys in ~1 minute  
-
-### Enable on another repo (e.g. midnightrodeo2026)
-
-1. Push code to that GitHub repo  
-2. **Settings → Pages**  
-3. Source: **Deploy from a branch**  
-4. Branch: `main`, folder: `/ (root)` → Save  
-5. Site: `https://<username>.github.io/lootlog/`
 
 ### What works on Pages
 
@@ -131,7 +122,7 @@ This app is static HTML/JS — ideal for free GitHub Pages. No build step.
 - When you deploy the Blizzard proxy, set CORS to allow:
 
 ```toml
-CORS_ORIGINS = "https://vorlof69.github.io,https://midnightrodeo2026.github.io"
+CORS_ORIGINS = "https://midnightrodeo2026.github.io"
 ```
 
 ## Data & sharing
