@@ -855,6 +855,15 @@ a:hover{text-decoration:underline}
   }, 15000);
 
   resolveEventRef().then((ref) => {
+    if (!ref) {
+      el('skeleton').hidden = true;
+      el('embed').hidden = false;
+      setStatus(
+        'No raid linked yet. Open Board from Signups after you import a Raid-Helper event, or add ?event=ID to the URL.',
+        'err'
+      );
+      return;
+    }
     eventRef = ref || eventRef;
     refresh();
     setInterval(() => refresh({ silent: true }), 60000);

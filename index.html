@@ -2600,7 +2600,7 @@ a.wh-name > span[style*="background"],
       if (result.manual) bits.unshift('Manual seats active — drag to rearrange, or Reset seats.');
       if (bits.length) {
         tips.style.display = 'block';
-        tips.innerHTML = '<b>Smart tips:</b> ' + bits.map(escapeHtml).join(' · ');
+        tips.innerHTML = '<b>Tips:</b> ' + bits.map(escapeHtml).join(' · ');
       } else tips.style.display = 'none';
     }
 
@@ -2630,8 +2630,8 @@ a.wh-name > span[style*="background"],
     if ($('compDragHint')) {
       const n = players.length;
       $('compDragHint').textContent = canMove
-        ? `Live from signups (${n} players · ${c.groups || 0} groups). Optimize rebuilds best WF/buff stacks. Drag to fine-tune.`
-        : `Live from signups (${n} players). Admin can drag seats.`;
+        ? `${n} signed · ${c.groups || 0} groups. Build groups stacks WF/buffs. Drag to fine-tune.`
+        : `${n} signed. Admin can drag seats.`;
     }
 
     if ($('compGroups')) {
