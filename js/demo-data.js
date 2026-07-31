@@ -200,7 +200,7 @@
 
     const rhToday = {
       id: 'demo-today',
-      url: 'https://raid-helper.xyz/event/1530078606578024520',
+      url: '',
       title: 'Demo · Midnight Rodeo 25-man (today)',
       date: day,
       time: '08:00 PM',
@@ -218,7 +218,7 @@
 
     const rhLast = {
       id: 'demo-last-week',
-      url: 'https://raid-helper.xyz/event/1530078606578024520',
+      url: '',
       title: 'Demo · Karazhan clear (last week)',
       date: last,
       time: '08:00 PM',

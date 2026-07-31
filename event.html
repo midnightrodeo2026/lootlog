@@ -506,7 +506,7 @@ a:hover{text-decoration:underline}
   const cfg = window.LOOTLOG_CONFIG || {};
   const defaultUrl = cfg.raidHelperEventUrl || '';
   const params = new URLSearchParams(location.search);
-  let eventRef = params.get('event') || params.get('id') || defaultUrl || SignupBoard.DEFAULT_EVENT_ID;
+  let eventRef = params.get('event') || params.get('id') || defaultUrl || '';
 
   let model = null;
   let loading = false;

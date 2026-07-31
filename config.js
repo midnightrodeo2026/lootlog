@@ -25,8 +25,8 @@ window.LOOTLOG_CONFIG = {
   // Optional calendar key fallback
   raidHelperCalendarKey: '',
 
-  // Fallback single event if API key not set yet
-  raidHelperEventUrl: 'https://raid-helper.xyz/event/1530078606578024520',
+  // Optional fallback single event (leave empty — paste on Signups or use API key)
+  raidHelperEventUrl: '',
 
   // Discord guild icon (logo)
   guildIconUrl:

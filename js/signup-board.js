@@ -4,7 +4,6 @@
  * Display board for Discord (signups still happen in RH).
  */
 (function (global) {
-  const DEFAULT_EVENT_ID = '1530078606578024520';
   // Official API: https://raid-helper.xyz/documentation/api
   const RH_API_V4 = 'https://raid-helper.xyz/api/v4/events/';
   const RH_API_LEGACY = 'https://raid-helper.xyz/api/event/';
@@ -56,9 +55,10 @@
 
   function extractId(input) {
     const s = String(input || '').trim();
+    if (!s) return '';
     if (/^\d{10,}$/.test(s)) return s;
     const m = s.match(/(\d{15,})/);
-    return m ? m[1] : DEFAULT_EVENT_ID;
+    return m ? m[1] : '';
   }
 
   function loadLocal(eventId) {
@@ -264,7 +264,7 @@
     const accent = parseRhColor(event.color) || '#c23b3b';
 
     return {
-      id: event.raidid || event.id || DEFAULT_EVENT_ID,
+      id: event.raidid || event.id || '',
       title,
       leader: event.leadername || '',
       date: event.date || '',
@@ -396,7 +396,10 @@
   }
 
   async function loadBoard(eventIdOrUrl) {
-    const id = extractId(eventIdOrUrl || DEFAULT_EVENT_ID);
+    const id = extractId(eventIdOrUrl);
+    if (!id) {
+      throw new Error('No raid event yet — open from Signups or paste a Raid-Helper link');
+    }
     const local = loadLocal(id);
     let event;
     try {
@@ -548,7 +551,6 @@
   }
 
   global.SignupBoard = {
-    DEFAULT_EVENT_ID,
     TARGET_SIZE,
     CLASS_COLORS,
     ROLE_META,
