@@ -1,4 +1,6 @@
-# Deploy static site to GitHub Pages (free)
+﻿# Static site → GitHub Pages
+# Repo Pages source must be "GitHub Actions" (Settings → Pages) for this workflow.
+# Do not set enablement:true — needs admin; fails with write-only collaborator tokens.
 name: Deploy GitHub Pages
 
 on:
@@ -27,14 +29,10 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
-        with:
-          # Auto-enable Pages (GitHub Actions source) if not already on
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Whole repo is static (index.html at root)
           path: '.'
 
       - name: Deploy to GitHub Pages
