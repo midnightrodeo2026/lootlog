@@ -127,25 +127,6 @@ a{color:inherit}
   color:var(--muted);letter-spacing:-.01em;
 }
 .banner-credit b{font-weight:600;color:var(--amber2)}
-.banner-live{
-  margin:12px auto 0;max-width:520px;
-  display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
-  font-size:12.5px;color:var(--muted);
-  background:rgba(0,0,0,.28);border:1px solid var(--line);
-  border-radius:99px;padding:6px 14px;
-}
-.banner-live .dot{
-  width:7px;height:7px;border-radius:50%;background:var(--green);
-  box-shadow:0 0 0 0 rgba(35,165,89,.5);animation:livePulse 1.6s ease infinite;
-}
-@keyframes livePulse{
-  0%{box-shadow:0 0 0 0 rgba(35,165,89,.45)}
-  70%{box-shadow:0 0 0 7px rgba(35,165,89,0)}
-  100%{box-shadow:0 0 0 0 rgba(35,165,89,0)}
-}
-.banner-live b{color:var(--amber2);font-weight:700}
-.banner-live a{color:var(--text);font-weight:600;text-decoration:none}
-.banner-live a:hover{color:var(--amber2)}
 .rh-upcoming{display:flex;flex-direction:column;gap:8px;margin:10px 0 0}
 .rh-up-row{
   display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
@@ -775,11 +756,6 @@ a.wh-name > span[style*="background"],
       <h1>Midnight <span>Rodeo</span></h1>
       <div class="banner-meta" id="guildRealmLabel">World of Warcraft Guild Manager</div>
       <div class="banner-credit">Created by <b>Hornyslewt</b></div>
-      <div class="banner-live" id="bannerLive" hidden>
-        <span class="dot" aria-hidden="true"></span>
-        <span id="bannerLiveText">Loading raid…</span>
-        <a href="event.html" id="bannerLiveBoard">Board</a>
-      </div>
     </header>
 
     <nav class="tabs" role="tablist" id="mainTabs">
@@ -1646,19 +1622,8 @@ a.wh-name > span[style*="background"],
     }
   }
 
-  function setBannerLive(text, href) {
-    const el = $('bannerLive');
-    const tx = $('bannerLiveText');
-    const link = $('bannerLiveBoard');
-    if (!el || !tx) return;
-    if (!text) {
-      el.hidden = true;
-      return;
-    }
-    el.hidden = false;
-    tx.innerHTML = text;
-    if (link && href) link.href = href;
-  }
+  /** Header board strip removed — event detail lives on Board / Signups / Overview. */
+  function setBannerLive() {}
 
   async function refreshServerEvents(opts) {
     const silent = opts && opts.silent;
