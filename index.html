@@ -138,6 +138,22 @@ a{color:inherit}
 .rh-up-meta strong{display:block;font-size:14px}
 .rh-up-meta span{font-size:12px;color:var(--muted)}
 
+/* Boss raid chips (Classic → TBC) */
+.boss-raid-pick{
+  display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+  margin:0 0 10px;max-width:720px;margin-left:auto;margin-right:auto;
+}
+.boss-raid-pick .btn{
+  padding:6px 10px;font-size:12px;min-width:0;
+}
+.boss-raid-era{
+  width:100%;text-align:center;font-size:11px;color:var(--muted);
+  letter-spacing:.04em;text-transform:uppercase;margin:4px 0 2px;
+}
+.boss-raid-actions{
+  display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px;
+}
+
 /* Tabs — raid night order */
 .tabs{
   display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 28px;flex-wrap:wrap;
@@ -793,8 +809,8 @@ a.wh-name > span[style*="background"],
           <div class="ov-top">
             <div>
               <div class="ov-kicker"><span class="pulse-dot" aria-hidden="true"></span><span id="ovKicker">Tonight</span></div>
-              <h2 class="ov-title" id="ovTitle">Loading raid…</h2>
-              <p class="ov-sub" id="ovSub">Smart prep runs the night for you.</p>
+              <h2 class="ov-title" id="ovTitle">Checking signups…</h2>
+              <p class="ov-sub" id="ovSub">Pull RH, lock the 25, set groups and boss seats.</p>
             </div>
             <div class="ov-metrics">
               <div class="ov-metric"><div class="n" id="ovSquad">0</div><div class="l">Raid 25</div></div>
@@ -804,12 +820,12 @@ a.wh-name > span[style*="background"],
             </div>
           </div>
           <div class="ov-actions">
-            <button class="btn btn-amber btn-glow" id="ovSmartBtn" type="button" data-admin-only>⚡ Smart prep</button>
+            <button class="btn btn-amber btn-glow" id="ovSmartBtn" type="button" data-admin-only>⚡ Prep night</button>
             <button class="btn btn-ghost" id="ovNextBtn" type="button">Continue →</button>
             <a class="btn btn-ghost" href="event.html" style="text-decoration:none">📋 Board</a>
           </div>
           <p class="ov-status-line" id="ovSmartStatus"></p>
-          <div class="notice" id="ovViewOnly" hidden style="margin-top:12px">👁 View only.</div>
+          <div class="notice" id="ovViewOnly" hidden style="margin-top:12px">👁 Looking only — admin can edit.</div>
         </div>
       </div>
 
@@ -872,7 +888,7 @@ a.wh-name > span[style*="background"],
     <!-- LEDGER / LOOT -->
     <section id="panel-ledger" class="panel" hidden>
       <div class="section-title">// 5 · Loot · Gargul</div>
-      <div class="notice" id="viewOnlyNotice" hidden>👁 <b>View only.</b> Admin login to edit.</div>
+      <div class="notice" id="viewOnlyNotice" hidden>👁 <b>Looking only.</b> Log in as admin to edit.</div>
       <div id="editControls">
         <div class="pen">
           <div class="pen-head">
@@ -924,17 +940,17 @@ a.wh-name > span[style*="background"],
 
     <!-- ROSTER -->
     <section id="panel-roster" class="panel" hidden>
-      <div class="section-title">// 2 · Raid 25</div>
+      <div class="section-title">// Raid 25</div>
       <div class="controls">
         <input class="input" id="rosterRealm" type="hidden" value="" />
         <select class="input" id="rosterGame" hidden>
           <option value="classic" selected>classic</option>
         </select>
-        <button class="btn btn-amber" id="rosterFromRh" type="button" data-admin-only>↻ Import RH</button>
-        <button class="btn btn-ghost" id="rosterAuto25" type="button" data-admin-only>Auto-pick 25</button>
+        <button class="btn btn-amber" id="rosterFromRh" type="button" data-admin-only>↻ From RH</button>
+        <button class="btn btn-ghost" id="rosterAuto25" type="button" data-admin-only>Fill 25</button>
         <button class="btn btn-ghost" id="rosterClear25" type="button" data-admin-only>Clear picks</button>
-        <button class="btn btn-ghost" id="rosterLookupAll" type="button" data-admin-only>↻ Gear sync</button>
-        <span class="status ok" id="rosterApiStatus">Tick who is in the 25 · dual names kept</span>
+        <button class="btn btn-ghost" id="rosterLookupAll" type="button" data-admin-only>↻ Gear</button>
+        <span class="status ok" id="rosterApiStatus">Check who is in the 25 · dual names stay as signed</span>
       </div>
       <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
         <div class="stat"><div class="stat-n" id="rosterSquadN">0</div><div class="stat-l">In raid</div></div>
@@ -944,8 +960,7 @@ a.wh-name > span[style*="background"],
         <div class="stat"><div class="stat-n" id="rosterDps">0</div><div class="stat-l">DPS</div></div>
       </div>
       <p class="share-hint" style="margin:0 0 12px;max-width:none;text-align:left" id="rosterHint">
-        Workflow: people sign on RH → here the raid lead <b>picks 25</b> → Comp → Boss maps → after raid, Gargul on Ledger.
-        Names show as signed (e.g. Moon/Luna). Admin can edit the name.
+        People sign on Raid-Helper, lead ticks the 25, then Comp and Bosses. Names stay how they signed (e.g. Moon/Luna).
       </p>
       <div class="table-wrap">
         <table class="tbl">
@@ -987,27 +1002,26 @@ a.wh-name > span[style*="background"],
 
     <!-- RAIDS -->
     <section id="panel-raids" class="panel" hidden>
-      <div class="section-title">// 1 · Signups · Raid-Helper</div>
+      <div class="section-title">// Signups · Raid-Helper</div>
       <div class="pen" style="margin-bottom:16px">
         <div class="pen-head">
-          <div class="pen-title">Import signups</div>
-          <div class="pen-hint">Paste RH event link · admin applies to Raid 25</div>
+          <div class="pen-title">Pull the raid</div>
+          <div class="pen-hint">Event link works with no key · API key loads every MR night</div>
         </div>
         <div class="row" style="margin-top:0">
           <input class="input" id="rhEventUrl" placeholder="https://raid-helper.xyz/event/…" style="flex:1;min-width:200px;max-width:none" />
           <button class="btn btn-amber" id="rhImportBtn" type="button" data-admin-only>Import</button>
-          <button class="btn btn-ghost" id="rhAutoBtn" type="button" data-admin-only>↻ Auto events</button>
+          <button class="btn btn-ghost" id="rhAutoBtn" type="button" data-admin-only>↻ Load events</button>
           <a class="btn btn-ghost" href="event.html" style="text-decoration:none">Board</a>
           <button class="btn btn-ghost" id="rhOpenBtn" type="button">RH ↗</button>
         </div>
         <div class="row" style="margin-top:8px" data-admin-only>
-          <input class="input" id="rhApiKey" type="password" placeholder="RH API key (Discord /apikey) — auto-loads all MR events" style="flex:1;min-width:200px;max-width:none" autocomplete="off" title="Official API: https://raid-helper.xyz/documentation/api — GET /api/v4/servers/{id}/events" />
+          <input class="input" id="rhApiKey" type="password" placeholder="API key from Discord /apikey" style="flex:1;min-width:200px;max-width:none" autocomplete="off" title="Discord: /apikey — then Save. Needs CORS proxy on GitHub Pages (config.raidHelperProxyUrl)." />
           <button class="btn btn-ghost" id="rhSaveApiBtn" type="button">Save key</button>
         </div>
         <p class="share-hint" style="margin:8px 0 0;max-width:none;text-align:left;font-size:12px">
-          Docs: <a href="https://raid-helper.xyz/documentation/api" target="_blank" rel="noopener">RH API</a>
-          · Discord <b>/apikey</b> → paste key (admin)
-          · GitHub Pages needs <b>api/rh-proxy</b> (CORS) — or paste one event URL and Import (no key).
+          In Discord run <b>/apikey</b>, paste here, hit Save — we list upcoming raids.
+          No key? Paste one event link and Import. On GitHub Pages set <code>raidHelperProxyUrl</code> in config (see api/rh-proxy).
         </p>
         <span class="msg" id="rhMsg" style="display:block;margin-top:8px"></span>
         <div id="rhUpcoming" class="rh-upcoming"></div>
@@ -1028,14 +1042,14 @@ a.wh-name > span[style*="background"],
 
     <!-- COMP -->
     <section id="panel-comp" class="panel" hidden>
-      <div class="section-title">// 3 · Comp · groups &amp; buffs</div>
+      <div class="section-title">// Comp · groups &amp; buffs</div>
       <div class="row" style="justify-content:center;margin-bottom:14px;flex-wrap:wrap">
-        <button class="btn btn-amber" id="compRunBtn" type="button" data-admin-only>Optimize</button>
+        <button class="btn btn-amber" id="compRunBtn" type="button" data-admin-only>Build groups</button>
         <button class="btn btn-ghost" id="compResetBtn" type="button" data-admin-only>Reset seats</button>
         <button class="btn btn-ghost" id="compCopyBtn" type="button">Copy Discord</button>
       </div>
       <p class="share-hint" style="margin:0 0 12px;max-width:none" id="compDragHint">
-        Admin: drag raiders between groups (widget). Optimize rebuilds auto seats; your moves are saved.
+        Drag people between groups. Build groups redoes the auto seats; your manual moves stick.
       </p>
       <div class="stats" style="grid-template-columns:repeat(5,1fr)">
         <div class="stat"><div class="stat-n" id="compTotal">0</div><div class="stat-l" id="compTotalL">Raiders</div></div>
@@ -1054,21 +1068,20 @@ a.wh-name > span[style*="background"],
       <div id="compBlessings" class="raid-list"></div>
       <div class="section-title">// Utility</div>
       <div id="compUtility" class="raid-list"></div>
-      <div class="empty" id="compEmpty" hidden>Import a roster first.</div>
+      <div class="empty" id="compEmpty" hidden>Need a roster first — pull Signups or pick the 25.</div>
     </section>
 
     <!-- BOSSES -->
     <section id="panel-bosses" class="panel" hidden>
-      <div class="section-title">// 4 · Bosses · maps</div>
-      <div class="row" style="justify-content:center;margin-bottom:12px">
-        <button class="btn btn-amber" data-raid-pick="hyjal" type="button" id="bossRaidHyjal">Hyjal</button>
-        <button class="btn btn-orange" data-raid-pick="bt" type="button" id="bossRaidBt">Black Temple</button>
-        <button class="btn btn-ghost" id="bossAutoAll" type="button" data-admin-only>Re-place all</button>
+      <div class="section-title">// Bosses · MC → Black Temple</div>
+      <div id="bossRaidPick" class="boss-raid-pick" aria-label="Raid list"></div>
+      <div class="boss-raid-actions">
+        <button class="btn btn-ghost" id="bossAutoAll" type="button" data-admin-only>Refresh seats</button>
         <button class="btn btn-ghost" id="bossCopyBtn" type="button">Copy Discord</button>
       </div>
-      <p class="status ok" id="bossLiveStatus" style="text-align:center;margin:0 0 12px">Live · auto-place</p>
+      <p class="status ok" id="bossLiveStatus" style="text-align:center;margin:0 0 12px">Seats follow the current 25</p>
       <div class="stats" style="grid-template-columns:repeat(4,1fr)">
-        <div class="stat"><div class="stat-n" id="bossRosterN">0</div><div class="stat-l">Roster</div></div>
+        <div class="stat"><div class="stat-n" id="bossRosterN">0</div><div class="stat-l">In raid</div></div>
         <div class="stat"><div class="stat-n" id="bossTankN">0</div><div class="stat-l">Tanks</div></div>
         <div class="stat"><div class="stat-n" id="bossHealN">0</div><div class="stat-l">Healers</div></div>
         <div class="stat"><div class="stat-n" id="bossDpsN">0</div><div class="stat-l">DPS</div></div>
@@ -1085,12 +1098,12 @@ a.wh-name > span[style*="background"],
           <div id="bossMapLegend" class="boss-map-legend"></div>
           <div id="bossMapOverflow" class="muted" style="font-size:12px;margin-top:8px"></div>
         </div>
-        <div class="section-title" style="text-align:left;margin:14px 0 8px">// Strategy</div>
+        <div class="section-title" style="text-align:left;margin:14px 0 8px">// Notes</div>
         <ul id="bossStrat" class="boss-strat"></ul>
-        <div class="section-title" style="text-align:left;margin:12px 0 8px">// Assignments</div>
+        <div class="section-title" style="text-align:left;margin:12px 0 8px">// Seats</div>
         <div id="bossAssign" class="raid-list"></div>
       </div>
-      <div class="empty" id="bossEmpty" hidden>Import a roster first.</div>
+      <div class="empty" id="bossEmpty" hidden>Need a roster first — pull Signups or pick the 25.</div>
     </section>
 
     </div><!-- #appMain -->
@@ -1632,7 +1645,7 @@ a.wh-name > span[style*="background"],
     if (!c.raidHelperServerId || !(c.raidHelperApiKey || c.raidHelperCalendarKey)) {
       if (!silent) {
         setRhMsg(
-          'Paste API key from Discord /apikey (see raid-helper.xyz/documentation/api), then Auto events.',
+          'Paste your Discord /apikey key, hit Save, then Load events — or drop one event link and Import.',
           true
         );
       }
@@ -1640,7 +1653,7 @@ a.wh-name > span[style*="background"],
       return null;
     }
     try {
-      if (!silent) setRhMsg('Loading Midnight Rodeo events (official API)…');
+      if (!silent) setRhMsg('Pulling Midnight Rodeo events…');
       const list = await RaidHelper.listGuildEvents(c);
       lastServerEvents = list;
       renderUpcomingList(list);
@@ -1649,28 +1662,23 @@ a.wh-name > span[style*="background"],
         try {
           Accounts.updateSettings({ raidHelperEventUrl: list.next.url });
         } catch (_) {}
-        setBannerLive(
-          'Next: <b>' +
-            escapeHtml(list.next.title) +
-            '</b> · ' +
-            escapeHtml(list.next.date || '') +
-            ' ' +
-            escapeHtml(list.next.time || ''),
-          'event.html?event=' + encodeURIComponent(list.next.id)
-        );
+        setBannerLive();
+        if (!bossRaidUserPicked) {
+          const g = guessBossRaidId(
+            [list.next.title, list.next.rawTitle, list.next.channel].filter(Boolean).join(' ')
+          );
+          if (g) bossRaidId = g;
+        }
         if (!silent) {
           setRhMsg(
-            `API · ${list.upcoming.length} upcoming / ${list.events.length} total · next “${list.next.title}” · ${list.next.date || ''} ${list.next.time || ''}`
+            `${list.upcoming.length} upcoming · next is “${list.next.title}” · ${list.next.date || ''} ${list.next.time || ''}`
           );
         }
       } else if (list.events.length) {
         const last = list.events[list.events.length - 1];
         if ($('rhEventUrl')) $('rhEventUrl').value = last.url;
-        setBannerLive(
-          'Last: <b>' + escapeHtml(last.title) + '</b> (no upcoming)',
-          'event.html?event=' + encodeURIComponent(last.id)
-        );
-        if (!silent) setRhMsg(`API · no upcoming — ${list.events.length} events on server.`);
+        setBannerLive();
+        if (!silent) setRhMsg(`No upcoming nights — ${list.events.length} events on the server.`);
       }
       return list;
     } catch (e) {
@@ -1741,13 +1749,13 @@ a.wh-name > span[style*="background"],
     if (window.RaidHelper && RaidHelper.cleanApiKey) raw = RaidHelper.cleanApiKey(raw);
     else raw = String(raw).replace(/[,\s]+$/g, '').trim();
     if (!raw) {
-      setRhMsg('Paste the API key from Discord /apikey (no commas).', true);
+      setRhMsg('Paste the key from Discord /apikey (no spaces or commas).', true);
       return;
     }
     const c = rhConfig();
     const serverId = c.raidHelperServerId || (window.LOOTLOG_CONFIG || {}).raidHelperServerId || '';
     if (!serverId) {
-      setRhMsg('Missing server id in config.js (raidHelperServerId).', true);
+      setRhMsg('Server id missing in config.js (raidHelperServerId).', true);
       return;
     }
     const proxy = ((window.LOOTLOG_CONFIG || {}).raidHelperProxyUrl || '').trim();
@@ -1757,17 +1765,23 @@ a.wh-name > span[style*="background"],
         raidHelperApiKey: raw,
       });
       if ($('rhApiKey')) $('rhApiKey').value = '';
-      if ($('rhApiKey')) $('rhApiKey').placeholder = 'API key saved · paste new to replace';
+      if ($('rhApiKey')) $('rhApiKey').placeholder = 'Key saved · paste a new one to replace';
       if (!proxy) {
         setRhMsg(
-          'Key saved. GitHub Pages needs the RH CORS proxy (api/rh-proxy) — or paste a single event URL to Import. See api/rh-proxy/README.md',
-          true
+          'Key saved. Trying direct call… on GitHub Pages set raidHelperProxyUrl (api/rh-proxy) if this fails. Single event Import still works without a key.'
         );
-        // Still try — may work on localhost
       } else {
-        setRhMsg('API key saved — loading events via proxy…');
+        setRhMsg('Key saved — loading events…');
       }
-      refreshServerEvents({ silent: false });
+      refreshServerEvents({ silent: false }).then((list) => {
+        if (list && list.next && canEdit()) {
+          // Quiet auto-prep so the desk fills after key works
+          runSmartPrep({ silent: true }).then(() => {
+            if (currentTab === 'overview') renderOverview();
+            if (currentTab === 'bosses') renderBosses();
+          }).catch(() => {});
+        }
+      });
     } catch (e) {
       setRhMsg(e.message || String(e), true);
     }
@@ -1805,7 +1819,7 @@ a.wh-name > span[style*="background"],
     if ($('viewOnlyNotice')) {
       $('viewOnlyNotice').hidden = unlocked || gated;
       if (!unlocked && !gated) {
-        $('viewOnlyNotice').innerHTML = `👁 <b>View only.</b> Log in with the <b>admin password</b> to brand loot and edit.`;
+        $('viewOnlyNotice').innerHTML = `👁 <b>Looking only.</b> Log in with the <b>admin password</b> to brand loot and edit.`;
       }
     }
     if ($('editControls')) $('editControls').hidden = !unlocked;
@@ -2146,6 +2160,84 @@ a.wh-name > span[style*="background"],
   let lastBossAll = null;
   let lastBossRosterFp = '';
   let bossLiveMsg = '';
+  let bossRaidUserPicked = false;
+
+  const BOSS_RAID_SHORT = {
+    mc: 'MC',
+    ony: 'Ony',
+    bwl: 'BWL',
+    zg: 'ZG',
+    aq20: 'AQ20',
+    aq40: 'AQ40',
+    naxx: 'Naxx',
+    kara: 'Kara',
+    gruul: 'Gruul',
+    mag: 'Mag',
+    ssc: 'SSC',
+    tk: 'TK',
+    hyjal: 'Hyjal',
+    bt: 'BT',
+  };
+
+  /** Guess raid from RH title / description so Bosses opens on the right instance. */
+  function guessBossRaidId(text) {
+    const t = String(text || '');
+    const rules = [
+      [/black\s*temple|\bbt\b|illidan/i, 'bt'],
+      [/hyjal|winterchill|archimonde|mount\s*hyjal/i, 'hyjal'],
+      [/serpent|ssc|vashj|lurker|hydross|karathress|morogrim|leotheras/i, 'ssc'],
+      [/tempest|the\s*eye|\btk\b|kael.?thas|void\s*reaver|al.?ar|solarian/i, 'tk'],
+      [/magtheridon/i, 'mag'],
+      [/gruul|maulgar/i, 'gruul'],
+      [/karazhan|\bkara\b|netherspite|nightbane|malchezaar|attumen|moroes/i, 'kara'],
+      [/naxx|kel.?thuzad|thaddius|loatheb|patchwerk|sapphiron|faerlina|maexxna/i, 'naxx'],
+      [/temple of ahn|aq40|c.?thun|twin emperor|fankriss|huhuran|sartura|skeram/i, 'aq40'],
+      [/ruins of ahn|aq20|ossirian|kurinnaxx|rajaxx|buru|ayamiss/i, 'aq20'],
+      [/zul.?gurub|\bzg\b|hakkar|jeklik|venoxis|arlokk|thekal/i, 'zg'],
+      [/blackwing|\bbwl\b|nefarian|razorgore|vaelastrasz|chromaggus|broodlord/i, 'bwl'],
+      [/onyxia|\bony\b/i, 'ony'],
+      [/molten\s*core|\bmc\b|ragnaros|majordomo|geddon|garr|lucifron|magmadar/i, 'mc'],
+    ];
+    for (let i = 0; i < rules.length; i++) {
+      if (rules[i][0].test(t)) return rules[i][1];
+    }
+    return '';
+  }
+
+  function syncBossRaidFromEvent() {
+    if (bossRaidUserPicked) return;
+    const ev = rhEvents[0] || (lastServerEvents && lastServerEvents.next);
+    if (!ev) return;
+    const blob = [ev.title, ev.rawTitle, ev.description, ev.channel].filter(Boolean).join(' ');
+    const g = guessBossRaidId(blob);
+    if (g) bossRaidId = g;
+  }
+
+  function renderBossRaidPicker() {
+    const box = $('bossRaidPick');
+    if (!box || !window.RaidBosses || !RaidBosses.listRaids) return;
+    const raids = RaidBosses.listRaids();
+    if (!raids.length) {
+      box.innerHTML = '';
+      return;
+    }
+    syncBossRaidFromEvent();
+    if (!raids.some((r) => r.id === bossRaidId)) {
+      bossRaidId = raids[raids.length - 1].id;
+    }
+    const classic = raids.filter((r) => r.era === 'classic');
+    const tbc = raids.filter((r) => r.era !== 'classic');
+    const chip = (r) =>
+      `<button type="button" class="btn ${bossRaidId === r.id ? 'btn-amber btn-raid-on' : 'btn-ghost'}" data-raid-pick="${escapeHtml(r.id)}" title="${escapeHtml(r.label)} · ${r.size}-man">${escapeHtml(BOSS_RAID_SHORT[r.id] || r.label)}</button>`;
+    let html = '';
+    if (classic.length) {
+      html += '<div class="boss-raid-era">Classic</div>' + classic.map(chip).join('');
+    }
+    if (tbc.length) {
+      html += '<div class="boss-raid-era">TBC</div>' + tbc.map(chip).join('');
+    }
+    box.innerHTML = html;
+  }
 
   function getCompPlayers() {
     // Active raid 25 only when squad is set; else all signed
@@ -2186,7 +2278,7 @@ a.wh-name > span[style*="background"],
     }
   }
 
-  /** Smart: whenever roster changes, re-place everyone on maps & assigns */
+  /** When the 25 changes, refresh maps and seats. */
   function onRosterChanged(reason) {
     lastBossRosterFp = ''; // force refresh
     if (window.RaidBosses) {
@@ -2195,11 +2287,11 @@ a.wh-name > span[style*="background"],
         if (players.length) {
           lastBossAll = RaidBosses.assignAll(players);
           bossLiveMsg = reason
-            ? `Live · re-placed from ${reason} · ${players.length} raiders`
-            : `Live · ${players.length} raiders`;
+            ? `Updated from ${reason} · ${players.length} people`
+            : `${players.length} people seated`;
         } else {
           lastBossAll = null;
-          bossLiveMsg = 'Waiting for roster…';
+          bossLiveMsg = 'Waiting on the roster…';
         }
       } catch (_) {
         /* keep UI up */
@@ -2215,10 +2307,11 @@ a.wh-name > span[style*="background"],
     if (!window.RaidBosses) {
       if ($('bossEmpty')) {
         $('bossEmpty').hidden = false;
-        $('bossEmpty').textContent = 'Boss module missing.';
+        $('bossEmpty').textContent = 'Boss sheet failed to load — hard refresh.';
       }
       return;
     }
+    renderBossRaidPicker();
     const players = getCompPlayers();
     const fp = rosterFingerprint();
     // Auto re-assign if people changed
@@ -2227,7 +2320,7 @@ a.wh-name > span[style*="background"],
       if (players.length) {
         try {
           lastBossAll = RaidBosses.assignAll(players);
-          bossLiveMsg = `Live · auto-placed ${players.length} raiders`;
+          bossLiveMsg = `Seats set for ${players.length} people`;
         } catch (_) {}
       }
     }
@@ -2241,16 +2334,13 @@ a.wh-name > span[style*="background"],
       $('bossLiveStatus').textContent =
         bossLiveMsg ||
         (p.all.length
-          ? `Live · ${p.all.length} in raid 25 · click map tokens to swap (admin)`
-          : 'Pick 25 on Roster first');
+          ? `${p.all.length} in the raid · drag tokens to swap seats (admin)`
+          : 'Pick the 25 on Raid 25 first');
       $('bossLiveStatus').className = 'status ' + (p.all.length ? 'ok' : '');
     }
 
     const empty = !p.all.length;
     if ($('bossEmpty')) $('bossEmpty').hidden = !empty;
-
-    if ($('bossRaidHyjal')) $('bossRaidHyjal').classList.toggle('btn-raid-on', bossRaidId === 'hyjal');
-    if ($('bossRaidBt')) $('bossRaidBt').classList.toggle('btn-raid-on', bossRaidId === 'bt');
 
     const bosses = (RaidBosses.BOSSES || []).filter((b) => b.raid === bossRaidId);
     if ($('bossList')) {
@@ -2259,11 +2349,11 @@ a.wh-name > span[style*="background"],
           <span class="br-num">#${b.order}</span>
           <span class="br-name">${escapeHtml(b.name)}</span>
           <span class="br-raid">${escapeHtml(b.raidLabel)}</span>
-          <button type="button" class="lookup-btn" data-boss-go="${escapeHtml(b.id)}">Assign</button>
+          <button type="button" class="lookup-btn" data-boss-go="${escapeHtml(b.id)}">Open</button>
         </div>`).join('');
     }
 
-    if (bossSelectedId) {
+    if (bossSelectedId && bosses.some((b) => b.id === bossSelectedId)) {
       showBossDetail(bossSelectedId, { force: true });
     } else if (bosses[0] && !empty) {
       bossSelectedId = bosses[0].id;
@@ -2327,7 +2417,7 @@ a.wh-name > span[style*="background"],
         (canMove ? ' · drag tokens to move' : '');
     }
     if ($('bossMap')) {
-      $('bossMap').innerHTML = mapSvg || '<div class="empty">No map</div>';
+      $('bossMap').innerHTML = mapSvg || '<div class="empty">No map for this boss</div>';
       if (canMove) bindBossMapDrag(bossId, result);
     }
     if ($('bossMapLegend') && map && map.legend) {
@@ -2342,9 +2432,9 @@ a.wh-name > span[style*="background"],
       const ovList = (map && map.overflow) || [];
       $('bossMapOverflow').innerHTML =
         (canMove
-          ? '<div class="boss-map-hint">Admin: drag a name onto another slot to swap (Jordee-style sheet).</div>'
+          ? '<div class="boss-map-hint">Drag a name onto another seat to swap.</div>'
           : '') +
-        (ovList.length ? 'Also assigned (list): ' + ovList.map(escapeHtml).join(', ') : '');
+        (ovList.length ? 'Also on list: ' + ovList.map(escapeHtml).join(', ') : '');
     }
     if ($('bossStrat')) {
       $('bossStrat').innerHTML = (b.strategy || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
@@ -2411,7 +2501,7 @@ a.wh-name > span[style*="background"],
         cur[from.slot] = b;
         bossSlots[bid] = cur;
         saveBossSlots();
-        bossLiveMsg = 'Live · swapped map seats';
+        bossLiveMsg = 'Seats updated';
         showBossDetail(bid, { force: true });
       });
     }
@@ -2703,13 +2793,13 @@ a.wh-name > span[style*="background"],
         ? [ev.dayKey || ev.date, ev.time, ev.leader ? 'Lead ' + ev.leader : '']
             .filter(Boolean)
             .join(' · ')
-        : 'Import Raid-Helper or run Smart prep',
+        : 'Import Raid-Helper or hit Prep night',
     };
   }
 
   /**
-   * One-shot smart night prep (admin):
-   * RH refresh → roster rebuild → auto-pick 25 → gear sync → comp optimize → boss place
+   * One-shot night prep (admin):
+   * RH → roster → fill 25 → gear → groups → boss seats
    */
   async function runSmartPrep(opts) {
     const silent = opts && opts.silent;
@@ -2722,22 +2812,26 @@ a.wh-name > span[style*="background"],
       if (!silent && t) $('footerMsg').textContent = t;
     };
     if (!canEdit()) {
-      set('Admin login required for Smart prep.', true);
+      set('Log in as admin to run prep.', true);
       return null;
     }
     try {
-      set('Smart prep · loading Raid-Helper…');
+      set('Loading Raid-Helper…');
       const cfg = rhConfig();
       let ev = null;
+      let rhErr = '';
       // 1) Prefer API list / default URL
       try {
         if (RaidHelper.listGuildEvents && (cfg.raidHelperApiKey || cfg.raidHelperCalendarKey)) {
           const list = await RaidHelper.listGuildEvents(cfg);
+          lastServerEvents = list;
           if (list && list.next && list.next.id) {
             ev = await RaidHelper.fetchEvent(list.next.id);
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        rhErr = e && e.message ? e.message : String(e);
+      }
       if (!ev) {
         const url =
           ($('rhEventUrl') && $('rhEventUrl').value.trim()) ||
@@ -2746,20 +2840,23 @@ a.wh-name > span[style*="background"],
         if (url && window.RaidHelper) {
           try {
             ev = await RaidHelper.fetchEvent(url);
-          } catch (_) {}
+          } catch (e2) {
+            if (!rhErr) rhErr = e2 && e2.message ? e2.message : String(e2);
+          }
         }
       }
       if (!ev && rhEvents[0]) {
         ev = hydrateStoredRh(rhEvents[0]);
       }
       if (ev && ev.id) {
-        set('Smart prep · applying roster…');
+        set('Applying ' + (ev.title || 'roster') + '…');
         // apply without switchTab spam
         const n = rebuildRosterFromRh(ev);
         const stored = {
           id: ev.id,
           url: ev.url || RaidHelper.eventPageUrl(ev.id),
           title: ev.title,
+          rawTitle: ev.rawTitle || '',
           date: ev.date,
           time: ev.time,
           dayKey: ev.dayKey,
@@ -2767,6 +2864,7 @@ a.wh-name > span[style*="background"],
           leader: ev.leader,
           server: ev.server,
           channel: ev.channel,
+          description: ev.description || '',
           primary: ev.primary,
           absence: ev.absence,
           tentative: ev.tentative,
@@ -2793,9 +2891,15 @@ a.wh-name > span[style*="background"],
         try {
           Accounts.updateSettings({ raidHelperEventUrl: stored.url });
         } catch (_) {}
-        set('Smart prep · ' + n + ' signed · picking 25…');
+        bossRaidUserPicked = false;
+        syncBossRaidFromEvent();
+        set(n + ' signed · filling the 25…');
       } else {
-        set('Smart prep · no RH event — using existing roster…');
+        set(
+          rhErr
+            ? 'RH issue — using saved roster. ' + rhErr.slice(0, 80)
+            : 'No RH event — using saved roster…'
+        );
       }
 
       // 2) Auto 25 if empty or stale vs signed
@@ -2805,13 +2909,13 @@ a.wh-name > span[style*="background"],
       }
 
       // 3) Gear
-      set('Smart prep · gear sync…');
+      set('Syncing gear…');
       try {
         await runAutoGearSync({ silent: true });
       } catch (_) {}
 
-      // 4) Comp optimize
-      set('Smart prep · optimizing groups…');
+      // 4) Comp
+      set('Building groups…');
       const players = getCompPlayers();
       if (window.RaidComp && players.length) {
         let result = RaidComp.analyze(players);
@@ -2823,21 +2927,21 @@ a.wh-name > span[style*="background"],
       }
 
       // 5) Bosses
-      set('Smart prep · placing bosses…');
+      set('Setting boss seats…');
       if (window.RaidBosses && players.length) {
         lastBossRosterFp = '';
         lastBossAll = RaidBosses.assignAll(players);
-        bossLiveMsg = 'Smart prep · auto-placed ' + players.length;
+        bossLiveMsg = 'Seats set for ' + players.length + ' people';
       }
 
-      onRosterChanged('smart prep');
+      onRosterChanged('prep');
       const st2 = getRaidStatus();
       set(
-        'Prep done · ' +
+        'Ready · ' +
           st2.squadN +
           '/' +
           RAID_SIZE +
-          ' in raid · open Comp or Bosses'
+          ' locked · Comp & Bosses updated'
       );
       if (currentTab === 'overview') renderOverview();
       return st2;
@@ -2872,20 +2976,20 @@ a.wh-name > span[style*="background"],
       $('ovSub').textContent =
         st.when +
         (canEdit()
-          ? ' · One tap Smart prep — roster, 25, comp & bosses.'
-          : ' · View only.');
+          ? ' · Prep night pulls RH, fills 25, builds groups and boss seats.'
+          : ' · Looking only.');
     }
     if ($('ovKicker')) {
       $('ovKicker').textContent =
-        st.steps.roster && st.steps.comp && st.steps.bosses ? 'Raid ready' : 'Live raid desk';
+        st.steps.roster && st.steps.comp && st.steps.bosses ? 'Ready to pull' : 'Raid desk';
     }
     if ($('ovSmartStatus')) {
       const line = $('ovSmartStatus');
       if (!line.textContent) {
         line.textContent = st.steps.roster
-          ? 'Pipeline ready — open Comp or Bosses anytime.'
+          ? '25 is set — hop to Comp or Bosses when you want.'
           : canEdit()
-            ? 'Tip: Smart prep does the night setup for you.'
+            ? 'Hit Prep night when you want the desk filled in.'
             : '';
         line.className = 'ov-status-line' + (st.steps.roster ? ' ok' : '');
       }
@@ -2903,10 +3007,10 @@ a.wh-name > span[style*="background"],
 
     // Workflow (single source of status — no duplicate snapshot)
     const labels = {
-      raids: st.steps.raids ? st.signed + ' signed' : 'Import RH',
-      roster: st.steps.roster ? st.squadN + '/' + RAID_SIZE : 'Auto-pick 25',
-      comp: st.steps.comp ? 'Groups set' : 'Auto optimize',
-      bosses: st.steps.bosses ? 'Mapped' : 'Auto place',
+      raids: st.steps.raids ? st.signed + ' signed' : 'Pull RH',
+      roster: st.steps.roster ? st.squadN + '/' + RAID_SIZE : 'Pick 25',
+      comp: st.steps.comp ? 'Groups set' : 'Build groups',
+      bosses: st.steps.bosses ? 'Seats set' : 'Place seats',
       ledger: st.steps.ledger ? entries.length + ' items' : 'After raid',
     };
     const ids = { raids: 'wf1', roster: 'wf2', comp: 'wf3', bosses: 'wf4', ledger: 'wf5' };
@@ -2935,7 +3039,7 @@ a.wh-name > span[style*="background"],
     const recent = entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
     const el = $('ovRecent');
     if (!recent.length) {
-      el.innerHTML = `<div class="empty">No loot yet — after the raid open <b>5 · Loot</b> and paste Gargul.</div>`;
+      el.innerHTML = `<div class="empty">No loot yet — after the raid open <b>Loot</b> and paste Gargul.</div>`;
     } else {
       el.innerHTML = recent.map(e => `
         <div class="lcard">
@@ -3255,7 +3359,7 @@ a.wh-name > span[style*="background"],
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:8px">${sections}</div>
         <div class="row" style="margin-top:14px">
-          ${canEdit() ? `<button class="btn btn-amber" id="rhApplyBtn" type="button">Apply to guild roster</button>` : '<span class="muted">Admin login to apply roster</span>'}
+          ${canEdit() ? `<button class="btn btn-amber" id="rhApplyBtn" type="button">Apply to roster</button>` : '<span class="muted">Admin can apply this to the roster</span>'}
           <a class="btn btn-ghost" href="${escapeHtml(ev.url)}" target="_blank" rel="noopener">Open in Raid-Helper</a>
         </div>
       </div>`;
@@ -3323,8 +3427,10 @@ a.wh-name > span[style*="background"],
         lastBossRosterFp = rosterFingerprint();
       }
     } catch (_) {}
+    bossRaidUserPicked = false;
+    syncBossRaidFromEvent();
     setRhMsg(
-      `Auto · ${n} signed · ${raidSquad.length}/${RAID_SIZE} in raid · comp & bosses ready`
+      `${n} signed · ${raidSquad.length}/${RAID_SIZE} in the raid · groups & seats updated`
     );
     if ($('rosterApiStatus')) {
       setRosterStatus(`${n} signed · ${raidSquad.length}/${RAID_SIZE} ready`, 'ok');
@@ -3698,7 +3804,7 @@ a.wh-name > span[style*="background"],
       await Accounts.login('admin', pass, !!($('authRemember') && $('authRemember').checked));
       closeAuthModal();
       applyAccessGate();
-      $('footerMsg').textContent = 'Admin unlocked — running Smart prep…';
+      $('footerMsg').textContent = 'Admin unlocked — prepping the night…';
       await runSmartPrep({ silent: false });
       renderCurrentTab();
     } catch (err) {
@@ -4055,7 +4161,7 @@ a.wh-name > span[style*="background"],
   if ($('rosterAuto25')) {
     $('rosterAuto25').addEventListener('click', () => {
       if (!can('editRoster')) {
-        setRosterStatus('Admin login required to pick the 25.', 'err');
+        setRosterStatus('Log in as admin to pick the 25.', 'err');
         return;
       }
       const n = autoPickRaid25();
@@ -4219,14 +4325,14 @@ a.wh-name > span[style*="background"],
       compSeats = {};
       saveCompSeats();
       renderComp();
-      $('footerMsg').textContent = 'Manual seats cleared — showing auto groups.';
+      $('footerMsg').textContent = 'Manual seats cleared — back to auto groups.';
     });
   }
   if ($('compCopyBtn')) {
     $('compCopyBtn').addEventListener('click', async () => {
       if (!lastComp) renderComp();
       const text = compDiscordText();
-      if (!text) { alert('Run optimize first (need roster).'); return; }
+      if (!text) { alert('Build groups first (need a roster).'); return; }
       try {
         await navigator.clipboard.writeText(text);
         $('footerMsg').textContent = 'Comp copied for Discord.';
@@ -4236,14 +4342,17 @@ a.wh-name > span[style*="background"],
     });
   }
 
-  // Bosses tab
-  document.querySelectorAll('[data-raid-pick]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+  // Bosses tab — raid chips are rendered dynamically
+  if ($('bossRaidPick')) {
+    $('bossRaidPick').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-raid-pick]');
+      if (!btn) return;
       bossRaidId = btn.getAttribute('data-raid-pick') || 'bt';
+      bossRaidUserPicked = true;
       bossSelectedId = null;
       renderBosses();
     });
-  });
+  }
   if ($('bossList')) {
     $('bossList').addEventListener('click', (ev) => {
       const go = ev.target.closest('[data-boss-go]');
@@ -4258,16 +4367,20 @@ a.wh-name > span[style*="background"],
       if (!window.RaidBosses) return;
       const players = getCompPlayers();
       if (!players.length) {
-        alert('Load GM demo or import Raid-Helper first.');
+        alert('Import Raid-Helper or fill the 25 first.');
         return;
       }
       try {
         lastBossRosterFp = ''; // force full re-place
-        onRosterChanged('manual re-place');
-        const n = lastBossAll
-          ? (lastBossAll.bt || []).length + (lastBossAll.hyjal || []).length
-          : 0;
-        $('footerMsg').textContent = `Re-placed everyone on ${n} bosses · ${players.length} raiders.`;
+        onRosterChanged('refresh');
+        let n = 0;
+        if (lastBossAll) {
+          Object.keys(lastBossAll).forEach((k) => {
+            if (Array.isArray(lastBossAll[k])) n += lastBossAll[k].length;
+          });
+        }
+        $('footerMsg').textContent =
+          `Seats refreshed on ${n} bosses · ${players.length} people.`;
         switchTab('bosses');
       } catch (e) {
         alert(e.message || String(e));
@@ -4278,13 +4391,13 @@ a.wh-name > span[style*="background"],
     $('bossCopyBtn').addEventListener('click', async () => {
       if (!lastBossAssign && bossSelectedId) showBossDetail(bossSelectedId);
       if (!lastBossAssign || !window.RaidBosses) {
-        alert('Select a boss first.');
+        alert('Open a boss first.');
         return;
       }
       const text = RaidBosses.toDiscord(lastBossAssign);
       try {
         await navigator.clipboard.writeText(text);
-        $('footerMsg').textContent = 'Boss assignments copied for Discord.';
+        $('footerMsg').textContent = 'Boss seats copied for Discord.';
       } catch {
         prompt('Copy:', text);
       }
@@ -4433,7 +4546,7 @@ a.wh-name > span[style*="background"],
     const cfg = Object.assign({}, window.LOOTLOG_CONFIG || {}, window.WowApi ? WowApi.getConfig() : {});
     if (window.WowApi) {
       if ($('rosterGame')) $('rosterGame').value = 'classic';
-      setRosterStatus('Auto gear sync from Raid-Helper + loot');
+      setRosterStatus('Gear from RH + loot history');
     }
 
     // Prefill Raid-Helper URL + calendar
@@ -4443,7 +4556,7 @@ a.wh-name > span[style*="background"],
     }
     if ($('rhApiKey') && rhCfg.raidHelperApiKey) {
       // show placeholder only — don't echo full key in value for casual shoulder-surfing
-      $('rhApiKey').placeholder = 'API key saved · paste new to replace';
+      $('rhApiKey').placeholder = 'Key saved · paste a new one to replace';
     }
 
     if ($('rosterGame')) $('rosterGame').value = 'classic';
@@ -4495,23 +4608,21 @@ a.wh-name > span[style*="background"],
       }).catch(() => {});
     }
 
-    // Admin: quiet smart refresh (RH → 25 → comp → bosses) without spam
+    // Admin: quiet refresh so the desk is ready without a button mash
     if (canEdit()) {
       runSmartPrep({ silent: true })
         .then(() => {
           if (currentTab === 'overview') renderOverview();
           $('footerMsg').textContent =
-            (guildSettings().guildName || 'Midnight Rodeo') +
-            ' · World of Warcraft Guild Manager';
+            (guildSettings().guildName || 'Midnight Rodeo') + ' · raid desk';
         })
         .catch(() => {
           $('footerMsg').textContent =
-            (guildSettings().guildName || 'Midnight Rodeo') +
-            ' · World of Warcraft Guild Manager';
+            (guildSettings().guildName || 'Midnight Rodeo') + ' · raid desk';
         });
     } else {
       const gname = guildSettings().guildName || cfg.guildName || 'Midnight Rodeo';
-      $('footerMsg').textContent = gname + ' · World of Warcraft Guild Manager';
+      $('footerMsg').textContent = gname + ' · raid desk';
     }
   })();
 

@@ -249,21 +249,21 @@
         { tab: 'overview', title: 'Overview', blurb: 'Guild KPIs — raids, items, unique raiders at a glance.' },
         { tab: 'roster', title: 'Roster', blurb: '28 Midnight Rodeo players with class, spec, RH role, ranks, iLvl.' },
         { tab: 'comp', title: 'Comp', blurb: 'Auto groups for Windfury / Trueshot / casters + Paladin blessing assigns.' },
-        { tab: 'bosses', title: 'Bosses', blurb: 'BT + Hyjal auto positions — tanks, heals, kicks, strategy per boss.' },
-        { tab: 'raids', title: 'Raids', blurb: 'Raid-Helper import + loot nights. Open View log for CSV.' },
-        { tab: 'ledger', title: 'Ledger', blurb: 'Gargul-style brands with TBC icons (Wowhead).' },
-        { tab: 'items', title: 'Items', blurb: 'Drop frequency for council — who already got the piece.' },
+        { tab: 'bosses', title: 'Bosses', blurb: 'MC through Black Temple — tanks, heals, kicks, notes per boss.' },
+        { tab: 'raids', title: 'Raids', blurb: 'Raid-Helper import + loot nights.' },
+        { tab: 'ledger', title: 'Ledger', blurb: 'Gargul brands with Wowhead icons.' },
+        { tab: 'items', title: 'Items', blurb: 'Who already got the piece — council memory.' },
       ],
     };
   }
 
   const GM_PITCH = [
-    'One page for Midnight Rodeo TBC: signups, loot, and raid comp.',
-    'Import Discord Raid-Helper events into roster automatically.',
-    'Paste Gargul after raid — council ledger with icons & history.',
-    'Comp tab stacks buffs (WF, Trueshot, casters) and assigns blessings.',
-    'Bosses tab: Black Temple + Hyjal auto positions (simple sheet).',
-    'Accounts for Admin / Lootmaster / Officer / Viewer.',
+    'Midnight Rodeo desk: signups, loot, and raid comp.',
+    'Pull Discord Raid-Helper into the roster.',
+    'Paste Gargul after the raid for the loot log.',
+    'Comp stacks WF / Trueshot / casters and blessings.',
+    'Bosses: Molten Core through Black Temple seats.',
+    'Admin lock for edits — guests can look.',
     'Free on GitHub Pages. Created by Hornyslewt.',
   ];
 

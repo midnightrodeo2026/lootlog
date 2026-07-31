@@ -1087,11 +1087,10 @@
 
     const tips = [];
     tips.push(
-      'Using ' +
-        counts.total +
-        ' signed · ' +
+      counts.total +
+        ' signed into ' +
         counts.groups +
-        ' groups · ideal ~' +
+        ' groups · aim ~' +
         ideal.tanks +
         'T / ' +
         ideal.healers +
@@ -1099,27 +1098,27 @@
         ideal.melee +
         'M / ' +
         ideal.ranged +
-        'R for this size'
+        'R'
     );
-    if (counts.total < 8) tips.push('Very small roster — fill more RH signups when you can.');
+    if (counts.total < 8) tips.push('Thin roster — more RH signups will help.');
     if (counts.enh === 0 && counts.shamans === 0)
-      tips.push('No shaman: melee lose Windfury (huge physical DPS + tank threat loss).');
+      tips.push('No shaman — melee lose Windfury (big physical + tank threat hit).');
     else if (counts.enh === 0 && counts.shamans > 0)
-      tips.push('No Enh: resto/ele still drop WF — seat shamans with melee/tanks.');
+      tips.push('No Enh — put resto/ele next to melee/tanks so WF still lands.');
     if (counts.shamans >= 2 && counts.melee >= 4)
-      tips.push('2+ shamans + melee: dual WF stacks for max physical.');
-    if (delta.tanks < 0) tips.push('Short ' + -delta.tanks + ' tank(s) vs ideal for ' + counts.total + '-man.');
+      tips.push('2+ shamans + melee — dual WF is on the table.');
+    if (delta.tanks < 0) tips.push('Short ' + -delta.tanks + ' tank(s) for a ' + counts.total + '-man.');
     if (delta.healers < 0)
-      tips.push('Short ' + -delta.healers + ' healer(s) vs ideal — tough on BT Mother / Illidan / Hyjal Archi.');
-    if (delta.tanks > 1) tips.push('Extra tanks — park OT in melee WF group or special assigns.');
-    if (counts.paladins === 0) tips.push('No paladins: no Greater Blessings / auras.');
+      tips.push('Short ' + -delta.healers + ' healer(s) — Mother / Illidan / Archi will hurt.');
+    if (delta.tanks > 1) tips.push('Extra tanks — park OT in a melee WF group.');
+    if (counts.paladins === 0) tips.push('No paladins — no Greater Blessings / auras.');
     if (!unique.some(isBoomkin) && counts.ranged >= 3)
-      tips.push('No boomkin: casters miss Moonkin Aura — stack casters with Ele sham for WoA.');
+      tips.push('No boomkin — stack casters with Ele for Wrath of Air.');
     if (!unique.some(isFeralCat) && !unique.some((p) => isTank(p) && /druid/i.test(p.class)))
-      tips.push('No feral: missing Leader of the Pack (+5% crit) for physical.');
+      tips.push('No feral — missing Leader of the Pack for physical.');
     if (overflow.length)
       tips.push(
-        'Overflow: ' + overflow.map((p) => p.name).join(', ') + ' — over 25 or unseated.'
+        'Bench / overflow: ' + overflow.map((p) => p.name).join(', ')
       );
 
     const raids = raidAdvice(counts);

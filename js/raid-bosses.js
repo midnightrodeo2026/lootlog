@@ -76,7 +76,7 @@
     return (arr || []).slice(0, n).map((p) => p.name);
   }
   function join(arr) {
-    return arr.length ? arr.join(', ') : '— assign manually —';
+    return arr.length ? arr.join(', ') : '— pick manually —';
   }
   function takeRound(list, count, offset) {
     if (!list.length) return [];
@@ -1081,12 +1081,12 @@
     if (!result || !result.boss) return '';
     const lines = [
       `**${result.boss.raidLabel} · ${result.boss.name}**`,
-      `_Auto-assigned · Midnight Rodeo · Classic → BT_`,
+      `_Midnight Rodeo · seats from current roster_`,
       '',
-      '**Strategy**',
+      '**Notes**',
       ...(result.boss.strategy || []).map((s) => `• ${s}`),
       '',
-      '**Assignments**',
+      '**Seats**',
     ];
     (result.assignments || []).forEach((a) => {
       lines.push(`**${a.role}:** ${(a.people || []).join(', ')}`);

@@ -260,33 +260,43 @@
    */
   async function fetchEvent(eventIdOrUrl, opts) {
     const id = extractEventId(eventIdOrUrl);
-    if (!id) throw new Error('Paste a Raid-Helper event link or numeric event ID');
+    if (!id) throw new Error('Paste a Raid-Helper event link or the event ID');
 
     const headers = { Accept: 'application/json' };
     const key = opts && opts.apiKey;
     if (key) headers.Authorization = String(key).trim();
 
+    const proxy = getProxyBase();
+    const urls = [];
+    if (proxy) urls.push(proxy + '/v4/events/' + encodeURIComponent(id));
+    urls.push(API_V4_EVENT + encodeURIComponent(id));
+    urls.push(API_LEGACY_EVENT + encodeURIComponent(id));
+
     let data = null;
-    let res = await fetch(API_V4_EVENT + encodeURIComponent(id), {
-      headers,
-      cache: 'no-store',
-    });
-    if (res.ok) {
-      data = await res.json();
-    } else {
-      // legacy fallback
-      res = await fetch(API_LEGACY_EVENT + encodeURIComponent(id), {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      });
-      if (!res.ok) {
-        throw new Error(
-          res.status === 404
-            ? 'Event not found — check the link is public and the ID is correct'
-            : `Raid-Helper error HTTP ${res.status}`
-        );
+    let lastStatus = 0;
+    for (let i = 0; i < urls.length; i++) {
+      try {
+        const res = await fetch(urls[i], {
+          headers: i === urls.length - 1 ? { Accept: 'application/json' } : headers,
+          cache: 'no-store',
+        });
+        lastStatus = res.status;
+        if (res.ok) {
+          data = await res.json();
+          break;
+        }
+      } catch (_) {
+        /* try next */
       }
-      data = await res.json();
+    }
+    if (!data) {
+      throw new Error(
+        lastStatus === 404
+          ? 'Event not found — check the link is public and the ID is right'
+          : lastStatus
+            ? 'Raid-Helper error HTTP ' + lastStatus
+            : 'Could not reach Raid-Helper — check the link or try again'
+      );
     }
     return normalizeEventPayload(data, id);
   }
@@ -303,7 +313,7 @@
     if (!sid) throw new Error('Missing Discord server id');
     if (!key) {
       throw new Error(
-        'Need server API key — in Discord run /apikey (admin/manage server) and paste it here'
+        'Need an API key — in Discord run /apikey, paste it under Signups, hit Save'
       );
     }
 
@@ -339,9 +349,7 @@
         lastErr = 'network: ' + (netErr.message || netErr);
         if (!proxy) {
           throw new Error(
-            'Raid-Helper blocks API keys from the browser (CORS). ' +
-              'Deploy api/rh-proxy (Cloudflare Worker) and set config.raidHelperProxyUrl, ' +
-              'or paste a single event link instead. See api/rh-proxy/README.'
+            'Browser blocked the API key call (CORS). Deploy api/rh-proxy, set raidHelperProxyUrl in config, or just paste one event link and Import.'
           );
         }
         continue;
@@ -353,23 +361,22 @@
       const body = await res.text();
       lastErr = res.status + ' ' + body.slice(0, 160);
       if (res.status === 401 || res.status === 403) {
-        let reason = 'Invalid API key';
+        let reason = 'API key rejected';
         try {
           const j = JSON.parse(body);
           if (j.reason) reason = j.reason;
         } catch (_) {}
         throw new Error(
           reason +
-            ' — In Discord run /apikey, copy the key carefully (no commas/spaces), paste again. ' +
-            'If you shared the key publicly, refresh it with /apikey.'
+            ' — Discord /apikey again, copy carefully (no commas), Save. If the key was posted in chat, refresh it.'
         );
       }
     }
     if (!data) {
       throw new Error(
-        'Could not list server events (' +
+        'Could not list events (' +
           lastErr +
-          '). Use a fresh /apikey key and set raidHelperProxyUrl if on GitHub Pages.'
+          '). Fresh /apikey key + raidHelperProxyUrl on GitHub Pages usually fixes it.'
       );
     }
 
