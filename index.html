@@ -456,27 +456,7 @@ a.wh-name > span[style*="background"],
 .share-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:22px 0 10px}
 .share-hint{text-align:center;color:var(--muted);font-size:13.5px;max-width:500px;margin:0 auto 8px;line-height:1.55}
 
-/* Settings */
-.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
-@media(max-width:720px){.settings-grid{grid-template-columns:1fr}}
-.settings-card{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
-  padding:18px 18px 16px;backdrop-filter:blur(8px);
-}
-.settings-card h3{
-  font-family:var(--font-display);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--amber);margin:0 0 14px;
-}
-.settings-card label{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin:0 0 5px}
-.settings-card .field{margin-bottom:12px}
-.settings-card .check{
-  display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text);margin:10px 0;cursor:pointer;font-weight:450;
-}
-.settings-card .check input{width:auto;accent-color:var(--amber)}
-.role-pill{
-  display:inline-block;font-family:var(--font);font-size:10.5px;font-weight:600;letter-spacing:.04em;
-  text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);
-}
+
 .role-pill.admin{color:var(--amber2);border-color:rgba(227,161,60,.4);background:rgba(227,161,60,.1)}
 .role-pill.lootmaster{color:#e8b86d;border-color:rgba(232,168,58,.35);background:rgba(232,168,58,.08)}
 .role-pill.officer{color:#c4a574;border-color:rgba(154,106,63,.4);background:rgba(154,106,63,.1)}
@@ -552,17 +532,6 @@ a.wh-name > span[style*="background"],
 .comp-raid-card h4{margin:0 0 8px;font-size:13px;color:var(--amber2);font-weight:700}
 .comp-raid-card ul{margin:0;padding-left:16px;color:var(--muted);font-size:12.5px;line-height:1.45}
 .comp-raid-card li{margin:3px 0}
-
-.gm-pitch{
-  margin:14px 0 0;padding-left:20px;color:var(--muted);font-size:13.5px;line-height:1.55;
-}
-.gm-pitch li{margin:4px 0}
-.gm-pitch li b{color:var(--amber2)}
-.gm-tour{
-  display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;
-  padding-top:12px;border-top:1px dashed var(--line);
-}
-.gm-tour #gmTourLabel{flex:1;font-weight:600;color:var(--amber2);font-size:14px}
 
 .boss-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .boss-row{
@@ -942,14 +911,16 @@ a.wh-name > span[style*="background"],
     <section id="panel-roster" class="panel" hidden>
       <div class="section-title">// Raid 25</div>
       <div class="controls">
-        <input class="input" id="rosterRealm" type="hidden" value="" />
-        <select class="input" id="rosterGame" hidden>
-          <option value="classic" selected>classic</option>
+        <input class="input" id="rosterRealm" placeholder="Realm (armory)" title="Required for real iLvl via Blizzard proxy" style="max-width:160px" />
+        <select class="input" id="rosterGame" style="max-width:120px" title="Blizzard profile namespace">
+          <option value="classic" selected>Classic</option>
+          <option value="classic1x">Era 1x</option>
         </select>
         <button class="btn btn-amber" id="rosterFromRh" type="button" data-admin-only>↻ From RH</button>
         <button class="btn btn-ghost" id="rosterAuto25" type="button" data-admin-only>Fill 25</button>
         <button class="btn btn-ghost" id="rosterClear25" type="button" data-admin-only>Clear picks</button>
         <button class="btn btn-ghost" id="rosterLookupAll" type="button" data-admin-only>↻ Gear</button>
+        <button class="btn btn-ghost" id="rosterTestApi" type="button" data-admin-only title="Ping Blizzard proxy">Test armory</button>
         <span class="status ok" id="rosterApiStatus">Check who is in the 25 · dual names stay as signed</span>
       </div>
       <div class="stats" style="grid-template-columns:repeat(5,1fr);margin-bottom:14px">
@@ -3251,10 +3222,7 @@ a.wh-name > span[style*="background"],
     if ($('rosterHeal')) $('rosterHeal').textContent = heals;
     if ($('rosterDps')) $('rosterDps').textContent = dps;
     if ($('ovSquad')) $('ovSquad').textContent = inN;
-    if ($('wfSquadHint')) {
-      $('wfSquadHint').textContent =
-        inN >= RAID_SIZE ? '25 locked in' : (inN ? inN + ' / 25 picked' : 'Raid leader assigns seats');
-    }
+
     if ($('rosterHint')) {
       const warn = inN > RAID_SIZE ? ' · over 25' : inN === RAID_SIZE ? ' · ready for Comp' : '';
       $('rosterHint').innerHTML =
@@ -3649,7 +3617,26 @@ a.wh-name > span[style*="background"],
     downloadCsv(`midnight-rodeo-raid-${key}.csv`, rows);
   }
 
-  /* ---- Gear sync (auto: Raid-Helper + loot; optional Blizzard) ---- */
+  /* ---- Gear sync: RH + loot always; Blizzard armory when proxy + realm set ---- */
+  /** Dual RH names → armory candidates (Moon/Luna → Moon, Luna) */
+  function armoryNameCandidates(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return [];
+    const parts = s
+      .split(/[/\\|]+/)
+      .map((p) => p.replace(/\(.*\)$/, '').trim())
+      .filter(Boolean);
+    const out = [];
+    const seen = new Set();
+    parts.concat([s.replace(/\(.*\)$/, '').trim()]).forEach((p) => {
+      const k = p.toLowerCase();
+      if (!p || seen.has(k)) return;
+      seen.add(k);
+      out.push(p);
+    });
+    return out;
+  }
+
   function getRosterRealmGame() {
     const realm = ($('rosterRealm') && $('rosterRealm').value || '').trim()
       || (guildSettings().realm || '')
@@ -3750,21 +3737,25 @@ a.wh-name > span[style*="background"],
   }
 
   async function lookupOne(player) {
-    // Prefer Blizzard if proxy configured + realm set
+    // Prefer Blizzard if proxy configured + realm set (same pattern as armory tools)
     if (window.WowApi && WowApi.isConfigured()) {
       const { realm, game } = getRosterRealmGame();
       if (realm) {
-        try {
-          const ch = await window.WowApi.lookupCharacter(player, realm, { game });
-          ch.source = 'blizzard';
-          await applyCharacter(player, ch);
-          return ch;
-        } catch (e) {
-          // fall through to local
+        const candidates = armoryNameCandidates(player);
+        for (let i = 0; i < candidates.length; i++) {
+          try {
+            const ch = await window.WowApi.lookupCharacter(candidates[i], realm, { game });
+            ch.source = 'blizzard';
+            // Keep dual display name on the roster row
+            await applyCharacter(player, ch);
+            return ch;
+          } catch (_) {
+            /* try next name part */
+          }
         }
       }
     }
-    // Local always works
+    // Local always works (RH class/spec + loot estimate)
     await autoGearSyncLocal();
     const info = playerInfo[player.toLowerCase()] || {};
     return {
@@ -3776,35 +3767,68 @@ a.wh-name > span[style*="background"],
     };
   }
 
-  /** Full auto gear sync — call after RH import, loot brand, roster open */
+  /**
+   * Full gear sync:
+   * 1) RH + loot (always)
+   * 2) Blizzard profile-classic via api/blizzard-proxy when URL + realm set
+   *    (client credentials stay on the worker — never in the browser)
+   */
   async function runAutoGearSync(opts) {
     const silent = opts && opts.silent;
     const n = await autoGearSyncLocal();
     let blizzOk = 0;
-    // Optional Blizzard pass for all if proxy + realm
+    let blizzTried = 0;
     if (window.WowApi && WowApi.isConfigured()) {
       const { realm, game } = getRosterRealmGame();
       if (realm) {
-        const names = Object.keys(playerInfo).map((k) => playerInfo[k].displayName || k);
-        for (const name of names.slice(0, 40)) {
-          try {
-            const ch = await WowApi.lookupCharacter(name, realm, { game });
-            ch.source = 'blizzard';
-            await applyCharacter(name, ch);
-            blizzOk++;
-            await new Promise((r) => setTimeout(r, 200));
-          } catch (_) {}
+        // Prefer the 25, then everyone else (cap so we don't hammer the API)
+        const squadKeys = new Set((raidSquad || []).map((k) => String(k).toLowerCase()));
+        const ordered = Object.keys(playerInfo).sort((a, b) => {
+          const as = squadKeys.has(a) ? 0 : 1;
+          const bs = squadKeys.has(b) ? 0 : 1;
+          return as - bs;
+        });
+        for (const key of ordered.slice(0, 40)) {
+          const display = (playerInfo[key] && playerInfo[key].displayName) || key;
+          const candidates = armoryNameCandidates(display);
+          blizzTried++;
+          let hit = false;
+          for (let i = 0; i < candidates.length && !hit; i++) {
+            try {
+              const ch = await WowApi.lookupCharacter(candidates[i], realm, { game });
+              ch.source = 'blizzard';
+              await applyCharacter(display, ch);
+              blizzOk++;
+              hit = true;
+            } catch (_) {}
+          }
+          // Pace like other armory clients (~5 req/s max with 3 fan-outs each)
+          await new Promise((r) => setTimeout(r, 250));
         }
       }
     }
     onRosterChanged('gear sync');
     if (!silent) {
-      setRosterStatus(
-        blizzOk
-          ? `Synced ${n} from RH/loot · ${blizzOk} from armory`
-          : `Auto gear sync · ${Object.keys(playerInfo).length} raiders (class/spec/iLvl from RH + loot)`,
-        'ok'
-      );
+      const hasProxy = window.WowApi && WowApi.isConfigured();
+      const realm = getRosterRealmGame().realm;
+      if (blizzOk) {
+        setRosterStatus(
+          `Armory iLvl on ${blizzOk}/${blizzTried} · RH/loot for the rest`,
+          'ok'
+        );
+      } else if (hasProxy && !realm) {
+        setRosterStatus('Set realm above for real armory iLvl · using RH + loot for now', '');
+      } else if (hasProxy && realm) {
+        setRosterStatus(
+          `Armory miss on this realm — RH + loot iLvl for ${Object.keys(playerInfo).length}`,
+          ''
+        );
+      } else {
+        setRosterStatus(
+          `RH + loot sync · ${Object.keys(playerInfo).length} raiders (optional: blizzardProxyUrl + realm)`,
+          'ok'
+        );
+      }
     }
     if (currentTab === 'roster') renderRoster();
     return { local: n, blizzard: blizzOk };
@@ -3872,17 +3896,6 @@ a.wh-name > span[style*="background"],
     updateGuildHeader();
   });
   $('mrClearPaste').addEventListener('click', () => { $('mrPaste').value = ''; });
-  if ($('mrSampleBtn')) {
-    $('mrSampleBtn').addEventListener('click', () => {
-      // Classic TBC Karazhan-era sample item IDs
-      $('mrPaste').value = [
-        '2026-03-20,Aerindel,28729',
-        '2026-03-20,Thorvak,28714',
-        '2026-03-20,Lunara,28734',
-      ].join('\n');
-      setMsg('TBC sample loaded — click Brand it (lootmaster).');
-    });
-  }
   $('mrEnrichBtn').addEventListener('click', async () => {
     if (!canEdit()) return;
     await enrichItems(entries);
@@ -4060,6 +4073,10 @@ a.wh-name > span[style*="background"],
   if ($('rosterGame')) {
     $('rosterGame').addEventListener('change', () => { getRosterRealmGame(); });
   }
+  if ($('rosterRealm')) {
+    $('rosterRealm').addEventListener('change', () => { getRosterRealmGame(); });
+    $('rosterRealm').addEventListener('blur', () => { getRosterRealmGame(); });
+  }
 
   if ($('itemsFilter')) $('itemsFilter').addEventListener('input', renderItems);
   if ($('itemsSort')) $('itemsSort').addEventListener('change', renderItems);
@@ -4228,18 +4245,6 @@ a.wh-name > span[style*="background"],
       renderRoster();
     });
   }
-  if ($('saveRhUrlBtn')) {
-    $('saveRhUrlBtn').addEventListener('click', () => {
-      try {
-        const url = ($('setRhUrl') && $('setRhUrl').value.trim()) || '';
-        Accounts.updateSettings({ raidHelperEventUrl: url });
-        if ($('rhEventUrl')) $('rhEventUrl').value = url;
-        setSaveMsg('rhSaveMsg', 'Saved.', false);
-      } catch (e) {
-        setSaveMsg('rhSaveMsg', e.message, true);
-      }
-    });
-  }
   $('logClose').addEventListener('click', closeViewLog);
   $('logBackdrop').addEventListener('click', (ev) => { if (ev.target.id === 'logBackdrop') closeViewLog(); });
   $('logCsv').addEventListener('click', () => { if (viewLogKey) raidCsv(viewLogKey); });
@@ -4252,71 +4257,6 @@ a.wh-name > span[style*="background"],
       prompt('Copy link:', url);
     }
   });
-
-  let gmTour = [];
-  let gmTourStep = 0;
-
-  function fillGmPitch() {
-    const list = $('gmPitchList');
-    if (!list || !window.DemoData || !DemoData.GM_PITCH) return;
-    list.innerHTML = DemoData.GM_PITCH.map((line, i) =>
-      `<li><b>${i + 1}.</b> ${escapeHtml(line)}</li>`
-    ).join('');
-  }
-
-  async function applyDemoData(opts) {
-    const silent = opts && opts.silent;
-    const forGm = opts && opts.forGm;
-    if (!window.DemoData) {
-      if (!silent) alert('Demo data module missing.');
-      return;
-    }
-    const demo = DemoData.buildDemo();
-    entries = demo.entries;
-    playerInfo = demo.playerInfo;
-    rhEvents = demo.rhEvents;
-    meta = Object.assign({}, meta || {}, demo.meta);
-    gmTour = demo.tour || [];
-    await saveEntries();
-    await savePlayerInfo();
-    await saveRhEvents();
-    await saveMeta();
-    if (!silent) {
-      $('footerMsg').textContent =
-        `GM demo ready · ${entries.length} TBC items · ${Object.keys(playerInfo).length} raiders · ${rhEvents.length} RH nights`;
-    }
-    renderCurrentTab();
-    try {
-      await enrichItems(entries);
-      renderCurrentTab();
-    } catch (_) {}
-    // Precompute comp for the walkthrough
-    if (window.RaidComp) {
-      try {
-        lastComp = RaidComp.analyze(RaidComp.fromAppState(playerInfo, rhEvents));
-      } catch (_) {}
-    }
-    onRosterChanged('GM demo');
-    if (forGm) {
-      switchTab('overview');
-      fillGmPitch();
-    }
-  }
-
-  function showGmTourStep() {
-    const bar = $('gmTourBar');
-    if (!gmTour.length) {
-      if (bar) bar.classList.add('hidden');
-      return;
-    }
-    if (bar) bar.classList.remove('hidden');
-    const step = gmTour[gmTourStep] || gmTour[0];
-    if ($('gmTourLabel')) {
-      $('gmTourLabel').textContent =
-        `Step ${gmTourStep + 1}/${gmTour.length}: ${step.title} — ${step.blurb}`;
-    }
-    switchTab(step.tab);
-  }
 
   if ($('clearDataBtn')) {
     $('clearDataBtn').addEventListener('click', async () => {
@@ -4495,72 +4435,6 @@ a.wh-name > span[style*="background"],
     $('importFile').value = '';
   });
 
-  /* ---- Settings events ---- */
-  function setSaveMsg(id, text, err) {
-    const el = $(id);
-    if (!el) return;
-    el.textContent = text || '';
-    el.classList.toggle('err', !!err);
-    if (text) setTimeout(() => { if (el.textContent === text) el.textContent = ''; }, 3500);
-  }
-
-  if ($('saveGuildBtn')) {
-    $('saveGuildBtn').addEventListener('click', () => {
-      try {
-        const gs = Accounts.updateSettings({
-          guildName: $('setGuildName').value.trim() || 'Midnight Rodeo',
-          realm: '',
-          game: 'classic',
-          region: ($('setRegion') && $('setRegion').value) || 'us',
-          raidHelperEventUrl: ($('setRhUrl') && $('setRhUrl').value.trim()) || '',
-        });
-        if ($('rhEventUrl') && gs.raidHelperEventUrl) $('rhEventUrl').value = gs.raidHelperEventUrl;
-        if (window.WowApi) WowApi.setUiPrefs({ realm: '', game: 'classic' });
-        updateGuildHeader();
-        setSaveMsg('guildSaveMsg', 'Saved.', false);
-      } catch (e) {
-        setSaveMsg('guildSaveMsg', e.message, true);
-      }
-    });
-  }
-  if ($('saveAccessBtn')) {
-    $('saveAccessBtn').addEventListener('click', () => {
-      try {
-        Accounts.updateSettings({
-          requireLogin: !!$('setRequireLogin').checked,
-          publicCanView: !!$('setPublicView').checked,
-          officersCanEditRoster: !!$('setOfficerRoster').checked,
-          officersCanGearSync: !!$('setOfficerSync').checked,
-          viewersCanExport: !!$('setViewerExport').checked,
-        });
-        applyAccessGate();
-        setSaveMsg('accessSaveMsg', 'Saved.', false);
-      } catch (e) {
-        setSaveMsg('accessSaveMsg', e.message, true);
-      }
-    });
-  }
-  if ($('settingsTestApi')) {
-    $('settingsTestApi').addEventListener('click', async () => {
-      if (!window.WowApi || !WowApi.isConfigured()) {
-        $('settingsApiStatus').textContent = 'Set blizzardProxyUrl in config.js';
-        $('settingsApiStatus').className = 'status err';
-        return;
-      }
-      $('settingsApiStatus').textContent = 'Testing…';
-      const h = await WowApi.health();
-      if (h.ok && h.hasCredentials) {
-        $('settingsApiStatus').textContent = `API ok · region ${h.region || '?'}`;
-        $('settingsApiStatus').className = 'status ok';
-      } else if (h.ok) {
-        $('settingsApiStatus').textContent = 'Proxy up but secrets missing';
-        $('settingsApiStatus').className = 'status err';
-      } else {
-        $('settingsApiStatus').textContent = h.error || 'Unreachable';
-        $('settingsApiStatus').className = 'status err';
-      }
-    });
-  }
   function applyHash() {
     const h = (location.hash || '').replace(/^#/, '');
     if (h.startsWith('raid/')) {
@@ -4593,9 +4467,33 @@ a.wh-name > span[style*="background"],
 
     const gs = guildSettings();
     const cfg = Object.assign({}, window.LOOTLOG_CONFIG || {}, window.WowApi ? WowApi.getConfig() : {});
+    // Prefill armory realm/game (localStorage > config)
+    if ($('rosterRealm')) {
+      const savedRealm =
+        (gs.realm || '') ||
+        (cfg.defaultRealm || '') ||
+        '';
+      try {
+        const ls = localStorage.getItem('lootlog-default-realm');
+        $('rosterRealm').value = (ls || savedRealm || '').trim();
+      } catch (_) {
+        $('rosterRealm').value = savedRealm;
+      }
+    }
+    if ($('rosterGame')) {
+      let g = 'classic';
+      try {
+        g = localStorage.getItem('lootlog-game') || cfg.game || 'classic';
+      } catch (_) {}
+      if (g !== 'classic' && g !== 'classic1x') g = 'classic';
+      $('rosterGame').value = g;
+    }
     if (window.WowApi) {
-      if ($('rosterGame')) $('rosterGame').value = 'classic';
-      setRosterStatus('Gear from RH + loot history');
+      setRosterStatus(
+        WowApi.isConfigured()
+          ? 'Armory ready when realm is set · Gear pulls real iLvl'
+          : 'Gear from RH + loot · optional Blizzard proxy for real iLvl'
+      );
     }
 
     // Prefill Raid-Helper URL + calendar
@@ -4610,8 +4508,6 @@ a.wh-name > span[style*="background"],
       // show placeholder only — don't echo full key in value for casual shoulder-surfing
       $('rhApiKey').placeholder = 'Key saved · paste a new one to replace';
     }
-
-    if ($('rosterGame')) $('rosterGame').value = 'classic';
 
     await loadAll();
 

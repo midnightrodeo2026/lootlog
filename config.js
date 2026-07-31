@@ -1,11 +1,14 @@
 // Midnight Rodeo — TBC Classic ONLY guild manager
 // Not retail · not Classic Era · not Wrath/Cata/MoP
 window.LOOTLOG_CONFIG = {
+  // Optional real iLvl/class/spec from Battle.net (like other armory tools):
+  // deploy api/blizzard-proxy, set secrets BNET_CLIENT_ID / BNET_CLIENT_SECRET,
+  // then put the worker URL here and set defaultRealm. Gear still works from RH+loot without this.
   blizzardProxyUrl: '',
 
   region: 'us',
-  game: 'classic',
-  defaultRealm: '',
+  game: 'classic', // profile-classic-{region} progressive armory (not a separate TBC endpoint)
+  defaultRealm: '', // e.g. Benediction — also editable on Raid 25
   locale: 'en_US',
   guildName: 'Midnight Rodeo',
 

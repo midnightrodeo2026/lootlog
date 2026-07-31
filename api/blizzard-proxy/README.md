@@ -1,10 +1,14 @@
 # Blizzard character lookup proxy
 
+Same pattern as Raider.IO and other armory tools: **client credentials stay on a server**.
+
 Browser apps cannot safely hold a Battle.net **client secret**. This Cloudflare Worker:
 
 1. Exchanges `BNET_CLIENT_ID` / `BNET_CLIENT_SECRET` for an access token
-2. Calls Classic Profile APIs (summary, specializations, equipment)
+2. Calls Classic Profile APIs (summary, specializations, equipment) under `profile-classic-{region}`
 3. Returns class / spec / iLvl for the Lootlog roster
+
+The site’s **Raid 25 → Gear** button uses this when `blizzardProxyUrl` + realm are set.
 
 ## Endpoints
 

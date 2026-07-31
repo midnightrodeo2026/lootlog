@@ -61,6 +61,50 @@
     return !!proxyBase();
   }
 
+  /** Short-lived browser cache (like other armory clients — avoid re-hitting profile APIs) */
+  const CHAR_CACHE_KEY = 'lootlog-char-cache-v1';
+  const CHAR_CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+  const charCache = new Map();
+
+  function loadCharCache() {
+    try {
+      const raw = localStorage.getItem(CHAR_CACHE_KEY);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      const now = Date.now();
+      Object.keys(obj || {}).forEach((k) => {
+        const row = obj[k];
+        if (row && row.exp > now && row.ch) charCache.set(k, row);
+      });
+    } catch (_) {}
+  }
+
+  function saveCharCache() {
+    try {
+      const obj = {};
+      let n = 0;
+      charCache.forEach((v, k) => {
+        if (v && v.exp > Date.now() && n < 200) {
+          obj[k] = v;
+          n++;
+        }
+      });
+      localStorage.setItem(CHAR_CACHE_KEY, JSON.stringify(obj));
+    } catch (_) {}
+  }
+
+  loadCharCache();
+
+  function charCacheKey(realm, name, game) {
+    return (
+      String(realm || '').toLowerCase() +
+      '|' +
+      String(name || '').toLowerCase() +
+      '|' +
+      String(game || 'classic')
+    );
+  }
+
   async function fetchJson(url) {
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     let data = null;
@@ -78,6 +122,10 @@
     return data;
   }
 
+  /**
+   * Character lookup via Cloudflare Worker (client credentials stay server-side).
+   * Same model as Raider.IO / armory tools: OAuth token on backend → profile-classic → summary/spec/equip.
+   */
   async function lookupCharacter(name, realm, opts) {
     const cfg = getConfig();
     const base = proxyBase();
@@ -88,18 +136,34 @@
       err.code = 'not_configured';
       throw err;
     }
+    // Dual names / junk → single armory name
+    let n = String(name || '')
+      .split(/[/\\|]/)[0]
+      .replace(/\(.*\)$/, '')
+      .trim();
     const r = (realm || cfg.defaultRealm || '').trim();
-    const n = (name || '').trim();
     if (!n) throw new Error('Character name is required');
     if (!r) throw new Error('Realm is required');
 
     const game = (opts && opts.game) || cfg.game || 'classic';
     const locale = cfg.locale || 'en_US';
+    const skipCache = opts && opts.skipCache;
+    const ck = charCacheKey(r, n, game);
+    if (!skipCache && charCache.has(ck)) {
+      const hit = charCache.get(ck);
+      if (hit && hit.exp > Date.now() && hit.ch) return Object.assign({}, hit.ch);
+    }
+
     const url =
       `${base}/character/${encodeURIComponent(r)}/${encodeURIComponent(n)}` +
       `?game=${encodeURIComponent(game)}&locale=${encodeURIComponent(locale)}`;
     const data = await fetchJson(url);
-    return data.character;
+    const ch = data.character;
+    if (ch) {
+      charCache.set(ck, { exp: Date.now() + CHAR_CACHE_TTL_MS, ch });
+      saveCharCache();
+    }
+    return ch;
   }
 
   async function health() {

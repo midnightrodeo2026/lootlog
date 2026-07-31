@@ -58,9 +58,19 @@ After import, **Resolve item names** fills names, icons, quality, and item iLvl 
 4. Mark disenchants with ♻ on an entry.  
 5. Open **Raids → View log** for officer Discord paste / CSV.
 
-## Character gear sync (Blizzard API)
+## Character gear / real iLvl (optional Blizzard armory)
 
-Browsers cannot hold a Battle.net **client secret**. Use the proxy:
+**How other programs do it** (Raider.IO, armory addons, most Classic tools):
+
+1. Battle.net **client credentials** OAuth on a **server** (never in the browser)
+2. Call Classic profile APIs: character summary + specializations + equipment  
+   Namespace: `profile-classic-{region}` (progressive) or `profile-classic1x-{region}` (Era)
+3. Read `average_item_level` / equip item levels → display iLvl
+4. Cache results and rate-limit lookups
+
+**This app does the same** via `api/blizzard-proxy` (Cloudflare Worker holds the secret).
+
+Without the proxy, **Gear** still works from Raid-Helper class/spec + loot iLvl estimates.
 
 ```bash
 cd api/blizzard-proxy
@@ -82,9 +92,9 @@ window.LOOTLOG_CONFIG = {
 };
 ```
 
-Roster → enter realm → **Test API** → **Gear sync** / **Gear sync all**.
+**Raid 25** → set realm → **Test armory** → **Gear**. Dual names try the main part first (Moon/Luna → Moon).
 
-> Armory uses **current Classic** namespaces (`profile-classic-*`). Loot icons still use **Wowhead TBC**.
+> There is no separate live “TBC-only” Blizzard armory API. Use `classic` for current progression. Loot icons still use **Wowhead TBC**.
 
 ## GitHub Pages (free hosting)
 
